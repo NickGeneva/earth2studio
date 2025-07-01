@@ -29,7 +29,13 @@ from omegaconf import DictConfig, open_dict
 from physicsnemo.distributed import DistributedManager
 
 from earth2studio.data import DataSource
-from earth2studio.io import IOBackend, KVBackend, XarrayBackend
+from earth2studio.io import (
+    AsyncZarrBackend,
+    IOBackend,
+    NetCDF4Backend,
+    XarrayBackend,
+    ZarrBackend,
+)
 from earth2studio.models.auto import Package
 from earth2studio.models.px import PrognosticModel
 from earth2studio.perturbation import Perturbation
@@ -248,18 +254,31 @@ def initialise_output(
         out_path_base = os.path.join(cfg.file_output.path, k)
         out_path = os.path.join(out_path_base, file_name)
         os.makedirs(out_path_base, exist_ok=True)
-
-        io = hydra.utils.instantiate(cfg.file_output.format)
-        if isinstance(io, partial):  # add out file names
-            if cfg.file_output.format._target_.split(".")[-1].startswith("NetCDF"):
-                file_name = out_path + ".nc"
-            elif cfg.file_output.format._target_.split(".")[-1].startswith("Zarr"):
-                file_name = out_path + ".zarr"
-            else:
-                raise ValueError(
-                    f"no file name extension implemented for {io}. It's a one-liner tho, do it quickly ;)"
-                )
-            io = io(file_name=file_name)
+        if cfg.file_output.format == "netcdf":
+            file_name = out_path + ".nc"
+            io = NetCDF4Backend(file_name=file_name)
+        elif cfg.file_output.format == "zarr":
+            file_name = out_path + ".zarr"
+            io = ZarrBackend(
+                file_name=file_name, chunks={"ensemble": 1, "time": 1, "lead_time": 1}
+            )
+        elif cfg.file_output.format == "xarray":
+            file_name = out_path
+            io = XarrayBackend(file_name=file_name)
+        elif cfg.file_output.format == "asynczarr":
+            file_name = out_path + ".zarr"
+            index_coords = {
+                "ensemble": output_coords_dict["ensemble"],
+                "time": output_coords_dict["time"],
+                "lead_time": output_coords_dict["lead_time"],
+            }
+            io = AsyncZarrBackend(
+                path=file_name, index_coords=index_coords, blocking=False, pool_size=4
+            )
+        else:
+            raise ValueError(
+                f"IO backend format not supported, {cfg.file_output.format}"
+            )
         io_dict[k] = io
 
     return io_dict
@@ -769,68 +788,6 @@ def update_model_dict(model_dict: dict, root: str) -> dict:
         model_dict["model"] = model_dict["class"].load_model(package=package)
 
     return model_dict
-
-
-def write_to_disk(
-    cfg: DictConfig,
-    ic: str,
-    model_dict: dict,
-    io_dict: dict[str, IOBackend],
-    writer_executor: ThreadPoolExecutor | None = None,
-    writer_threads: list[Future] = [],
-) -> tuple[ThreadPoolExecutor | None, list[Future]]:
-    """Method which writes in-memory backends to file.
-
-    Parameters
-    ----------
-    cfg : DictConfig
-        config.
-    ic : str
-        initial condition.
-    model_dict : dict
-        dictionary containing loaded model, its class and its package
-    io : dict[IOBackend]
-        dictionary of io objects for data output
-    writer_executor : ThreadPoolExecutor, optional
-        executor for parallel file output, by default None
-    writer_threads : list[Future], optional
-        threads for parallel file output, by default []
-
-    Returns
-    -------
-    tuple[ThreadPoolExecutor | None, list[Future]]:
-        List of writer threads and executor pool if exists
-    """
-
-    pkg = model_dict["package"]
-    if pkg != "vanilla":
-        pkg = "_pkg_" + pkg.split("_")[-1]
-
-    file_name = cfg.project + "_" + str(ic)[:13] + pkg
-
-    for k, io in io_dict.items():
-        out_path = os.path.join(cfg.file_output.path, k, file_name)
-
-        kw_args = {"path": out_path + ".nc", "format": "NETCDF4"}
-
-        if writer_executor is not None:
-            if isinstance(io, XarrayBackend):
-                tmp = io.root
-            elif isinstance(io, KVBackend):
-                tmp = io.to_xarray()
-            tmp = extend_xarray_for_reproducibility(tmp, io, cfg, model_dict)
-            writer_threads.append(writer_executor.submit(tmp.to_netcdf, **kw_args))
-        else:
-            if isinstance(io, XarrayBackend):
-                tmp = io.root
-                tmp = extend_xarray_for_reproducibility(tmp, io, cfg, model_dict)
-                tmp.to_netcdf(**kw_args)
-            elif isinstance(io, KVBackend):
-                tmp = io.to_xarray()
-                tmp = extend_xarray_for_reproducibility(tmp, io, cfg, model_dict)
-                tmp.to_netcdf(**kw_args)
-
-    return writer_executor, writer_threads
 
 
 def extend_xarray_for_reproducibility(

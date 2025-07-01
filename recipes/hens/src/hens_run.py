@@ -26,7 +26,6 @@ from src.hens_perturbation import HENSPerturbation
 from src.hens_utilities import (
     initialise_output,
     update_model_dict,
-    write_to_disk,
 )
 from src.hens_utilities_reproduce import create_base_seed_string
 
@@ -111,20 +110,3 @@ def run_inference(
 
         # run inference
         io_dict = ensemble_runner()
-
-        # if in-memory flavour of io backend was chosen, write content to disk now
-        if io_dict:
-            writer_executor, writer_threads = write_to_disk(
-                cfg,
-                ic,
-                model_dict,
-                io_dict,
-                writer_executor,
-                writer_threads,
-            )
-
-    if writer_executor is not None:
-        for thread in list(writer_threads):
-            thread.result()
-            writer_threads.remove(thread)
-        writer_executor.shutdown()
