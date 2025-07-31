@@ -15,3 +15,6 @@
 # limitations under the License.
 
 __version__ = "0.9.0a0"
+
+# Register earth2studio xarray accessor
+from earth2studio.utils.xarray import Earth2StudioDataArrayAccessor

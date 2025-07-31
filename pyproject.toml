@@ -30,6 +30,7 @@ dependencies = [
     "xarray[parallel]>=2023.1.0",
     "zarr>=2.14.2",
     "numcodecs<0.15.0", # TODO: Remove
+    "cupy-cuda12x>=13.4.1",
 ]
 
 classifiers = [
