@@ -16,6 +16,7 @@
 
 import cupy as cp
 import numpy as np
+import pandas as pd
 import torch
 import xarray as xr
 
@@ -37,7 +38,7 @@ class Earth2StudioDataArrayAccessor:
         bool
             Whether the underlying data is a cupy array.
         """
-        return self.da.data.is_cupy
+        return isinstance(self.da.data, cp.ndarray)
 
     @property
     def device(self) -> torch.device:
@@ -92,7 +93,7 @@ class Earth2StudioDataArrayAccessor:
         """Returns numpy based data array"""
         return self.to("cpu")
 
-    def torch(self) -> torch.Tensor:
+    def as_torch(self) -> torch.Tensor:
         """Returns the data arrays in dataset as dictionary of PyTorch tensors.
         This is zero-copy.
 
@@ -102,6 +103,22 @@ class Earth2StudioDataArrayAccessor:
             Dictionary of tensors
         """
         return torch.as_tensor(self.da.data)
+
+    def from_torch(self, x: torch.Tensor) -> xr.DataArray:
+        """Takes a pytorch tensor and converts it into a cupy data array and places
+        it into the current data array object. This is zero-copy.
+
+        Returns
+        -------
+        dict[str, torch.Tensor]
+            Dictionary of tensors
+        """
+        return xr.DataArray(
+            cp.asarray(x),
+            dims=self.da.dims,
+            coords=self.da.coords,
+            attrs=self.da.attrs,
+        )
 
     def batch(self, target_coordinates: xr.Dataset) -> xr.DataArray:
         """Batches or stacks a data array based on input target coordinates
@@ -115,7 +132,7 @@ class Earth2StudioDataArrayAccessor:
         Returns
         -------
         xr.DataArray
-            Xarray with required leading dimensions stacked into a batch dimension
+            DataArray with required leading dimensions stacked into a batch dimension
         """
 
         # Get coordinate system from coords dataset
@@ -136,7 +153,19 @@ class Earth2StudioDataArrayAccessor:
 
         Returns
         -------
-        _type_
-            _description_
+        xr.DataArray
+            DataArray with unbatched leading dimensions
         """
-        return self.da.unstack()
+        if "batch" not in self.da.dims:
+            return self.da
+
+        if not isinstance(self.da.get_index("batch"), pd.MultiIndex) and len(self.da.batch) == 1:
+            return self.da.squeeze("batch")
+
+        batched_dims = tuple(self.da.dims[1:])
+        # By default unstack will move unbatch dims to the end of the array, so we need
+        # to transpose them to the forward dims
+        da = self.da.unstack(dim='batch')
+        unbatched_dims = tuple(da.dims[len(batched_dims):])
+        return da.transpose(*(unbatched_dims + batched_dims))
+

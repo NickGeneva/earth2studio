@@ -16,6 +16,7 @@
 import functools
 import inspect
 import sys
+import xarray as xr
 from collections import OrderedDict
 from collections.abc import Callable, Iterator
 from itertools import chain, islice
@@ -66,8 +67,8 @@ class batch_func:
         return self._batch_wrap(func)
 
     def _compress_batch(
-        self, model: Any, x: torch.Tensor, coords: CoordSystem
-    ) -> tuple[torch.Tensor, CoordSystem, CoordSystem, torch.Size]:
+        self, model: Any, x: xr.DataArray
+    ) -> xr.DataArray:
         """Compresses dimensions into the models batch dimension
 
         Parameters
@@ -81,10 +82,8 @@ class batch_func:
 
         Returns
         -------
-        tuple[ torch.Tensor, CoordSystem, CoordSystem, torch.Size, ]
-            Returns batch compressed tensor, compressed coords, the coords of the batch
-            dimensions and the shape of the batched dimensions. Later two are needed for
-            decompression.
+        xr.DataArray
+            Returns batch compressed data array, compressed coords
 
         Raises
         ------
@@ -93,93 +92,45 @@ class batch_func:
         """
         input_coords = model.input_coords()
         if (
-            next(iter(input_coords)) != "batch"
-            and next(iter(model.output_coords(input_coords))) != "batch"
+            input_coords.dims[0] != "batch"
+            and model.output_coords(input_coords).dims[0] != "batch"
         ):
             raise ValueError(
                 "Model coordinate systems not compatible with batch processing"
             )
 
-        if len(x.shape) != len(coords):
-            raise ValueError(
-                "Input tensor shape does not match the provided coordinates"
-            )
-        flatten_coords: CoordSystem
-        batched_coords: CoordSystem
-        # If dims of input is one less than input coords, just prepend batch dim
-        if len(x.shape) == len(input_coords) - 1:
-            flatten_coords = coords.copy()
-            flatten_coords.update({"batch": np.array([0])})
-            flatten_coords.move_to_end("batch", last=False)
-            return x.unsqueeze(0), flatten_coords, OrderedDict({}), torch.Size([])
-
-        i = len(coords) - len(input_coords.keys()) + 1
-        batched_shape = x.shape[:i]
-        # Prep coordinate dicts
-        batched_coords = OrderedDict(islice(coords.items(), 0, i))
-        flatten_coords = OrderedDict(islice(coords.items(), i, None))
-        flatten_coords.update({"batch": np.empty(0)})
-        flatten_coords.move_to_end("batch", last=False)
-        # Flatten batch dims
-        x = torch.flatten(x, start_dim=0, end_dim=len(batched_coords) - 1)
-        flatten_coords["batch"] = np.arange(x.shape[0])
-
-        return x, flatten_coords, batched_coords, batched_shape
+        return x.batch()
 
     def _decompress_batch(
         self,
-        out: torch.Tensor,
-        out_coords: CoordSystem,
-        batched_coords: CoordSystem,
-        batched_shape: torch.Size,
-    ) -> tuple[torch.Tensor, CoordSystem]:
-        """Decompresses the batch dimension of a tensor
+        out: xr.DataArray,
+    ) -> xr.DataArray:
+        """Decompresses the batch dimension of a data array
 
         Parameters
         ----------
-        out : torch.Tensor
-            Batched tensor to decompress
-        out_coords : CoordSystem
-            Compressed coordinates
-        batched_coords : CoordSystem
-            The coords of the batch dimensions
-        batched_shape : torch.Size
-            The shape of the batched dimensions
+        out : xr.DataArray
+            Batched data array to decompress
 
         Returns
         -------
-        tuple[torch.Tensor, CoordSystem]
-            Uncompressed tensor and coordinates
+        xr.DataArray
+            Unbatched data array
         """
 
         # Reconstruct batch dims
-        out = out.reshape(batched_shape + out.shape[1:])
-        out_coords = out_coords.copy()
-        del out_coords["batch"]
-        out_coords = OrderedDict(chain(batched_coords.items(), out_coords.items()))
-        return out, out_coords
+        return out.unbatch()
 
     def _batch_wrap(self, func: Callable) -> Callable:
         """Standard batch function decorator"""
 
         # TODO: Better typing for model object
         @functools.wraps(func)
-        def _wrapper(
-            model: Any,
-            x: torch.Tensor,
-            coords: CoordSystem,
-        ) -> tuple[torch.Tensor, CoordSystem]:
-
-            x, flatten_coords, batched_coords, batched_shape = self._compress_batch(
-                model, x, coords
-            )
-
-            # Model forward
-            out, out_coords = func(model, x, flatten_coords)
-            out, out_coords = self._decompress_batch(
-                out, out_coords, batched_coords, batched_shape
-            )
-            return out, out_coords
+        def _wrapper(model: Any, x: xr.DataArray) -> xr.DataArray:
+            x = self._compress_batch(model, x)
+            out = func(model, x)
+            out = self._decompress_batch(out)
+            return out
 
         return _wrapper
 
@@ -190,14 +141,11 @@ class batch_func:
         # TODO: Better typing for model object
         @functools.wraps(func)
         def _wrapper(
-            model: Any, x: torch.Tensor, coords: CoordSystem
-        ) -> Iterator[tuple[torch.Tensor, CoordSystem]]:
+            model: Any, x: xr.DataArray
+        ) -> Iterator[xr.DataArray]:
 
-            x, flatten_coords, batched_coords, batched_shape = self._compress_batch(
-                model, x, coords
-            )
-
-            gen = func(model, x, flatten_coords)
+            x = self._compress_batch(model, x)
+            gen = func(model, x)
 
             # Run the generator
             try:
@@ -207,11 +155,8 @@ class batch_func:
                 while True:
                     try:
                         # Forward the response to our caller and get its next request
-                        out, out_coords = response
-                        out, out_coords = self._decompress_batch(
-                            out, out_coords, batched_coords, batched_shape
-                        )
-                        request = yield out, out_coords
+                        out = self._decompress_batch(response)
+                        request = yield out
 
                     except GeneratorExit:  # noqa: PERF203
                         # Inform the still active generator about its imminent closure

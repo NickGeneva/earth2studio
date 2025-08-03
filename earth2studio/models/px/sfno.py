@@ -21,6 +21,7 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 import torch
+import xarray as xr
 
 from earth2studio.models.auto import AutoModelMixin, Package
 from earth2studio.models.batch import batch_coords, batch_func
@@ -163,15 +164,17 @@ class SFNO(torch.nn.Module, AutoModelMixin, PrognosticMixin):
     def __str__(self) -> str:
         return "sfno_73ch_small"
 
-    def input_coords(self) -> CoordSystem:
+    def input_coords(self) -> xr.DataArray:
         """Input coordinate system of the prognostic model
+
         Returns
         -------
         CoordSystem
             Coordinate system dictionary
         """
-        return OrderedDict(
-            {
+        return xr.DataArray(
+            dims=["batch", "time", "lead_time", "variable", "lat", "lon"],
+            coords={
                 "batch": np.empty(0),
                 "time": np.empty(0),
                 "lead_time": np.array([np.timedelta64(0, "h")]),
@@ -182,8 +185,9 @@ class SFNO(torch.nn.Module, AutoModelMixin, PrognosticMixin):
         )
 
     @batch_coords()
-    def output_coords(self, input_coords: CoordSystem) -> CoordSystem:
+    def output_coords(self, input_coords: xr.DataArray) -> xr.DataArray:
         """Output coordinate system of the prognostic model
+
         Parameters
         ----------
         input_coords : CoordSystem
@@ -194,8 +198,9 @@ class SFNO(torch.nn.Module, AutoModelMixin, PrognosticMixin):
         CoordSystem
             Coordinate system dictionary
         """
-        output_coords = OrderedDict(
-            {
+        output_coords = xr.DataArray(
+            dims=["batch", "time", "lead_time", "variable", "lat", "lon"],
+            coords={
                 "batch": np.empty(0),
                 "time": np.empty(0),
                 "lead_time": np.array([np.timedelta64(6, "h")]),
@@ -204,14 +209,13 @@ class SFNO(torch.nn.Module, AutoModelMixin, PrognosticMixin):
                 "lon": np.linspace(0, 360, 1440, endpoint=False),
             }
         )
-        if input_coords is None:
-            return output_coords
-        test_coords = input_coords.copy()
+
+        test_coords = input_coords.coords.copy()
         test_coords["lead_time"] = (
-            test_coords["lead_time"] - input_coords["lead_time"][-1]
+            test_coords["lead_time"] - input_coords.coords["lead_time"][-1]
         )
         target_input_coords = self.input_coords()
-        for i, key in enumerate(target_input_coords):
+        for i, key in enumerate(target_input_coords.coords):
             if key not in ["batch", "time"]:
                 handshake_dim(test_coords, key, i)
                 handshake_coords(test_coords, target_input_coords, key)
@@ -274,64 +278,53 @@ class SFNO(torch.nn.Module, AutoModelMixin, PrognosticMixin):
         )
 
     @torch.inference_mode()
-    def _forward(
-        self,
-        x: torch.Tensor,
-        coords: CoordSystem,
-    ) -> tuple[torch.Tensor, CoordSystem]:
-        output_coords = self.output_coords(coords)
-        x = x.squeeze(2)
-        x = (x - self.center) / self.scale
-        for j, _ in enumerate(coords["batch"]):
-            for i, t in enumerate(coords["time"]):
+    def _forward(self, x: xr.DataArray) -> xr.DataArray:
+        out = self.output_coords(x)
+        xt = x.e2s.as_torch().squeeze(2)
+        xt = (xt - self.center) / self.scale
+        for j, _ in enumerate(x.coords["batch"]):
+            for i, t in enumerate(x.coords["time"]):
                 # https://github.com/NVIDIA/modulus-makani/blob/933b17d5a1ebfdb0e16e2ebbd7ee78cfccfda9e1/makani/third_party/climt/zenith_angle.py#L197
                 # Requires time zone data
                 t = [
                     dt.replace(tzinfo=ZoneInfo("UTC"))
-                    for dt in timearray_to_datetime(t + coords["lead_time"])
+                    for dt in timearray_to_datetime(t + x.coords["lead_time"])
                 ]
-                x[j, i : i + 1] = self.model(x[j, i : i + 1], t)
-        x = self.scale * x + self.center
-        x = x.unsqueeze(2)
-        return x, output_coords
+                xt[j, i : i + 1] = self.model(xt[j, i : i + 1], t)
+        xt = self.scale * xt + self.center
+        xt = xt.unsqueeze(2)
+        return out.e2s.from_torch(xt)
 
     @batch_func()
-    def __call__(
-        self,
-        x: torch.Tensor,
-        coords: CoordSystem,
-    ) -> tuple[torch.Tensor, CoordSystem]:
+    def __call__(self, x: xr.DataArray) -> xr.DataArray:
         """Runs prognostic model 1 step
 
         Parameters
         ----------
-        x : torch.Tensor
-            Input tensor
-        coords : CoordSystem
-            Input coordinate system
+        x : xr.DataArray
+            Input data array
 
         Returns
         ------
-        tuple[torch.Tensor, CoordSystem]
-            Output tensor and coordinate system
+        xr.DataArray
+            Output data array
         """
-        return self._forward(x, coords)
+        return self._forward(x)
 
     @batch_func()
     def _default_generator(
-        self, x: torch.Tensor, coords: CoordSystem
-    ) -> Generator[tuple[torch.Tensor, CoordSystem], None, None]:
-        coords = coords.copy()
-        self.output_coords(coords)
-        yield x, coords
+        self, x: xr.DataArray
+    ) -> Generator[xr.DataArray, None, None]:
+        self.output_coords(x)
+        yield x
         while True:
             # Front hook
-            x, coords = self.front_hook(x, coords)
+            x = self.front_hook(x)
             # Forward is identity operator
-            x, coords = self._forward(x, coords)
+            x = self._forward(x)
             # Rear hook
-            x, coords = self.rear_hook(x, coords)
-            yield x, coords.copy()
+            x = self.rear_hook(x)
+            yield x
 
     def create_iterator(
         self, x: torch.Tensor, coords: CoordSystem

@@ -19,6 +19,7 @@ from typing import Literal
 
 import numpy as np
 import torch
+import xarray as xr
 
 from earth2studio.utils.type import CoordSystem
 
@@ -158,11 +159,10 @@ def handshake_size(
 
 
 def map_coords(
-    x: torch.Tensor,
-    input_coords: CoordSystem,
-    output_coords: CoordSystem,
+    x: xr.DataArray,
+    output_coords: xr.DataArray,
     method: Literal["nearest"] = "nearest",
-) -> tuple[torch.Tensor, CoordSystem]:
+) -> xr.DataArray:
     """A basic interpolation util to map between coordinate systems with common
     dimensions. Namely, `output_coords` should consist of keys are present in
     `input_coords`. Note that `output_coords` do not need have all the dimensions of the
@@ -172,18 +172,16 @@ def map_coords(
 
     Parameters
     ----------
-    x : torch.Tensor
+    x : xr.DataArray
         Input data to map
-    input_coords : CoordSystem
-        Respective input coordinate system
-    output_coords : CoordSystem
+    output_coords : xr.DataArray
         Target output coordinates to map.
     method : Literal[&quot;nearest&quot;], optional
         Method to use for mapping numeric coordinates, by default "nearest"
 
     Returns
     -------
-    tuple[torch.Tensor, CoordSystem]
+    xr.DataArray
         Mapped data and coordinate system.
 
     Warning
@@ -307,9 +305,9 @@ def map_coords(
 
 
 def split_coords(
-    x: torch.Tensor, coords: CoordSystem, dim: str = "variable"
-) -> tuple[list[torch.Tensor], CoordSystem, np.ndarray]:
-    """
+    x: xr.DataArray, dim: str = "variable"
+) -> xr.Dataset:
+    """ I DONT THINK THIS FUNCTION IS EVEN NEEDED NOW
     A utility function to split a dimension from a (x,coords) pair and convert it into
     a list of tensors, a CoordSystem, and the dimension that extract from coords.
 
@@ -332,15 +330,15 @@ def split_coords(
         The values of the dimension extracted from the coordinate system.
     """
 
-    if dim not in coords:
-        raise ValueError(f"dim {dim} is not in coords: {list(coords)}.")
+    if not isinstance(x, xr.DataArray):
+        raise TypeError(f"Input x must be an xarray DataArray, got {type(x)}")
 
-    reduced_coords = coords.copy()
-    dim_index = list(reduced_coords).index(dim)
-    values = reduced_coords.pop(dim)
-    xs = [xi.squeeze(dim_index) for xi in x.split(1, dim=dim_index)]
-    return xs, reduced_coords, values
+    if dim not in x.dims:
+        raise ValueError(f"dim {dim} is not in x dimensions: {list(x.dims)}")
 
+    # Split into dataset along the dimension
+    ds = x.to_dataset(dim=dim)
+    return ds
 
 def convert_multidim_to_singledim(
     coords: CoordSystem, return_mapping: bool = False

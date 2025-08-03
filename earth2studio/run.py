@@ -20,6 +20,7 @@ from math import ceil
 
 import numpy as np
 import torch
+import xarray as xr
 from loguru import logger
 from tqdm import tqdm
 
@@ -93,7 +94,7 @@ def deterministic(
         interp_to = None
         interp_method = "nearest"
 
-    x, coords = fetch_data(
+    x = fetch_data(
         source=data,
         time=time,
         variable=prognostic_ic["variable"],
@@ -107,38 +108,41 @@ def deterministic(
     # sphinx - fetch data end
 
     # Set up IO backend
-    total_coords = prognostic.output_coords(prognostic.input_coords()).copy()
-    for key, value in prognostic.output_coords(
-        prognostic.input_coords()
-    ).items():  # Scrub batch dims
-        if value.shape == (0,):
-            del total_coords[key]
-    total_coords["time"] = time
-    total_coords["lead_time"] = np.asarray(
-        [
-            prognostic.output_coords(prognostic.input_coords())["lead_time"] * i
-            for i in range(nsteps + 1)
-        ]
-    ).flatten()
-    total_coords.move_to_end("lead_time", last=False)
-    total_coords.move_to_end("time", last=False)
+    total_coords = prognostic.output_coords(prognostic.input_coords())
+    for dim in total_coords.dims:
+        if total_coords[dim].shape == (0,):
+            total_coords = total_coords.drop_dims(dim)
 
-    for key, value in total_coords.items():
-        total_coords[key] = output_coords.get(key, value)
-    var_names = total_coords.pop("variable")
-    io.add_array(total_coords, var_names)
+    for dim in total_coords.dims:
+        if dim in output_coords.coords:
+            total_coords.coords[dim] = output_coords.coords[dim].values
+
+    total_coords = xr.DataArray(
+        dims=["time", "lead_time"] + list(total_coords.dims),
+        coords={
+            "time": time,
+            "lead_time": np.asarray([
+                prognostic.output_coords(prognostic.input_coords())["lead_time"] * i
+                for i in range(nsteps + 1)
+            ]),
+            **total_coords.coords
+        }
+    )
+
+    total_coords = total_coords.drop_dims("variable")
+    # io.add_array(total_coords, var_names)
 
     # Map lat and lon if needed
-    x, coords = map_coords(x, coords, prognostic.input_coords())
+    x = map_coords(x, prognostic.input_coords())
     # Create prognostic iterator
-    model = prognostic.create_iterator(x, coords)
+    model = prognostic.create_iterator(x)
 
     logger.info("Inference starting!")
     with tqdm(total=nsteps + 1, desc="Running inference", position=1) as pbar:
-        for step, (x, coords) in enumerate(model):
+        for step, x in enumerate(model):
             # Subselect domain/variables as indicated in output_coords
-            x, coords = map_coords(x, coords, output_coords)
-            io.write(*split_coords(x, coords))
+            x = map_coords(x, output_coords)
+            # io.write(x.to_dataset(dim="variable"))
             pbar.update(1)
             if step == nsteps:
                 break

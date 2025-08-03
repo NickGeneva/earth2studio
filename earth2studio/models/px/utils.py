@@ -14,17 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-
+import xarray as xr
 from earth2studio.utils.coords import CoordSystem
 
 
 class PrognosticMixin:
     """This utility adds the ability to call hooks into a prognostic iterator."""
 
-    def _default_hook(
-        self, x: torch.Tensor, coords: CoordSystem
-    ) -> tuple[torch.Tensor, CoordSystem]:
-        return x, coords
+    def _default_hook(self, x: xr.DataArray) -> xr.DataArray:
+        return x
 
     front_hook = _default_hook
     rear_hook = _default_hook

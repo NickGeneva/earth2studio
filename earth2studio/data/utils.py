@@ -108,15 +108,9 @@ def fetch_data(
             da0 = da0.assign_coords(lead_time=np.array([lead], dtype="timedelta64[ns]"))
             da0 = da0.assign_coords(time=time)
             da.append(da0)
-
         da = xr.concat(da, "lead_time")
 
-    return prep_data_array(
-        da,
-        device=device,
-        interp_to=interp_to,
-        interp_method=interp_method,
-    )
+    return da.to(device) # TODO: add prep data back
 
 
 def prep_data_array(
