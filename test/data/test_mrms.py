@@ -123,7 +123,7 @@ def test_mrms_available():
 
     # And attempting to fetch should raise ValueError
     with pytest.raises(ValueError):
-        ds = MRMS(cache=False)
+        ds = MRMS(cache=False, max_offset_minutes=0)
         ds([datetime(2019, 1, 1, 0, 0, 0)], "refc")
 
 
