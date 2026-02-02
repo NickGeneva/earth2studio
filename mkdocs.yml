@@ -1,0 +1,87 @@
+site_name: Earth2Studio
+site_description: Earth2Studio documentation
+repo_url: https://github.com/NVIDIA/earth2studio
+repo_name: NVIDIA/earth2studio
+docs_dir: docs
+use_directory_urls: false
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.indexes
+    - content.code.copy
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [".."]
+          options:
+            allow_inspection: false
+            docstring_style: numpy
+            show_source: false
+            show_root_heading: false
+            show_root_toc_entry: false
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+extra_css:
+  - _static/css/custom.css
+
+nav:
+  - Home: index.md
+  - User Guide:
+      - Overview: userguide/index.md
+      - About:
+          - Install: userguide/about/install.md
+          - Introduction: userguide/about/intro.md
+          - Data Movement: userguide/about/data.md
+      - Core Components:
+          - Prognostic Models: userguide/components/prognostic.md
+          - Diagnostic Models: userguide/components/diagnostic.md
+          - Datasources: userguide/components/datasources.md
+          - Perturbations: userguide/components/perturbation.md
+          - Statistics: userguide/components/statistics.md
+          - IO Backends: userguide/components/io.md
+      - Advanced Usage:
+          - Batch Dimension: userguide/advanced/batch.md
+          - AutoModels: userguide/advanced/auto.md
+          - Lexicon: userguide/advanced/lexicon.md
+      - Developer Guide:
+          - Overview: userguide/developer/overview.md
+          - Dependencies: userguide/developer/dependency.md
+          - Style: userguide/developer/style.md
+          - Documentation: userguide/developer/documentation.md
+          - Testing: userguide/developer/testing.md
+          - Build: userguide/developer/build.md
+          - Recipes: userguide/developer/recipes.md
+      - Support:
+          - Troubleshooting: userguide/support/troubleshooting.md
+          - Frequently Asked Questions: userguide/support/faq.md
+      - Notes:
+          - Surface Pressure: userguide/notes/surface_pressure.md
+  - API Reference:
+      - Overview: api/index.md
+      - Data:
+          - Overview: api/data/index.md
+          - Data Sources: api/data/datasources.md
+          - Forecast Sources: api/data/forecastsources.md
+          - DataFrame Sources: api/data/dataframesources.md
+          - Utilities: api/data/utilities.md
+      - Models: api/models.md
+      - IO: api/io.md
+      - Perturbations: api/perturbation.md
+      - Statistics: api/statistics.md
+      - Utils: api/utils.md
+      - Workflows: api/workflows.md

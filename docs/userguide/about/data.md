@@ -2,12 +2,11 @@
 
 # Data Movement
 
-:::{admonition} Keeping Data Transparent
-:class: tip
-"Show me your code and conceal your data structures, and I shall continue to be
-mystified. Show me your data structures, and I won't usually need your code; it'll be
-obvious." - *Fred Brooks*
-:::
+!!! tip "Keeping Data Transparent"
+
+  "Show me your code and conceal your data structures, and I shall continue to be
+  mystified. Show me your data structures, and I won't usually need your code; it'll be
+  obvious." - *Fred Brooks*
 
 Earth2Studio aims to keep data simple and interpretable between components.
 Given that this package interacts with geo-physical data, the common data-structure
@@ -31,9 +30,9 @@ or interact with these two data structures.
 The combonation of both the data tensor and respective coordinate system provides
 complete information one needs to interpret any stage of a workflow.
 
-:::{note}
-Data is **always** moved between components using unnormalized physical units.
-:::
+!!! note
+
+    Data is **always** moved between components using unnormalized physical units.
 
 (coordinates_userguide)=
 
@@ -101,11 +100,11 @@ Inference Studio when possible and the packages we interface with.
   - `np.ndarray[float]`
 ```
 
-:::{note}
-`np.empty(0)` is used to denote variable axis in the coordinate system. Namely a
-dimension in the tensor that can be of any size, greater than 0. Typically this is the
-`batch` dimension.
-:::
+!!! note
+
+    `np.empty(0)` is used to denote variable axis in the coordinate system. Namely a
+    dimension in the tensor that can be of any size, greater than 0. Typically this is the
+    `batch` dimension.
 
 ### Coordinate Utilities
 
@@ -115,9 +114,9 @@ To help make this process less tedious, Earth2Studio has several utility
 functions that make interacting with coordinates easier.
 The bulk of these can be found in the [Earth2Studio Utilities](earth2studio.utils_api).
 
-:::{warning}
-🚧 Under construction, todo: add some example here! 🚧
-:::
+!!! warning
+
+    🚧 Under construction, todo: add some example here! 🚧
 
 ### Model Coordinates
 
@@ -178,10 +177,10 @@ Output lead: [6]
 Output lead 2: [12]
 ```
 
-:::{note}
-The batch dimension was not discussed intentially. Think about it like a free dimension.
-More information can be found in the {ref}`batch_function_userguide` section.
-:::
+!!! note
+
+    The batch dimension was not discussed intentially. Think about it like a free dimension.
+    More information can be found in the {ref}`batch_function_userguide` section.
 
 ## Inference on the GPU
 
@@ -202,12 +201,11 @@ data array which is then then converted to a tensor.
 The data remain on the device, denoted by the GPU boundary, until it needs to be written
 by the IO component.
 
-:::{admonition} Data Sources and Xarray
-:class: tip
-This may raise the question: Why do datasources not output directly to tensor and
-coordinate dictionaries?
-This is an opinionated decision due to the fact that these data sources need to store
-data on the CPU regardless and can be extremely useful outside of the context of this package.
-Thus they return Xarray data arrays which are is nothing more than a fancy data array
-with a coordinate system attached to it!
-:::
+!!! tip "Data Sources and Xarray"
+
+    This may raise the question: Why do datasources not output directly to tensor and
+    coordinate dictionaries?
+    This is an opinionated decision due to the fact that these data sources need to store
+    data on the CPU regardless and can be extremely useful outside of the context of this package.
+    Thus they return Xarray data arrays which are is nothing more than a fancy data array
+    with a coordinate system attached to it!

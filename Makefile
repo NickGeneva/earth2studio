@@ -71,8 +71,7 @@ coverage:
 .PHONY: docs
 docs:
 	uv sync --group docs
-	uv run $(MAKE) -C docs clean
-	uv run $(MAKE) -C docs html
+	uv run mkdocs build
 
 .PHONY: docs-full
 docs-full:

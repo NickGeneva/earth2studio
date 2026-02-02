@@ -27,11 +27,11 @@ The full requirements for a standard IO backend are defined explicitly in the
 :language: python
 ```
 
-:::{note}
-IO Backends do not need to inherit this protocol; this is simply used to define
-the required APIs. Some built-in IO backends also may offer additional functionality
-that is not universally supported (and hence not required).
-:::
+!!! note
+
+    IO Backends do not need to inherit this protocol; this is simply used to define
+    the required APIs. Some built-in IO backends also may offer additional functionality
+    that is not universally supported (and hence not required).
 
 There are two important methods that must be supported: `add_array`, which
 adds an array to the underlying store and any attached coordinates, and `write`,

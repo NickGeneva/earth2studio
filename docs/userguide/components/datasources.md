@@ -12,12 +12,12 @@ Data sources may be remote cloud based data stores or files on your local machin
 The list of datasources that are already built into Earth2studio can be found in
 the API documentation {ref}`earth2studio.data`.
 
-:::{note}
-Earth2Studio has data and forecast sources. The only difference being the latter
-has a lead time input. Some data stores may have both implemented where the data source
-provides the initial states / data-assimilated data while the forecast source provides
-results from a predictive model.
-:::
+!!! note
+
+    Earth2Studio has data and forecast sources. The only difference being the latter
+    has a lead time input. Some data stores may have both implemented where the data source
+    provides the initial states / data-assimilated data while the forecast source provides
+    results from a predictive model.
 
 ## Data Source Interface
 
@@ -29,11 +29,11 @@ The full requirements for a standard diagnostic model are defined explicitly in 
 :language: python
 ```
 
-:::{note}
-While not a requirement, built in remote data sources offer local caching when fetching
-data which is stored in the Earth2Studio cache. See {ref}`configuration_userguide` for
-details on how to customize this location.
-:::
+!!! note
+
+    While not a requirement, built in remote data sources offer local caching when fetching
+    data which is stored in the Earth2Studio cache. See {ref}`configuration_userguide` for
+    details on how to customize this location.
 
 ### Beyond N-D Array Data
 
@@ -64,12 +64,12 @@ of Earth2Studio detailed in the {ref}`data_userguide` section.
 There are a few utility functions inside Earth2Studio to make this process easy which
 is commonly used in workflows.
 
-:::{warning}
-Each data source has its own methods for serving / calculating each variable.
-Users should be aware that the same variable across multiple data sources will
-potentially not be identical.
-Please refer to each data source's documentation for details.
-:::
+!!! warning
+
+    Each data source has its own methods for serving / calculating each variable.
+    Users should be aware that the same variable across multiple data sources will
+    potentially not be identical.
+    Please refer to each data source's documentation for details.
 
 For async use cases some data/forecast sources support an async {func}`fetch` function
 that is available.

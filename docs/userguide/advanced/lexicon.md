@@ -55,13 +55,13 @@ the following special-case suffixes:
 - No suffix: assumed to be pressure-level, as in `z500` for geo-potential at 500 hPa level
 - `m`: altitude in meters above the surface
 
-:::{warning}
-Only use custom vertical level data with caution. The definition of these vertical
-levels changes with each data source, model, or use-case, and thus they are not
-necessarily interoperable. Transforming between different custom vertical levels will
-likely require custom interpolation schemes, possibly using pressure-levels as an
-intermediate step.
-:::
+!!! warning
+
+    Only use custom vertical level data with caution. The definition of these vertical
+    levels changes with each data source, model, or use-case, and thus they are not
+    necessarily interoperable. Transforming between different custom vertical levels will
+    likely require custom interpolation schemes, possibly using pressure-levels as an
+    intermediate step.
 
 ## Datasource Lexicon
 
@@ -108,8 +108,8 @@ sources inside Earth2Studio.
     :language: python
 ```
 
-:::{warning}
-The lexicon does not necessarily contain every variable inside the remote data store.
-Rather it explicitly lists what is available inside Earth2Studio. See some variable
-missing you would like to add? Open an issue!
-:::
+!!! warning
+
+    The lexicon does not necessarily contain every variable inside the remote data store.
+    Rather it explicitly lists what is available inside Earth2Studio. See some variable
+    missing you would like to add? Open an issue!

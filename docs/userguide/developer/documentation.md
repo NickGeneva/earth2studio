@@ -1,6 +1,20 @@
 # Documentation
 
-Earth2Studio uses Sphinx to build documentation that is hosted on Github pages.
+Earth2Studio uses Material for MkDocs for the main documentation site. The API
+reference is generated with `mkdocstrings` from pages in `docs/api/*.md`.
+
+Build the MkDocs site locally:
+
+```bash
+mkdocs build
+```
+
+Serve the site locally with live reload:
+
+```bash
+mkdocs serve
+```
+
 We have the following philosophies for the three main sections of documentation:
 
 1. API documentation is a requirement. [Interrogate](https://github.com/econchick/interrogate)
@@ -9,8 +23,8 @@ is used to enforce that all public methods are documented.
 2. Examples are generated using [sphinx-gallery](https://sphinx-gallery.github.io/stable/index.html)
 and are used as end-to-end tests for the package.
 
-3. User guide is written using [MyST](https://myst-parser.readthedocs.io/en/latest/index.html)
-and aims to document concepts that cannot be fully communicated in examples.
+3. The user guide is written in Markdown and aims to document concepts that
+cannot be fully communicated in examples.
 
 ## API Documentation
 
@@ -19,6 +33,14 @@ functions.
 Consistent documentation styling improves user and developer experience.
 To make the doc-strings between different parts of the code as consistent as possible,
 the following styles are used:
+
+API pages use `mkdocstrings` directives. For example:
+
+```markdown
+::: earth2studio.data
+    options:
+      members: true
+```
 
 - [NumPy style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_numpy.html)
 doc-strings are used in all Python files.

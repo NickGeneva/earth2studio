@@ -59,13 +59,13 @@ For example, have a look at the FourCastNet implementations:
     :language: python
 ```
 
-:::{note}
-The {py:func}`load_default_package` doesn't perform any downloading.
-Rather, it creates a pointer to the directory the checkpoint files exist in, offering a
-primitive abstract filesystem.
-{py:func}`load_model` triggers the download of any files when the path is accessed using
-`package.get("local/dir/to/file")`.
-:::
+!!! note
+
+    The {py:func}`load_default_package` doesn't perform any downloading.
+    Rather, it creates a pointer to the directory the checkpoint files exist in, offering a
+    primitive abstract filesystem.
+    {py:func}`load_model` triggers the download of any files when the path is accessed using
+    `package.get("local/dir/to/file")`.
 
 ## Package
 
@@ -95,9 +95,9 @@ The cached path is a directory on the local file system which can be configured 
 environment variables.
 See {ref}`configuration_userguide` section for details.
 
-:::{note}
-Earth2Studio file system borrows uses [Fsspec](https://filesystem-spec.readthedocs.io/en/latest/)
-caching for files in packages.
-We encourage users that are interested in this type of utility to learn more about
-Fsspec and the specification it defines for advanced usage.
-:::
+!!! note
+
+    Earth2Studio file system borrows uses [Fsspec](https://filesystem-spec.readthedocs.io/en/latest/)
+    caching for files in packages.
+    We encourage users that are interested in this type of utility to learn more about
+    Fsspec and the specification it defines for advanced usage.

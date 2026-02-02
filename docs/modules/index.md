@@ -1,17 +1,12 @@
 # API Reference
 
 This is the API reference for Earth2Studio. Please refer to the full user
-guide and examples for further details on how to use this package as API documentaiton
+guide and examples for further details on how to use this package as API documentation
 alone may not provide sufficient information.
 
-```{toctree}
-:maxdepth: 1
+The API reference content is currently generated with Sphinx and lives under
+`docs/modules/*.rst`. If you need the full API pages, build the Sphinx docs with:
 
-models.rst
-datasources.rst
-io.rst
-perturbation.rst
-statistics.rst
-utils.rst
-workflows.rst
+```bash
+make -C docs html
 ```

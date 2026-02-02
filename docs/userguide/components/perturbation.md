@@ -19,10 +19,10 @@ The full requirements for a perturbation method are defined explicitly in the
 :language: python
 ```
 
-:::{note}
-Perturbations methods modify the input tensor directly. They are not functions that just
-generate noise.
-:::
+!!! note
+
+    Perturbations methods modify the input tensor directly. They are not functions that just
+    generate noise.
 
 ## Perturbation Usage
 
@@ -51,9 +51,9 @@ Integrating your own perturbation only requires inplementing the interface above
 We recommend users have a look at the {ref}`extension_examples` examples, which will
 step users through the simple process of implementing their own perturbation method.
 
-:::{warning}
-TODO: 🚧 Under construction 🚧
-:::
+!!! warning
+
+    TODO: 🚧 Under construction 🚧
 
 ## Contributing a Perturbation Method
 

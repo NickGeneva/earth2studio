@@ -51,13 +51,13 @@ variable.
  pytest --slow --ci-cache test/
 ```
 
-:::{warning}
-The full model cache is rather large (order of 10Gb) which will be downloaded running
-this command.
-The CI pipeline will already have all model files downloaded on the runner machine to
-skip this step.
-Additional information on this can be found below.
-:::
+!!! warning
+
+    The full model cache is rather large (order of 10Gb) which will be downloaded running
+    this command.
+    The CI pipeline will already have all model files downloaded on the runner machine to
+    skip this step.
+    Additional information on this can be found below.
 
 #### CI Model Package Cache
 

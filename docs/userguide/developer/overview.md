@@ -34,14 +34,14 @@ To install the base, developer, documentation dependencies, use:
 uv sync --group={docs}
 ```
 
-:::{note}
-When working with models, additional optional dependencies may be required.
-See the [model dependencies](#model_dependencies) section for details on the optional
-dependencies inside the package.
-Use the `uv sync --extra <optional dep>` command instead of the pip install.
-Take note of the difference between the optional dependency groups used here and the
-extra dependencies when using specific models.
-:::
+!!! note
+
+    When working with models, additional optional dependencies may be required.
+    See the [model dependencies](#model_dependencies) section for details on the optional
+    dependencies inside the package.
+    Use the `uv sync --extra <optional dep>` command instead of the pip install.
+    Take note of the difference between the optional dependency groups used here and the
+    extra dependencies when using specific models.
 
 ## Pre-commit
 

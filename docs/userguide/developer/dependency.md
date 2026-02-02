@@ -20,12 +20,11 @@ With these base dependencies, most IO methods, data sources, perturbation method
 utilities should be functional. However, specific features may require additional
 optional dependencies.
 
-:::{admonition} Adding Packages
-:class: note
-uv commands should always be used to update package lists inside the pyproject.toml.
-Refer to the [uv documentation](https://docs.astral.sh/uv/concepts/projects/dependencies/)
-for details about this if unfamiliar.
-:::
+!!! note "Adding Packages"
+
+    uv commands should always be used to update package lists inside the pyproject.toml.
+    Refer to the [uv documentation](https://docs.astral.sh/uv/concepts/projects/dependencies/)
+    for details about this if unfamiliar.
 
 ## Optional Dependencies
 

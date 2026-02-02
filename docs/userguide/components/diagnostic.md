@@ -26,10 +26,10 @@ The full requirements for a standard diagnostic model are defined explicitly in 
 :language: python
 ```
 
-:::{note}
-Diagnostic models do not need to inherit this protocol, this is simply used to define
-the required APIs.
-:::
+!!! note
+
+    Diagnostic models do not need to inherit this protocol, this is simply used to define
+    the required APIs.
 
 Diagnostic models also tend to extend one class:
 

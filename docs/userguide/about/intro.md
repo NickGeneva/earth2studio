@@ -12,18 +12,16 @@ Given that the goal of this package is to enable the use to extrapolate and buil
 beyond what is implemented here, we have focused on providing the building blocks to
 enable this.
 
-:::{admonition} Core Design Principles
-:class: tip
+!!! tip "Core Design Principles"
 
-- Modularity
-- Simple and Explicit Data
-- API Consistency
-- User Progression
-- Test Coverage and Stability
-- Performance
+    - Modularity
+    - Simple and Explicit Data
+    - API Consistency
+    - User Progression
+    - Test Coverage and Stability
+    - Performance
 
-(*in relative order of importance*)
-:::
+    (*in relative order of importance*)
 
 The design philosophy of Earth2Studio embodies a modular architecture where
 the inference workflow acts as a flexible adhesive, seamlessly binding together various
@@ -60,56 +58,11 @@ While Earth2Studio contains a large collection of general utilities,
 functions and tooling the following six are considered the core.
 For more information on these features, see the dedicated documentation for each.
 
-:::::{grid} 3
-
-::::{grid-item-card}
-:margin: 2 2 0 0
-:class-card: sd-text-black
-Built-in Workflows
-^^^
-Multiple built-in inference workflows to accelerate your development and research.
-::::
-
-::::{grid-item-card}
-:margin: 2 2 0 0
-:class-card: sd-text-black
-Prognostic Models
-^^^
-Support for the latest AI weather forecast models
-offered under a coherent interface.
-::::
-
-::::{grid-item-card}
-:margin: 2 2 0 0
-:class-card: sd-text-black
-Diagnostic Models
-^^^
-Diagnostic models for mapping to other quantities of interest.
-::::
-
-::::{grid-item-card}
-:margin: 2 2 0 0
-:class-card: sd-text-black
-Datasources
-^^^
-Datasources to connect on-prem and remote data stores to inference workflows.
-::::
-
-::::{grid-item-card}
-:margin: 2 2 0 0
-:class-card: sd-text-black
-IO
-^^^
-Simple, yet powerful IO utilities to export data for post-processing.
-::::
-
-::::{grid-item-card}
-:margin: 2 2 0 0
-:class-card: sd-text-black
-Statistical Operators
-^^^
-Statistical methods to fuse directly into your inference workflow for more complex
-uncertainty analysis.
-::::
-
-:::::
+| Feature | Description |
+|---------|-------------|
+| **Built-in Workflows** | Multiple built-in inference workflows to accelerate your development and research. |
+| **Prognostic Models** | Support for the latest AI weather forecast models offered under a coherent interface. |
+| **Diagnostic Models** | Diagnostic models for mapping to other quantities of interest. |
+| **Datasources** | Datasources to connect on-prem and remote data stores to inference workflows. |
+| **IO** | Simple, yet powerful IO utilities to export data for post-processing. |
+| **Statistical Operators** | Statistical methods to fuse directly into your inference workflow for more complex uncertainty analysis. |

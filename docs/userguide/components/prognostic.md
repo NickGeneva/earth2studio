@@ -25,11 +25,11 @@ The full requirements for a standard prognostic model are defined explicitly in 
 :language: python
 ```
 
-:::{note}
-Prognostic models do not need to inherit this protocol, this is simply used to define
-the required APIs. Prognostic models can maintain their internal state when using the
-iterator if necessary.
-:::
+!!! note
+
+    Prognostic models do not need to inherit this protocol, this is simply used to define
+    the required APIs. Prognostic models can maintain their internal state when using the
+    iterator if necessary.
 
 Prognostic models also tend to extend two classes:
 

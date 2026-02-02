@@ -293,16 +293,12 @@ dev = [
 docs = [
     "cartopy",
     "matplotlib",
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.6.0",
+    "mkdocstrings[python]>=0.26.0",
     "scipy",
-    "sphinx-design",
-    "sphinx>=6.0.0",
     "jupytext>=1.15.0",
-    "sphinx-autodoc-typehints>=1.24.0",
-    "sphinx-gallery>=0.12.0",
-    "sphinx-togglebutton>=0.3.0",
-    "myst-parser>=0.18.0",
-    "sphinx-favicon>=1.0.1",
-    "pydata-sphinx-theme==0.16.1"
+    "myst-parser>=0.18.0"
 ]
 
 [tool.hatch.version]

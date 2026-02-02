@@ -4,11 +4,9 @@ Earth2Studio recipes are reference solutions that focus on solving specific use 
 Recipes provide more complex implementations that may require deeper domain knowledge
 and familiarity with the codebase.
 
-:::{admonition} Warning
-:class: warning
+!!! warning
 
-Earth2Studio recipes are in beta, thus may dramatically change/get moved.
-:::
+    Earth2Studio recipes are in beta, thus may dramatically change/get moved.
 
 ## What is a Recipe?
 
