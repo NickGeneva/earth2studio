@@ -240,7 +240,7 @@ no-build-isolation-package = ["earth2grid", "flash-attn", "natten", "torch-harmo
 override-dependencies = []
 
 [tool.uv.extra-build-dependencies]
-earth2grid = ["setuptools", "torch"]
+earth2grid = ["setuptools", "wheel", "numpy", "torch"]
 flash-attn = ["torch", "packaging", "ninja"]
 natten = ["setuptools", "cmake", "torch"]
 
