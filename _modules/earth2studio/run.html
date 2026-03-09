@@ -443,7 +443,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">loguru</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">earth2studio.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataSource</span><span class="p">,</span> <span class="n">fetch_data</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">earth2studio.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataSource</span><span class="p">,</span> <span class="n">ForecastSource</span><span class="p">,</span> <span class="n">fetch_data</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">earth2studio.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">IOBackend</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">earth2studio.models.dx</span><span class="w"> </span><span class="kn">import</span> <span class="n">DiagnosticModel</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">earth2studio.models.px</span><span class="w"> </span><span class="kn">import</span> <span class="n">PrognosticModel</span>
@@ -583,7 +583,7 @@
     <span class="n">nsteps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">prognostic</span><span class="p">:</span> <span class="n">PrognosticModel</span><span class="p">,</span>
     <span class="n">diagnostic</span><span class="p">:</span> <span class="n">DiagnosticModel</span><span class="p">,</span>
-    <span class="n">data</span><span class="p">:</span> <span class="n">DataSource</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">DataSource</span> <span class="o">|</span> <span class="n">ForecastSource</span><span class="p">,</span>
     <span class="n">io</span><span class="p">:</span> <span class="n">IOBackend</span><span class="p">,</span>
     <span class="n">output_coords</span><span class="p">:</span> <span class="n">CoordSystem</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">({}),</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -603,7 +603,7 @@
 <span class="sd">        Prognostic model</span>
 <span class="sd">    diagnostic: DiagnosticModel</span>
 <span class="sd">        Diagnostic model, must be on same coordinate axis as prognostic</span>
-<span class="sd">    data : DataSource</span>
+<span class="sd">    data : DataSource | ForecastSource</span>
 <span class="sd">        Data source</span>
 <span class="sd">    io : IOBackend</span>
 <span class="sd">        IO object</span>

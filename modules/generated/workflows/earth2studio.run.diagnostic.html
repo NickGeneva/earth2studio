@@ -598,7 +598,7 @@ model with a diagnostic model.</p>
 <li><p><strong>nsteps</strong> (<em>int</em>) – Number of forecast steps</p></li>
 <li><p><strong>prognostic</strong> (<em>PrognosticModel</em>) – Prognostic model</p></li>
 <li><p><strong>diagnostic</strong> (<em>DiagnosticModel</em>) – Diagnostic model, must be on same coordinate axis as prognostic</p></li>
-<li><p><strong>data</strong> (<em>DataSource</em>) – Data source</p></li>
+<li><p><strong>data</strong> (<em>DataSource</em><em> | </em><em>ForecastSource</em>) – Data source</p></li>
 <li><p><strong>io</strong> (<em>IOBackend</em>) – IO object</p></li>
 <li><p><strong>output_coords</strong> (<em>CoordSystem</em><em>, </em><em>optional</em>) – IO output coordinate system override, by default OrderedDict({})</p></li>
 <li><p><strong>device</strong> (<em>torch.device</em><em>, </em><em>optional</em>) – Device to run inference on, by default None</p></li>
