@@ -878,7 +878,7 @@
         <span class="c1"># Get device</span>
         <span class="n">device</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">device</span>
 
-        <span class="c1"># first batch has 2 times</span>
+        <span class="c1"># first batch has 2 times (lead_times)</span>
         <span class="n">coords_out</span><span class="p">[</span><span class="s2">&quot;lead_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;lead_time&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span>
         <span class="c1"># Add on zeros slice for tp06</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
@@ -891,8 +891,11 @@
             <span class="c1"># Forward is identity operator</span>
             <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_coords</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
 
-            <span class="c1"># Get next prediction</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterator_result_to_tensor</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iterator</span><span class="p">))</span>
+            <span class="c1"># Get next prediction from all time iterators</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">iterator_result_to_tensor</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">it</span><span class="p">))</span> <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterators</span>
+            <span class="p">]</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
             <span class="c1"># Rear hook</span>
             <span class="n">x</span><span class="p">,</span> <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rear_hook</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
@@ -927,24 +930,37 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">with</span> <span class="n">jax</span><span class="o">.</span><span class="n">default_device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_jax_device_from_tensor</span><span class="p">(</span><span class="n">x</span><span class="p">)):</span>
-            <span class="n">batch</span><span class="p">,</span> <span class="n">target_lead_times</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_dataarray_to_dataset</span><span class="p">(</span>
-                <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">),</span> <span class="mi">6</span>
-            <span class="p">)</span>
+            <span class="c1"># Create a separate JAX iterator for each init time</span>
+            <span class="c1"># (rollout._get_next_inputs only supports single time)</span>
+            <span class="n">time_dim</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+            <span class="n">n_times</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iterators</span> <span class="o">=</span> <span class="p">[]</span>
 
-            <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">forcings</span> <span class="o">=</span> <span class="n">data_utils</span><span class="o">.</span><span class="n">extract_inputs_targets_forcings</span><span class="p">(</span>
-                <span class="n">batch</span><span class="p">,</span>
-                <span class="n">target_lead_times</span><span class="o">=</span><span class="n">target_lead_times</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ckpt</span><span class="o">.</span><span class="n">task_config</span><span class="p">),</span>
-            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_times</span><span class="p">):</span>
+                <span class="n">x_t</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span><span class="n">time_dim</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">coords_t</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">coords_t</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">][</span><span class="n">t</span> <span class="p">:</span> <span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chunked_prediction_generator</span><span class="p">(</span>
-                <span class="n">predictor_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">run_forward</span><span class="p">,</span>
-                <span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prng_key</span><span class="p">,</span>
-                <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
-                <span class="n">targets_template</span><span class="o">=</span><span class="n">targets</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-                <span class="n">batch</span><span class="o">=</span><span class="n">batch</span><span class="p">,</span>
-                <span class="n">forcings</span><span class="o">=</span><span class="n">forcings</span><span class="p">,</span>
-            <span class="p">)</span>
+                <span class="n">batch</span><span class="p">,</span> <span class="n">target_lead_times</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_dataarray_to_dataset</span><span class="p">(</span>
+                    <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">x_t</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords_t</span><span class="p">),</span> <span class="mi">6</span>
+                <span class="p">)</span>
+
+                <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">forcings</span> <span class="o">=</span> <span class="n">data_utils</span><span class="o">.</span><span class="n">extract_inputs_targets_forcings</span><span class="p">(</span>
+                    <span class="n">batch</span><span class="p">,</span>
+                    <span class="n">target_lead_times</span><span class="o">=</span><span class="n">target_lead_times</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ckpt</span><span class="o">.</span><span class="n">task_config</span><span class="p">),</span>
+                <span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">iterators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_chunked_prediction_generator</span><span class="p">(</span>
+                        <span class="n">predictor_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">run_forward</span><span class="p">,</span>
+                        <span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prng_key</span><span class="p">,</span>
+                        <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+                        <span class="n">targets_template</span><span class="o">=</span><span class="n">targets</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                        <span class="n">batch</span><span class="o">=</span><span class="n">batch</span><span class="p">,</span>
+                        <span class="n">forcings</span><span class="o">=</span><span class="n">forcings</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
 
             <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
 
@@ -1029,24 +1045,35 @@
             <span class="c1"># Map lat and lon if needed</span>
             <span class="n">x</span><span class="p">,</span> <span class="n">coords</span> <span class="o">=</span> <span class="n">map_coords</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_coords</span><span class="p">())</span>
 
-            <span class="n">data</span><span class="p">,</span> <span class="n">target_lead_times</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_dataarray_to_dataset</span><span class="p">(</span>
-                <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">),</span> <span class="mi">6</span>
-            <span class="p">)</span>
+            <span class="c1"># Loop over time dimension (JAX model supports single init time only)</span>
+            <span class="n">time_dim</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+            <span class="n">n_times</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_times</span><span class="p">):</span>
+                <span class="n">x_t</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span><span class="n">time_dim</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">coords_t</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">coords_t</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">][</span><span class="n">t</span> <span class="p">:</span> <span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
 
-            <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">forcings</span> <span class="o">=</span> <span class="n">data_utils</span><span class="o">.</span><span class="n">extract_inputs_targets_forcings</span><span class="p">(</span>
-                <span class="n">data</span><span class="p">,</span>
-                <span class="n">target_lead_times</span><span class="o">=</span><span class="n">target_lead_times</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ckpt</span><span class="o">.</span><span class="n">task_config</span><span class="p">),</span>
-            <span class="p">)</span>
+                <span class="n">data</span><span class="p">,</span> <span class="n">target_lead_times</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_dataarray_to_dataset</span><span class="p">(</span>
+                    <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">x_t</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords_t</span><span class="p">),</span> <span class="mi">6</span>
+                <span class="p">)</span>
 
-            <span class="n">predictions</span> <span class="o">=</span> <span class="n">rollout</span><span class="o">.</span><span class="n">chunked_prediction</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">run_forward</span><span class="p">,</span>
-                <span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prng_key</span><span class="p">,</span>
-                <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
-                <span class="n">targets_template</span><span class="o">=</span><span class="n">targets</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-                <span class="n">forcings</span><span class="o">=</span><span class="n">forcings</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterator_result_to_tensor</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+                <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">forcings</span> <span class="o">=</span> <span class="n">data_utils</span><span class="o">.</span><span class="n">extract_inputs_targets_forcings</span><span class="p">(</span>
+                    <span class="n">data</span><span class="p">,</span>
+                    <span class="n">target_lead_times</span><span class="o">=</span><span class="n">target_lead_times</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ckpt</span><span class="o">.</span><span class="n">task_config</span><span class="p">),</span>
+                <span class="p">)</span>
+
+                <span class="n">predictions</span> <span class="o">=</span> <span class="n">rollout</span><span class="o">.</span><span class="n">chunked_prediction</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">run_forward</span><span class="p">,</span>
+                    <span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prng_key</span><span class="p">,</span>
+                    <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+                    <span class="n">targets_template</span><span class="o">=</span><span class="n">targets</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                    <span class="n">forcings</span><span class="o">=</span><span class="n">forcings</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iterator_result_to_tensor</span><span class="p">(</span><span class="n">predictions</span><span class="p">))</span>
+
+            <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">n_times</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">output_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_coords</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
 
             <span class="c1"># Convert to device</span>
