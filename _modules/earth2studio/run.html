@@ -829,9 +829,10 @@
 
         <span class="c1"># Expand x, coords for ensemble</span>
         <span class="n">mini_batch_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">nensemble</span> <span class="o">-</span> <span class="n">batch_id</span><span class="p">)</span>
-        <span class="n">coords</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;ensemble&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">batch_id</span><span class="p">,</span> <span class="n">batch_id</span> <span class="o">+</span> <span class="n">mini_batch_size</span><span class="p">)</span>
-        <span class="p">}</span> <span class="o">|</span> <span class="n">coords0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;ensemble&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">batch_id</span><span class="p">,</span> <span class="n">batch_id</span> <span class="o">+</span> <span class="n">mini_batch_size</span><span class="p">)})</span>
+            <span class="o">|</span> <span class="n">coords0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="p">)</span>
 
         <span class="c1"># Unsqueeze x for batching ensemble</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">mini_batch_size</span><span class="p">,</span> <span class="o">*</span><span class="p">([</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">ndim</span><span class="p">))</span>

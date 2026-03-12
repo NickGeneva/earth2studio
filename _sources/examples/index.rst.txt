@@ -383,6 +383,23 @@ and commonly used workflows.
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Running StormCast with guided diffusion posterior sampling to assimilate observations.">
+
+.. only:: html
+
+  .. image:: /examples/images/thumb/sphx_glr_21_stormcast_sda_thumb.png
+    :alt:
+
+  :doc:`/examples/21_stormcast_sda`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">StormCast Score-Based Data Assimilation</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -413,6 +430,7 @@ and commonly used workflows.
    /examples/18_ensemble_downscaling
    /examples/19_local_datasource
    /examples/20_stormscope_goes_example
+   /examples/21_stormcast_sda
 
 
 Extending Earth2Studio

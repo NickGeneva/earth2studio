@@ -64,7 +64,7 @@
         </script>
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" />
-    <link rel="next" title="earth2studio.models.auto.Package" href="../earth2studio.models.auto.Package.html" />
+    <link rel="next" title="earth2studio.models.da.StormCastSDA" href="earth2studio.models.da.StormCastSDA.html" />
     <link rel="prev" title="earth2studio.models.dx.Identity" href="../dx/earth2studio.models.dx.Identity.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -420,6 +420,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../dx/earth2studio.models.dx.WindgustAFNO.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">earth2studio.models.dx</span></code>.WindgustAFNO</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../dx/earth2studio.models.dx.Identity.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">earth2studio.models.dx</span></code>.Identity</a></li>
 <li class="toctree-l2 current active"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">earth2studio.models.da</span></code>.InterpEquirectangular</a></li>
+<li class="toctree-l2"><a class="reference internal" href="earth2studio.models.da.StormCastSDA.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">earth2studio.models.da</span></code>.StormCastSDA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../earth2studio.models.auto.Package.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">earth2studio.models.auto</span></code>.Package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../earth2studio.models.batch.batch_func.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">earth2studio.models.batch</span></code>.batch_func</a></li>
 </ul>
@@ -587,7 +588,7 @@
 <h1><code class="xref py py-mod docutils literal notranslate"><span class="pre">earth2studio.models.da</span></code>.InterpEquirectangular<a class="headerlink" href="#earth2studio-models-da-interpequirectangular" title="Link to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="earth2studio.models.da.InterpEquirectangular">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">earth2studio.models.da.</span></span><span class="sig-name descname"><span class="pre">InterpEquirectangular</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interp_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'smolyak'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">numpy.timedelta64(10,</span> <span class="pre">'m')</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/earth2studio/models/da/interp.html#InterpEquirectangular"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#earth2studio.models.da.InterpEquirectangular" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">earth2studio.models.da.</span></span><span class="sig-name descname"><span class="pre">InterpEquirectangular</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interp_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'smolyak'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">numpy.timedelta64(10,</span> <span class="pre">'m')</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/earth2studio/models/da/interp.html#InterpEquirectangular"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#earth2studio.models.da.InterpEquirectangular" title="Link to this definition">#</a></dt>
 <dd><p>Interpolation assimilation model that interpolates sparse observations to a
 lat-lon grid.</p>
 <p>This is a sample implementation of an AssimilationModel that:
@@ -603,7 +604,7 @@ CONUS)</p></li>
 <li><p><strong>lon</strong> (<em>np.ndarray</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – Longitude coordinates for output grid, by default None (uses default
 grid over CONUS)</p></li>
 <li><p><strong>interp_method</strong> (<em>str</em><em>, </em><em>optional</em>) – Interpolation method to use: ‘nearest’ or ‘smolyak’, by default “smolyak”</p></li>
-<li><p><strong>tolerance</strong> (<em>TimeTolerance</em><em>, </em><em>optional</em>) – Time tolerance for filtering observations. Observations within the tolerance
+<li><p><strong>time_tolerance</strong> (<em>TimeTolerance</em><em>, </em><em>optional</em>) – Time tolerance for filtering observations. Observations within the tolerance
 window around each requested time will be used for interpolation, by default
 np.timedelta64(10, “m”)</p></li>
 </ul>
@@ -614,11 +615,11 @@ np.timedelta64(10, “m”)</p></li>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="earth2studio.models.da.InterpEquirectangular.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/earth2studio/models/da/interp.html#InterpEquirectangular.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#earth2studio.models.da.InterpEquirectangular.__call__" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/earth2studio/models/da/interp.html#InterpEquirectangular.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#earth2studio.models.da.InterpEquirectangular.__call__" title="Link to this definition">#</a></dt>
 <dd><p>Stateless forward pass</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>x</strong> (<em>DataFrame</em>)</p>
+<dd class="field-odd"><p><strong>obs</strong> (<em>DataFrame</em>)</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>DataArray</em></p>
@@ -671,11 +672,11 @@ outputs a collection of assimilated data.</p>
       </div>
     </a>
     <a class="right-next"
-       href="../earth2studio.models.auto.Package.html"
+       href="earth2studio.models.da.StormCastSDA.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">earth2studio.models.auto</span></code>.Package</p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">earth2studio.models.da</span></code>.StormCastSDA</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

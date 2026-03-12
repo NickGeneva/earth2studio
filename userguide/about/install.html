@@ -1123,28 +1123,36 @@ uv</label><div class="sd-tab-content docutils">
 </div>
 </div>
 </section>
-</section>
-<section id="submodule-dependencies">
-<h3>Submodule Dependencies<a class="headerlink" href="#submodule-dependencies" title="Link to this heading">#</a></h3>
-<p>A few features in various submodules require some specific dependencies that have been
-deemed too specific to warrant an addition to the core dependencies.
-These can be installed with a submodule wide install group:</p>
+<section id="data-assimilation">
+<h4>Data Assimilation<a class="headerlink" href="#data-assimilation" title="Link to this heading">#</a></h4>
+<div class="warning admonition">
+<p class="admonition-title">Warning</p>
+<p>Data assimilation model APIs are currently <strong>in Beta</strong> and may change in future
+releases. Expect possible breaking changes as these APIs mature.</p>
+</div>
+<div class="warning admonition">
+<p class="admonition-title">Warning</p>
+<p>All data assimilation models require <a class="reference external" href="https://docs.cupy.dev/en/stable/">CuPy</a> and <a class="reference external" href="https://docs.rapids.ai/api/cudf/stable/">cuDF</a>,
+which are CUDA-dependent libraries.
+The default installation uses CUDA 12 (i.e., <code class="docutils literal notranslate"><span class="pre">cupy-cuda12x</span></code>, <code class="docutils literal notranslate"><span class="pre">cudf-cu12</span></code>).
+If your system uses a different CUDA version, you may need to adjust the dependencies.</p>
+</div>
 <div class="sd-tab-set docutils">
 <input checked="checked" id="sd-tab-item-75" name="sd-tab-set-27" type="radio">
 <label class="sd-tab-label" for="sd-tab-item-75">
-Data</label><div class="sd-tab-content docutils">
+InterpEquirectangular</label><div class="sd-tab-content docutils">
 <div class="sd-tab-set docutils">
-<input checked="checked" id="sd-tab-item-78" name="sd-tab-set-28" type="radio">
-<label class="sd-tab-label" for="sd-tab-item-78">
+<input checked="checked" id="sd-tab-item-77" name="sd-tab-set-28" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-77">
 pip</label><div class="sd-tab-content docutils">
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>earth2studio<span class="o">[</span>data<span class="o">]</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>earth2studio<span class="o">[</span>da-interp<span class="o">]</span>
 </pre></div>
 </div>
 </div>
-<input id="sd-tab-item-79" name="sd-tab-set-28" type="radio">
-<label class="sd-tab-label" for="sd-tab-item-79">
+<input id="sd-tab-item-78" name="sd-tab-set-28" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-78">
 uv</label><div class="sd-tab-content docutils">
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>add<span class="w"> </span>earth2studio<span class="w"> </span>--extra<span class="w"> </span>data
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>add<span class="w"> </span>earth2studio<span class="w"> </span>--extra<span class="w"> </span>da-interp
 </pre></div>
 </div>
 </div>
@@ -1152,17 +1160,66 @@ uv</label><div class="sd-tab-content docutils">
 </div>
 <input id="sd-tab-item-76" name="sd-tab-set-27" type="radio">
 <label class="sd-tab-label" for="sd-tab-item-76">
+StormCast SDA</label><div class="sd-tab-content docutils">
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-79" name="sd-tab-set-29" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-79">
+pip</label><div class="sd-tab-content docutils">
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>earth2studio<span class="o">[</span>da-stormcast<span class="o">]</span>
+</pre></div>
+</div>
+</div>
+<input id="sd-tab-item-80" name="sd-tab-set-29" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-80">
+uv</label><div class="sd-tab-content docutils">
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>add<span class="w"> </span>earth2studio<span class="w"> </span>--extra<span class="w"> </span>da-stormcast
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="submodule-dependencies">
+<h3>Submodule Dependencies<a class="headerlink" href="#submodule-dependencies" title="Link to this heading">#</a></h3>
+<p>A few features in various submodules require some specific dependencies that have been
+deemed too specific to warrant an addition to the core dependencies.
+These can be installed with a submodule wide install group:</p>
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-81" name="sd-tab-set-30" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-81">
+Data</label><div class="sd-tab-content docutils">
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-84" name="sd-tab-set-31" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-84">
+pip</label><div class="sd-tab-content docutils">
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>earth2studio<span class="o">[</span>data<span class="o">]</span>
+</pre></div>
+</div>
+</div>
+<input id="sd-tab-item-85" name="sd-tab-set-31" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-85">
+uv</label><div class="sd-tab-content docutils">
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>add<span class="w"> </span>earth2studio<span class="w"> </span>--extra<span class="w"> </span>data
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-82" name="sd-tab-set-30" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-82">
 Perturbation</label><div class="sd-tab-content docutils">
 <div class="sd-tab-set docutils">
-<input checked="checked" id="sd-tab-item-80" name="sd-tab-set-29" type="radio">
-<label class="sd-tab-label" for="sd-tab-item-80">
+<input checked="checked" id="sd-tab-item-86" name="sd-tab-set-32" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-86">
 pip</label><div class="sd-tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>earth2studio<span class="o">[</span>perturbation<span class="o">]</span>
 </pre></div>
 </div>
 </div>
-<input id="sd-tab-item-81" name="sd-tab-set-29" type="radio">
-<label class="sd-tab-label" for="sd-tab-item-81">
+<input id="sd-tab-item-87" name="sd-tab-set-32" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-87">
 uv</label><div class="sd-tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>add<span class="w"> </span>earth2studio<span class="w"> </span>--extra<span class="w"> </span>perturbation
 </pre></div>
@@ -1170,19 +1227,19 @@ uv</label><div class="sd-tab-content docutils">
 </div>
 </div>
 </div>
-<input id="sd-tab-item-77" name="sd-tab-set-27" type="radio">
-<label class="sd-tab-label" for="sd-tab-item-77">
+<input id="sd-tab-item-83" name="sd-tab-set-30" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-83">
 Statistics</label><div class="sd-tab-content docutils">
 <div class="sd-tab-set docutils">
-<input checked="checked" id="sd-tab-item-82" name="sd-tab-set-30" type="radio">
-<label class="sd-tab-label" for="sd-tab-item-82">
+<input checked="checked" id="sd-tab-item-88" name="sd-tab-set-33" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-88">
 pip</label><div class="sd-tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>earth2studio<span class="o">[</span>statistics<span class="o">]</span>
 </pre></div>
 </div>
 </div>
-<input id="sd-tab-item-83" name="sd-tab-set-30" type="radio">
-<label class="sd-tab-label" for="sd-tab-item-83">
+<input id="sd-tab-item-89" name="sd-tab-set-33" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-89">
 uv</label><div class="sd-tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>add<span class="w"> </span>earth2studio<span class="w"> </span>--extra<span class="w"> </span>statistics
 </pre></div>
@@ -1202,8 +1259,8 @@ conflicts.
 This is only supported using uv and when using github as the source, <a class="reference external" href="https://docs.astral.sh/uv/pip/compatibility/#transitive-url-dependencies">not pypi registry</a>.
 To install a best effort all optional dependencies group, use the following:</p>
 <div class="sd-tab-set docutils">
-<input checked="checked" id="sd-tab-item-84" name="sd-tab-set-31" type="radio">
-<label class="sd-tab-label" for="sd-tab-item-84">
+<input checked="checked" id="sd-tab-item-90" name="sd-tab-set-34" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-90">
 uv</label><div class="sd-tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>sync
 uv<span class="w"> </span>add<span class="w"> </span>earth2studio<span class="w"> </span>--extra<span class="w"> </span>all
@@ -1417,6 +1474,7 @@ for relevant data sources.</p></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#model-dependencies">Model Dependencies</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#prognostics">Prognostics</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#diagnostics">Diagnostics</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#data-assimilation">Data Assimilation</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#submodule-dependencies">Submodule Dependencies</a></li>

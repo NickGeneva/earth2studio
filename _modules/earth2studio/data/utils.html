@@ -487,11 +487,14 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">fsspec.implementations.cache_mapper</span><span class="w"> </span><span class="kn">import</span> <span class="n">AbstractCacheMapper</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">cudf</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="n">cudf</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">cp</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">cudf</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">cudf</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <div class="viewcode-block" id="fetch_data">
@@ -504,7 +507,8 @@
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
     <span class="n">interp_to</span><span class="p">:</span> <span class="n">CoordSystem</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">interp_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;nearest&quot;</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">CoordSystem</span><span class="p">]:</span>
+    <span class="n">legacy</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">CoordSystem</span><span class="p">]</span> <span class="o">|</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Utility function to fetch data arrays from particular sources and load data on</span>
 <span class="sd">    the target device. If desired, xarray interpolation/regridding in the spatial</span>
 <span class="sd">    domain can be used by passing a target coordinate system via the optional</span>
@@ -528,13 +532,18 @@
 <span class="sd">        specified by lat/lon arrays in this CoordSystem</span>
 <span class="sd">    interp_method : str</span>
 <span class="sd">        Interpolation method to use with xarray (by default &#39;nearest&#39;)</span>
+<span class="sd">    legacy : bool, optional</span>
+<span class="sd">        If True (default), returns tuple of (torch.Tensor, CoordSystem).</span>
+<span class="sd">        If False, returns xr.DataArray with numpy arrays for CPU or cupy arrays for CUDA.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    tuple[torch.Tensor, CoordSystem]</span>
-<span class="sd">        Tuple containing output tensor and coordinate OrderedDict</span>
+<span class="sd">    tuple[torch.Tensor, CoordSystem] | xr.DataArray</span>
+<span class="sd">        If legacy=True: Tuple containing output tensor and coordinate OrderedDict.</span>
+<span class="sd">        If legacy=False: xr.DataArray with numpy arrays (CPU) or cupy arrays (CUDA).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">sig</span> <span class="o">=</span> <span class="n">signature</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="fm">__call__</span><span class="p">)</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="s2">&quot;lead_time&quot;</span> <span class="ow">in</span> <span class="n">sig</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
         <span class="c1"># Working with a Forecast Data Source</span>
@@ -552,12 +561,31 @@
 
         <span class="n">da</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">da</span><span class="p">,</span> <span class="s2">&quot;lead_time&quot;</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">prep_data_array</span><span class="p">(</span>
-        <span class="n">da</span><span class="p">,</span>
-        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-        <span class="n">interp_to</span><span class="o">=</span><span class="n">interp_to</span><span class="p">,</span>
-        <span class="n">interp_method</span><span class="o">=</span><span class="n">interp_method</span><span class="p">,</span>
-    <span class="p">)</span></div>
+    <span class="k">if</span> <span class="n">legacy</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">prep_data_array</span><span class="p">(</span>
+            <span class="n">da</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">interp_to</span><span class="o">=</span><span class="n">interp_to</span><span class="p">,</span>
+            <span class="n">interp_method</span><span class="o">=</span><span class="n">interp_method</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Non-legacy path: return xr.DataArray</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">interp_to</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;The interp_to argument is not supported when legacy is False. Set legacy=True to use interpolation.&quot;</span>
+            <span class="p">)</span>
+        <span class="c1"># Convert to cupy arrays if CUDA device and cupy is available</span>
+        <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">cp</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">Device</span><span class="p">(</span><span class="n">device</span><span class="o">.</span><span class="n">index</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">):</span>
+                    <span class="n">da</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">da</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                    <span class="s2">&quot;cupy is required when using device=&#39;cuda&#39; with legacy=False. &quot;</span>
+                    <span class="s2">&quot;Install cupy or use legacy=True.&quot;</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">da</span></div>
 
 
 
@@ -741,6 +769,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variable</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">variable</span> <span class="o">=</span> <span class="p">[</span><span class="n">variable</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variable</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">variable</span> <span class="o">=</span> <span class="n">variable</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">datetime</span><span class="p">):</span>
         <span class="n">time</span> <span class="o">=</span> <span class="p">[</span><span class="n">time</span><span class="p">]</span>

@@ -434,14 +434,21 @@
 <span class="c1"># See the License for the specific language governing permissions and</span>
 <span class="c1"># limitations under the License.</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">earth2studio.utils.type</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoordSystem</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">cp</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <div class="viewcode-block" id="handshake_dim">
@@ -741,6 +748,198 @@
     <span class="n">mapped_coords</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">mapped_coords</span><span class="o">.</span><span class="n">items</span><span class="p">())[:</span> <span class="n">x</span><span class="o">.</span><span class="n">ndim</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">mapped_coords</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">map_coords_xr</span><span class="p">(</span>
+    <span class="n">x</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">,</span>
+    <span class="n">output_coords</span><span class="p">:</span> <span class="n">CoordSystem</span><span class="p">,</span>
+    <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;nearest&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;nearest&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Map xarray DataArray to target coordinate system using selection or interpolation.</span>
+
+<span class="sd">    Maps an input DataArray to match the coordinates specified in output_coords by</span>
+<span class="sd">    selecting or interpolating along dimensions. Supports both numpy and cupy-backed</span>
+<span class="sd">    DataArrays. Empty coordinate arrays are ignored, and warnings are issued for</span>
+<span class="sd">    missing coordinate keys.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : xr.DataArray</span>
+<span class="sd">        Input DataArray to map. May be backed by numpy or cupy arrays.</span>
+<span class="sd">    output_coords : CoordSystem</span>
+<span class="sd">        Target coordinate system containing a subset of coordinates present in x.</span>
+<span class="sd">        Dimensions not in output_coords are preserved from the input.</span>
+<span class="sd">    method : Literal[&quot;nearest&quot;], optional</span>
+<span class="sd">        Interpolation method for numeric coordinates, by default &quot;nearest&quot;</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    xr.DataArray</span>
+<span class="sd">        Mapped DataArray with coordinates matching output_coords where specified.</span>
+<span class="sd">        Preserves all dimensions and coordinates not specified in output_coords.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    KeyError</span>
+<span class="sd">        If output coordinate dimension is not found in input DataArray</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If non-numeric coordinate values are not present in input coordinates</span>
+<span class="sd">        If interpolation method is not supported</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># Build selection/interpolation dictionary</span>
+    <span class="n">sel_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">interp_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">output_coords</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="c1"># Ignore batch dimension</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;batch&quot;</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Skip empty arrays (free coordinate system)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Check if dimension exists in input</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">dims</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Coordinate key &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; not found in input DataArray. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Available dims: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Available coords: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Get coordinate values from input DataArray</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+            <span class="n">coord_values</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
+            <span class="n">coord_values</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">continue</span>  <span class="c1"># Should not happen due to check above</span>
+
+        <span class="n">coord_array</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">coord_values</span><span class="o">.</span><span class="n">values</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">coord_values</span><span class="p">,</span> <span class="s2">&quot;values&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">coord_values</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Check if coordinate types are compatible</span>
+        <span class="c1"># Check for datetime/timedelta first (these are not numeric for comparison purposes)</span>
+        <span class="n">is_datetime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span>
+            <span class="n">coord_array</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">datetime64</span>
+        <span class="p">)</span>
+        <span class="n">is_timedelta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span>
+            <span class="n">coord_array</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span>
+        <span class="p">)</span>
+        <span class="c1"># Only treat as numeric if both are numeric AND neither is datetime/timedelta</span>
+        <span class="n">is_numeric</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="n">is_datetime</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_timedelta</span>
+            <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">coord_array</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Check if all output values are in input (exact match)</span>
+        <span class="k">if</span> <span class="n">is_numeric</span><span class="p">:</span>
+            <span class="c1"># Numeric coordinate: check if values match exactly</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">coord_array</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span>
+                <span class="n">value</span><span class="p">,</span> <span class="n">coord_array</span><span class="p">,</span> <span class="n">equal_nan</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">):</span>
+                <span class="k">continue</span>  <span class="c1"># No change needed, exact match</span>
+
+            <span class="c1"># Check if all values are present in input (can use selection)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">coord_array</span><span class="p">)):</span>
+                <span class="n">sel_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Need interpolation for values not in input</span>
+                <span class="c1"># xarray&#39;s interp uses coordinate names and handles dimension mapping</span>
+                <span class="n">interp_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">is_datetime</span> <span class="ow">or</span> <span class="n">is_timedelta</span><span class="p">:</span>
+            <span class="c1"># Datetime/timedelta coordinate: use direct equality comparison</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">coord_array</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">coord_array</span><span class="p">):</span>
+                <span class="k">continue</span>  <span class="c1"># No change needed, exact match</span>
+
+            <span class="c1"># Check if all values are present in input (can use selection)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">coord_array</span><span class="p">)):</span>
+                <span class="n">sel_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Need interpolation for datetime/timedelta values not in input</span>
+                <span class="c1"># xarray&#39;s interp uses coordinate names and handles dimension mapping</span>
+                <span class="n">interp_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Non-numeric coordinate: must use selection, all values must be present</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">coord_array</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;For non-numeric coordinate &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39;, all values of output coords &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;must be in the input coordinates. Some elements of </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2"> are &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;not in </span><span class="si">{</span><span class="n">coord_array</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">sel_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="c1"># Apply selection first (exact matches)</span>
+    <span class="k">if</span> <span class="n">sel_dict</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">sel_dict</span><span class="p">)</span>
+
+    <span class="c1"># Apply nearest-neighbor interpolation per dimension using torch</span>
+    <span class="k">if</span> <span class="n">interp_dict</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">!=</span> <span class="s2">&quot;nearest&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Interpolation method &#39;</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&#39; not supported&quot;</span><span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">data</span>
+        <span class="n">is_cupy</span> <span class="o">=</span> <span class="n">cp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span>
+        <span class="n">new_coords</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">target_da</span> <span class="ow">in</span> <span class="n">interp_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">dim_idx</span> <span class="o">=</span> <span class="n">dims</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">src_raw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+            <span class="n">tgt_raw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">target_da</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+            <span class="n">sort_order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">src_raw</span><span class="p">)</span>
+            <span class="n">src_sorted</span> <span class="o">=</span> <span class="n">src_raw</span><span class="p">[</span><span class="n">sort_order</span><span class="p">]</span>
+            <span class="n">idx_sorted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">src_sorted</span><span class="p">,</span> <span class="n">tgt_raw</span><span class="p">)</span>
+            <span class="n">idx_sorted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">idx_sorted</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">src_sorted</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">left</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">tgt_raw</span> <span class="o">-</span> <span class="n">src_sorted</span><span class="p">[</span><span class="n">idx_sorted</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="n">right</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">tgt_raw</span> <span class="o">-</span> <span class="n">src_sorted</span><span class="p">[</span><span class="n">idx_sorted</span><span class="p">])</span>
+            <span class="n">idx_sorted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">left</span> <span class="o">&lt;=</span> <span class="n">right</span><span class="p">,</span> <span class="n">idx_sorted</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">idx_sorted</span><span class="p">)</span>
+
+            <span class="c1"># Map back to original unsorted indices</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">sort_order</span><span class="p">[</span><span class="n">idx_sorted</span><span class="p">]</span>
+
+            <span class="c1"># Index into the data array along this dimension</span>
+            <span class="k">if</span> <span class="n">is_cupy</span><span class="p">:</span>
+                <span class="n">idx_arr</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">idx_arr</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">dim_idx</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">dim_idx</span><span class="p">)</span>
+
+            <span class="c1"># Update the interpolated dimension coordinate</span>
+            <span class="n">new_coords</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">tgt_raw</span><span class="p">)</span>
+
+            <span class="c1"># Re-index any non-dimension coordinates that depend on this dim</span>
+            <span class="k">for</span> <span class="n">cname</span><span class="p">,</span> <span class="n">cval</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">new_coords</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                <span class="k">if</span> <span class="n">cname</span> <span class="o">==</span> <span class="n">key</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cval</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">Variable</span><span class="p">):</span>
+                    <span class="n">c_dims</span> <span class="o">=</span> <span class="n">cval</span><span class="o">.</span><span class="n">dims</span>
+                    <span class="n">c_data</span> <span class="o">=</span> <span class="n">cval</span><span class="o">.</span><span class="n">values</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cval</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">):</span>
+                    <span class="n">c_dims</span> <span class="o">=</span> <span class="n">cval</span><span class="o">.</span><span class="n">dims</span>
+                    <span class="n">c_data</span> <span class="o">=</span> <span class="n">cval</span><span class="o">.</span><span class="n">values</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cval</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">cval</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">c_dims</span><span class="p">,</span> <span class="n">c_data</span> <span class="o">=</span> <span class="n">cval</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c_dims</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                        <span class="n">c_dims</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_dims</span><span class="p">,)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">c_dims</span><span class="p">:</span>
+                    <span class="n">ax</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">c_dims</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                    <span class="n">c_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">c_data</span><span class="p">),</span> <span class="n">idx</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+                    <span class="n">new_coords</span><span class="p">[</span><span class="n">cname</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_dims</span><span class="p">,</span> <span class="n">c_data</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">new_coords</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span>
 
 
 <div class="viewcode-block" id="split_coords">
