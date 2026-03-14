@@ -914,9 +914,14 @@
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">gsi_name</span><span class="p">,</span> <span class="n">modifier</span> <span class="o">=</span> <span class="n">GSIConventionalLexicon</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>  <span class="c1"># type: ignore</span>
                 <span class="n">gsi_platform</span><span class="p">,</span> <span class="n">gsi_sensor</span><span class="p">,</span> <span class="n">gsi_product</span><span class="p">,</span> <span class="n">gsi_name</span> <span class="o">=</span> <span class="n">gsi_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;::&quot;</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Variable id </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2"> not found in GSI conventional lexicon&quot;</span><span class="p">)</span>
-                <span class="k">raise</span> <span class="n">e</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">GSISatelliteLexicon</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Variable id </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2"> is a UFS satellite variable, skipping in conventional fetch&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Variable id </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2"> not found in GSI lexicon&quot;</span><span class="p">)</span>
+                <span class="k">raise</span>
 
             <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">time_list</span><span class="p">:</span>
                 <span class="n">tmin</span> <span class="o">=</span> <span class="n">t</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tolerance_lower</span>
@@ -1106,9 +1111,14 @@
                 <span class="n">gsi_platforms</span> <span class="o">=</span> <span class="p">[</span>
                     <span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">gsi_platforms0</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span>
                 <span class="p">]</span>
-            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Variable id </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2"> not found in GSI satellite lexicon&quot;</span><span class="p">)</span>
-                <span class="k">raise</span> <span class="n">e</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">GSIConventionalLexicon</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Variable id </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2"> is a UFS conventional variable, skipping in satellite fetch&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Variable id </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2"> not found in GSI lexicon&quot;</span><span class="p">)</span>
+                <span class="k">raise</span>
 
             <span class="k">for</span> <span class="n">gsi_platform</span> <span class="ow">in</span> <span class="n">gsi_platforms</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">time_list</span><span class="p">:</span>

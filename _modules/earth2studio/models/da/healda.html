@@ -1,0 +1,1590 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>earth2studio.models.da.healda &#8212; Earth2Studio 0.13.0a0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/css/nvidia-sphinx-theme.css?v=a9229f12" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../../_static/documentation_options.js?v=e36bfde7"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../../_static/togglebutton.js?v=1ae7504c"></script>
+    <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/earth2studio/models/da/healda';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.16.1';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://raw.githubusercontent.com/NVIDIA/earth2studio/gh-pages/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'main';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.13" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../_static/NVIDIA-Logo-V-ForScreen-ForLightBG.png" class="logo__image only-light" alt=""/>
+    <img src="../../../../_static/NVIDIA-Logo-V-ForScreen-ForDarkBG.png" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">Earth2Studio</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../userguide/index.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../modules/index.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/NVIDIA/earth2studio/tree/main/recipes">
+    Recipes
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/NVIDIA/earth2studio/blob/main/CHANGELOG.md">
+    Changelog
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/NVIDIA/earth2studio" title="Github" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Github</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../userguide/index.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../modules/index.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/NVIDIA/earth2studio/tree/main/recipes">
+    Recipes
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/NVIDIA/earth2studio/blob/main/CHANGELOG.md">
+    Changelog
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/NVIDIA/earth2studio" title="Github" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Github</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">earth2studio.models.da.healda</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for earth2studio.models.da.healda</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-FileCopyrightText: Copyright (c) 2024-2026 NVIDIA CORPORATION &amp; AFFILIATES.</span>
+<span class="c1"># SPDX-FileCopyrightText: All rights reserved.</span>
+<span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Generator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">loguru</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">earth2studio.models.auto</span><span class="w"> </span><span class="kn">import</span> <span class="n">AutoModelMixin</span><span class="p">,</span> <span class="n">Package</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">earth2studio.models.da.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">AssimilationModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">earth2studio.models.da.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">filter_time_range</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">earth2studio.utils.imports</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">OptionalDependencyFailure</span><span class="p">,</span>
+    <span class="n">check_optional_dependencies</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">earth2studio.utils.time</span><span class="w"> </span><span class="kn">import</span> <span class="n">normalize_time_tolerance</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">earth2studio.utils.type</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoordSystem</span><span class="p">,</span> <span class="n">FrameSchema</span><span class="p">,</span> <span class="n">TimeArray</span><span class="p">,</span> <span class="n">TimeTolerance</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">cp</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># type: ignore[assignment]</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">cudf</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">cudf</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># type: ignore[assignment, misc]</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">earth2grid</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">physicsnemo.experimental.models.healda</span><span class="w"> </span><span class="kn">import</span> <span class="n">HealDA</span> <span class="k">as</span> <span class="n">_HealDAModel</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">OptionalDependencyFailure</span><span class="p">(</span><span class="s2">&quot;da-healda&quot;</span><span class="p">)</span>
+    <span class="n">earth2grid</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">_HealDAModel</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="c1"># Internal channel names used by the model weights / stats CSV.</span>
+<span class="n">ERA5_LEVELS</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">925</span><span class="p">,</span> <span class="mi">850</span><span class="p">,</span> <span class="mi">700</span><span class="p">,</span> <span class="mi">600</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="mi">250</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">50</span><span class="p">]</span>
+<span class="n">ERA5_VARIABLES_3D</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;U&quot;</span><span class="p">,</span> <span class="s2">&quot;V&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="s2">&quot;Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">]</span>
+<span class="n">ERA5_VARIABLES_2D</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;tcwv&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tas&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;uas&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;vas&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;100u&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;100v&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;pres_msl&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;sst&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;sic&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+<span class="n">ERA5_CHANNELS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="o">*</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">var</span><span class="si">}{</span><span class="n">lev</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ERA5_VARIABLES_3D</span> <span class="k">for</span> <span class="n">lev</span> <span class="ow">in</span> <span class="n">ERA5_LEVELS</span><span class="p">],</span>
+    <span class="o">*</span><span class="n">ERA5_VARIABLES_2D</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1"># Mapping / channels based on E2S standard vocab</span>
+<span class="n">_CHANNEL_TO_E2S</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;tas&quot;</span><span class="p">:</span> <span class="s2">&quot;t2m&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;uas&quot;</span><span class="p">:</span> <span class="s2">&quot;u10m&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;vas&quot;</span><span class="p">:</span> <span class="s2">&quot;v10m&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;100u&quot;</span><span class="p">:</span> <span class="s2">&quot;u100m&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;100v&quot;</span><span class="p">:</span> <span class="s2">&quot;v100m&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;pres_msl&quot;</span><span class="p">:</span> <span class="s2">&quot;msl&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="k">for</span> <span class="n">_var3d</span> <span class="ow">in</span> <span class="n">ERA5_VARIABLES_3D</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">_lev</span> <span class="ow">in</span> <span class="n">ERA5_LEVELS</span><span class="p">:</span>
+        <span class="n">_CHANNEL_TO_E2S</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_var3d</span><span class="si">}{</span><span class="n">_lev</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_var3d</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}{</span><span class="n">_lev</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="n">E2S_CHANNELS</span> <span class="o">=</span> <span class="p">[</span><span class="n">_CHANNEL_TO_E2S</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ch</span><span class="p">,</span> <span class="n">ch</span><span class="p">)</span> <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">ERA5_CHANNELS</span><span class="p">]</span>
+
+<span class="c1"># Supported sensor lists / mappings</span>
+<span class="n">SAT_SENSORS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;atms&quot;</span><span class="p">,</span> <span class="s2">&quot;mhs&quot;</span><span class="p">,</span> <span class="s2">&quot;amsua&quot;</span><span class="p">,</span> <span class="s2">&quot;amsub&quot;</span><span class="p">)</span>
+<span class="n">ALL_SENSORS</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">SAT_SENSORS</span><span class="p">,</span> <span class="s2">&quot;conv&quot;</span><span class="p">)</span>
+<span class="n">SENSOR_PLATFORMS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;atms&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;npp&quot;</span><span class="p">,</span> <span class="s2">&quot;n20&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;mhs&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;metop-a&quot;</span><span class="p">,</span> <span class="s2">&quot;metop-b&quot;</span><span class="p">,</span> <span class="s2">&quot;metop-c&quot;</span><span class="p">,</span> <span class="s2">&quot;n18&quot;</span><span class="p">,</span> <span class="s2">&quot;n19&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;amsua&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;metop-a&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;metop-b&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;metop-c&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;n15&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;n16&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;n17&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;n18&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;n19&quot;</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;amsub&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;n15&quot;</span><span class="p">,</span> <span class="s2">&quot;n16&quot;</span><span class="p">,</span> <span class="s2">&quot;n17&quot;</span><span class="p">],</span>
+<span class="p">}</span>
+<span class="c1"># E2studio conventional variable → 0-based local_channel_id.</span>
+<span class="c1"># Channel ordering matches CONV_CHANNELS:</span>
+<span class="c1">#   0: gps_angle, 1: gps_t, 2: gps_q, 3: ps, 4: q, 5: t, 6: u, 7: v</span>
+<span class="n">CONV_VAR_CHANNEL</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;gps&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s2">&quot;gps_t&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;gps_q&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="s2">&quot;pres&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="s2">&quot;q&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="s2">&quot;t&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+    <span class="s2">&quot;v&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># Conventional QC limits</span>
+<span class="n">_QC_HEIGHT_MIN</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">_QC_HEIGHT_MAX</span> <span class="o">=</span> <span class="mf">60000.0</span>
+<span class="n">_QC_PRESSURE_MIN_GPS</span> <span class="o">=</span> <span class="mf">0.5</span>
+<span class="n">_QC_PRESSURE_MIN_DEFAULT</span> <span class="o">=</span> <span class="mf">200.0</span>
+<span class="n">_QC_PRESSURE_MAX</span> <span class="o">=</span> <span class="mf">1100.0</span>
+
+<span class="c1"># Per-conv-channel valid ranges (name, min_valid, max_valid)</span>
+<span class="n">_CONV_CHANNEL_RANGES</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">&quot;gps_angle&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;-inf&quot;</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)),</span>
+    <span class="p">(</span><span class="s2">&quot;gps_t&quot;</span><span class="p">,</span> <span class="mf">150.0</span><span class="p">,</span> <span class="mf">350.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;gps_q&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;ps&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;-inf&quot;</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)),</span>
+    <span class="p">(</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;t&quot;</span><span class="p">,</span> <span class="mf">150.0</span><span class="p">,</span> <span class="mf">350.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;u&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">100.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;v&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">100.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">),</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="HealDA">
+<a class="viewcode-back" href="../../../../modules/generated/models/da/earth2studio.models.da.HealDA.html#earth2studio.models.da.HealDA">[docs]</a>
+<span class="nd">@check_optional_dependencies</span><span class="p">()</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">HealDA</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">AutoModelMixin</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;HealDA data assimilation model for global weather analysis from sparse</span>
+<span class="sd">    observations on a HEALPix grid.</span>
+
+<span class="sd">    HealDA is a stateless assimilation model that produces a single global weather</span>
+<span class="sd">    analysis from conventional and satellite observations. It operates on a HEALPix</span>
+<span class="sd">    level-6 padded XY grid and outputs ERA5-compatible atmospheric variables.</span>
+
+<span class="sd">    The model accepts pre-processed observation DataFrames (from</span>
+<span class="sd">    :py:class:`earth2studio.data.UFSObsConv` and</span>
+<span class="sd">    :py:class:`earth2studio.data.UFSObsSat`) and produces a global analysis field.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : torch.nn.Module</span>
+<span class="sd">        The underlying HealDA neural network</span>
+<span class="sd">    condition : torch.Tensor</span>
+<span class="sd">        Static conditioning fields (e.g. orography, land fraction) on the HEALPix grid</span>
+<span class="sd">        of size [1, n_static, 1, npix]</span>
+<span class="sd">    era5_mean : torch.Tensor</span>
+<span class="sd">        ERA5 per-channel mean for output denormalization [1, out_variables, 1, 1]</span>
+<span class="sd">    era5_std : torch.Tensor</span>
+<span class="sd">        ERA5 per-channel std for output denormalization [1, out_variables, 1, 1]</span>
+<span class="sd">    sensor_stats : dict[str, dict[str, np.ndarray]]</span>
+<span class="sd">        Per-sensor normalization statistics loaded from the package</span>
+<span class="sd">    lat_lon : bool, optional</span>
+<span class="sd">        If True the model output is regridded from the native HEALPix grid to a</span>
+<span class="sd">        regular equiangular lat-lon grid using ``earth2grid``. If False the raw</span>
+<span class="sd">        HEALPix output is returned with an ``npix`` dimension, by default False</span>
+<span class="sd">    output_resolution : tuple[int, int], optional</span>
+<span class="sd">        ``(nlat, nlon)`` size of the output lat-lon grid. Only used when</span>
+<span class="sd">        ``lat_lon=True``, by default ``(181, 360)`` (1° resolution)</span>
+<span class="sd">    time_tolerance : TimeTolerance, optional</span>
+<span class="sd">        Time tolerance for filtering observations, by default (-21 hours, 3 hours)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="n">condition</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">era5_mean</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">era5_std</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">sensor_stats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]],</span>
+        <span class="n">lat_lon</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">output_resolution</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">181</span><span class="p">,</span> <span class="mi">360</span><span class="p">),</span>
+        <span class="n">time_tolerance</span><span class="p">:</span> <span class="n">TimeTolerance</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span><span class="p">(</span><span class="o">-</span><span class="mi">21</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">),</span>
+        <span class="p">),</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="n">condition</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;_era5_mean&quot;</span><span class="p">,</span> <span class="n">era5_mean</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;_era5_std&quot;</span><span class="p">,</span> <span class="n">era5_std</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;device_buffer&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sensor_stats</span> <span class="o">=</span> <span class="n">sensor_stats</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lat_lon</span> <span class="o">=</span> <span class="n">lat_lon</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tolerance</span> <span class="o">=</span> <span class="n">normalize_time_tolerance</span><span class="p">(</span><span class="n">time_tolerance</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span> <span class="o">=</span> <span class="n">earth2grid</span><span class="o">.</span><span class="n">healpix</span><span class="o">.</span><span class="n">Grid</span><span class="p">(</span>
+            <span class="mi">6</span><span class="p">,</span> <span class="n">pixel_order</span><span class="o">=</span><span class="n">earth2grid</span><span class="o">.</span><span class="n">healpix</span><span class="o">.</span><span class="n">HEALPIX_PAD_XY</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_channel_stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_channel_stats</span><span class="p">()</span>
+
+        <span class="c1"># Setup lat-lon regridder when requested</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lat_lon</span><span class="p">:</span>
+            <span class="n">nlat</span><span class="p">,</span> <span class="n">nlon</span> <span class="o">=</span> <span class="n">output_resolution</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_lat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">90</span><span class="p">,</span> <span class="o">-</span><span class="mi">90</span><span class="p">,</span> <span class="n">nlat</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_lon</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">360</span><span class="p">,</span> <span class="n">nlon</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">ll_grid</span> <span class="o">=</span> <span class="n">earth2grid</span><span class="o">.</span><span class="n">latlon</span><span class="o">.</span><span class="n">equiangular_lat_lon_grid</span><span class="p">(</span><span class="n">nlat</span><span class="p">,</span> <span class="n">nlon</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_regridder</span> <span class="o">=</span> <span class="n">earth2grid</span><span class="o">.</span><span class="n">get_regridder</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_grid</span><span class="p">,</span> <span class="n">ll_grid</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_lat</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_lon</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_regridder</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">device</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_buffer</span><span class="o">.</span><span class="n">device</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialzation coords (not required)&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">input_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">FrameSchema</span><span class="p">,</span> <span class="n">FrameSchema</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Input coordinate system specifying required DataFrame fields.</span>
+
+<span class="sd">        Returns two FrameSchemas: one for conventional observations and one for</span>
+<span class="sd">        satellite observations. When calling the model, either may be ``None``</span>
+<span class="sd">        but not both.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple[FrameSchema, FrameSchema]</span>
+<span class="sd">            (conventional_schema, satellite_schema) describing the expected</span>
+<span class="sd">            columns for each observation DataFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">conv_schema</span> <span class="o">=</span> <span class="n">FrameSchema</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;datetime64[ns]&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;observation&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;variable&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">,</span> <span class="s2">&quot;v&quot;</span><span class="p">,</span> <span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="s2">&quot;t&quot;</span><span class="p">,</span> <span class="s2">&quot;pres&quot;</span><span class="p">,</span> <span class="s2">&quot;gps&quot;</span><span class="p">,</span> <span class="s2">&quot;gps_t&quot;</span><span class="p">,</span> <span class="s2">&quot;gps_q&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span>
+                <span class="p">),</span>
+                <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">),</span>
+                <span class="s2">&quot;elev&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;pres&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="n">sat_schema</span> <span class="o">=</span> <span class="n">FrameSchema</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;datetime64[ns]&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;observation&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;variable&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">SAT_SENSORS</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">),</span>
+                <span class="s2">&quot;channel_index&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">),</span>
+                <span class="s2">&quot;satellite&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">),</span>
+                <span class="s2">&quot;scan_angle&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;satellite_za&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;solza&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">conv_schema</span><span class="p">,</span> <span class="n">sat_schema</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">output_coords</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_coords</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">CoordSystem</span><span class="p">,</span> <span class="n">CoordSystem</span><span class="p">],</span>
+        <span class="n">request_time</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">CoordSystem</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Output coordinate system for the HealDA analysis.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_coords : tuple[CoordSystem]</span>
+<span class="sd">            Input coordinate system</span>
+<span class="sd">        request_time : np.ndarray | None, optional</span>
+<span class="sd">            Analysis valid time(s), by default None</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple[CoordSystem]</span>
+<span class="sd">            Coordinate system with time, variable, and lat/lon or npix dimensions</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">request_time</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">request_time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">(</span><span class="s2">&quot;NaT&quot;</span><span class="p">)],</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;datetime64[ns]&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lat_lon</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">CoordSystem</span><span class="p">(</span>
+                    <span class="n">OrderedDict</span><span class="p">(</span>
+                        <span class="p">{</span>
+                            <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">request_time</span><span class="p">,</span>
+                            <span class="s2">&quot;variable&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">E2S_CHANNELS</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">),</span>
+                            <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_lat</span><span class="p">,</span>
+                            <span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_lon</span><span class="p">,</span>
+                        <span class="p">}</span>
+                    <span class="p">)</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">CoordSystem</span><span class="p">(</span>
+                <span class="n">OrderedDict</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">request_time</span><span class="p">,</span>
+                        <span class="s2">&quot;variable&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">E2S_CHANNELS</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">),</span>
+                        <span class="s2">&quot;npix&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">npix</span><span class="p">),</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="HealDA.load_default_package">
+<a class="viewcode-back" href="../../../../modules/generated/models/da/earth2studio.models.da.HealDA.html#earth2studio.models.da.HealDA.load_default_package">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_default_package</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Package</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load the default HealDA model package from HuggingFace.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Package</span>
+<span class="sd">            Model package pointing to the HuggingFace repository</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Package</span><span class="p">(</span>
+            <span class="s2">&quot;hf://nvidia/healda@28e22277aab12a7c9e3e160c003539ef57bb24b1&quot;</span><span class="p">,</span>
+            <span class="n">cache_options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;same_names&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HealDA.load_model">
+<a class="viewcode-back" href="../../../../modules/generated/models/da/earth2studio.models.da.HealDA.html#earth2studio.models.da.HealDA.load_model">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@check_optional_dependencies</span><span class="p">()</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_model</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">package</span><span class="p">:</span> <span class="n">Package</span><span class="p">,</span>
+        <span class="n">lat_lon</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">output_resolution</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">181</span><span class="p">,</span> <span class="mi">360</span><span class="p">),</span>
+        <span class="n">time_tolerance</span><span class="p">:</span> <span class="n">TimeTolerance</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span><span class="p">(</span><span class="o">-</span><span class="mi">21</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">),</span>
+        <span class="p">),</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AssimilationModel</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load HealDA model from package.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        package : Package</span>
+<span class="sd">            Package containing model checkpoint and statistics</span>
+<span class="sd">        lat_lon : bool, optional</span>
+<span class="sd">            If True the output is regridded to a regular lat-lon grid,</span>
+<span class="sd">            by default False</span>
+<span class="sd">        output_resolution : tuple[int, int], optional</span>
+<span class="sd">            ``(nlat, nlon)`` size of the output lat-lon grid. Only used when</span>
+<span class="sd">            ``lat_lon=True``, by default ``(181, 360)``</span>
+<span class="sd">        time_tolerance : TimeTolerance, optional</span>
+<span class="sd">            Time tolerance for filtering observations, by default (-21 hours, 3 hours)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        AssimilationModel</span>
+<span class="sd">            Loaded HealDA assimilation model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">package</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;config.json&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+        <span class="n">model</span> <span class="o">=</span> <span class="n">_HealDAModel</span><span class="o">.</span><span class="n">from_checkpoint</span><span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;healda_ufs_era5.mdlus&quot;</span><span class="p">))</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+        <span class="c1"># Static conditioning (orography, land fraction) on HEALPix grid</span>
+        <span class="n">condition</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;static/condition_hpx6_padxy.npy&quot;</span><span class="p">))</span>
+        <span class="p">)</span>  <span class="c1"># [1, 2, 1, npix]</span>
+
+        <span class="c1"># Load sensor normalization statistics</span>
+        <span class="n">sensor_stats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="n">ALL_SENSORS</span><span class="p">:</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;stats/</span><span class="si">{</span><span class="n">sensor</span><span class="si">}</span><span class="s2">_normalizations.csv&quot;</span><span class="p">))</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;Platform_ID&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;Raw_Channel_ID&quot;</span><span class="p">)</span>
+            <span class="n">means</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;obs_mean&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="n">stds</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;obs_std&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="n">raw_ids</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Raw_Channel_ID&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+            <span class="n">max_raw</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw_ids</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+            <span class="n">lut</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">max_raw</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">local_idx</span><span class="p">,</span> <span class="n">raw</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">raw_ids</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">lut</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">raw</span><span class="p">)]</span> <span class="o">=</span> <span class="n">local_idx</span>
+            <span class="n">sensor_stats</span><span class="p">[</span><span class="n">sensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;means&quot;</span><span class="p">:</span> <span class="n">means</span><span class="p">,</span> <span class="s2">&quot;stds&quot;</span><span class="p">:</span> <span class="n">stds</span><span class="p">,</span> <span class="s2">&quot;raw_to_local&quot;</span><span class="p">:</span> <span class="n">lut</span><span class="p">}</span>
+
+        <span class="c1"># Load ERA normalization stats</span>
+        <span class="n">stats</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;stats/era5_13_levels_stats.csv&quot;</span><span class="p">))</span>
+        <span class="n">level</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;level&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">channel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">level</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;variable&quot;</span><span class="p">],</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;variable&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">level</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">ordered</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">channel</span><span class="o">=</span><span class="n">channel</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;channel&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ERA5_CHANNELS</span><span class="p">]</span>
+        <span class="n">era5_mean</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">ordered</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="n">era5_std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">ordered</span><span class="p">[</span><span class="s2">&quot;std&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+            <span class="n">condition</span><span class="o">=</span><span class="n">condition</span><span class="p">,</span>
+            <span class="n">era5_mean</span><span class="o">=</span><span class="n">era5_mean</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">era5_std</span><span class="o">=</span><span class="n">era5_std</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">sensor_stats</span><span class="o">=</span><span class="n">sensor_stats</span><span class="p">,</span>
+            <span class="n">lat_lon</span><span class="o">=</span><span class="n">lat_lon</span><span class="p">,</span>
+            <span class="n">output_resolution</span><span class="o">=</span><span class="n">output_resolution</span><span class="p">,</span>
+            <span class="n">time_tolerance</span><span class="o">=</span><span class="n">time_tolerance</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">inference_mode</span><span class="p">()</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;second_of_day&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">noise_labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">class_labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">autocast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">):</span>
+            <span class="n">prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">(</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">],</span>
+                <span class="n">t</span><span class="o">=</span><span class="n">noise_labels</span><span class="p">,</span>
+                <span class="n">obs</span><span class="o">=</span><span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;obs&quot;</span><span class="p">],</span>
+                <span class="n">float_metadata</span><span class="o">=</span><span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;float_metadata&quot;</span><span class="p">],</span>
+                <span class="n">pix</span><span class="o">=</span><span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;pix&quot;</span><span class="p">],</span>
+                <span class="n">local_channel</span><span class="o">=</span><span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;local_channel&quot;</span><span class="p">],</span>
+                <span class="n">local_platform</span><span class="o">=</span><span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;local_platform&quot;</span><span class="p">],</span>
+                <span class="n">obs_type</span><span class="o">=</span><span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;obs_type&quot;</span><span class="p">],</span>
+                <span class="n">offsets</span><span class="o">=</span><span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;offsets&quot;</span><span class="p">],</span>
+                <span class="n">second_of_day</span><span class="o">=</span><span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;second_of_day&quot;</span><span class="p">],</span>
+                <span class="n">day_of_year</span><span class="o">=</span><span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;day_of_year&quot;</span><span class="p">],</span>
+                <span class="n">class_labels</span><span class="o">=</span><span class="n">class_labels</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Denormalize: prediction is [batch, channels, time, npix]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_era5_std</span> <span class="o">*</span> <span class="n">prediction</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_era5_mean</span>
+
+<div class="viewcode-block" id="HealDA.__call__">
+<a class="viewcode-back" href="../../../../modules/generated/models/da/earth2studio.models.da.HealDA.html#earth2studio.models.da.HealDA.__call__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">conv_obs</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sat_obs</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run HealDA inference from conventional and/or satellite observations.</span>
+
+<span class="sd">        At least one of the two observation DataFrames must be provided. Each</span>
+<span class="sd">        DataFrame must carry a ``request_time`` entry in its ``.attrs``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        conv_obs : pd.DataFrame | None, optional</span>
+<span class="sd">            Conventional observation DataFrame from</span>
+<span class="sd">            :py:class:`earth2studio.data.UFSObsConv`, by default None</span>
+<span class="sd">        sat_obs : pd.DataFrame | None, optional</span>
+<span class="sd">            Satellite observation DataFrame from</span>
+<span class="sd">            :py:class:`earth2studio.data.UFSObsSat`, by default None</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        xr.DataArray</span>
+<span class="sd">            Global analysis on the HEALPix grid with dimensions</span>
+<span class="sd">            [time, variable, npix]. Data is on the same device as the model</span>
+<span class="sd">            (cupy array for GPU, numpy for CPU).</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If both *conv_obs* and *sat_obs* are ``None``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">conv_obs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">sat_obs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;At least one of conv_obs or sat_obs must be provided.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Determine request_time from whichever DataFrame is present</span>
+        <span class="n">request_time</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">df</span> <span class="ow">in</span> <span class="p">(</span><span class="n">conv_obs</span><span class="p">,</span> <span class="n">sat_obs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">request_time</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;request_time&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">request_time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">break</span>
+        <span class="k">if</span> <span class="n">request_time</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Observation DataFrame must have &#39;request_time&#39; in attrs. &quot;</span>
+                <span class="s2">&quot;This is typically set by earth2studio data sources.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Normalize request_time to a numpy datetime64 array</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">request_time</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">request_time</span> <span class="o">=</span> <span class="n">request_time</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;datetime64[ns]&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">request_time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">(</span><span class="n">request_time</span><span class="p">,</span> <span class="s2">&quot;ns&quot;</span><span class="p">)],</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;datetime64[ns]&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Pre-process, QC, normalize, and split by (sensor, time)</span>
+        <span class="n">obs_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_and_normalize</span><span class="p">(</span><span class="n">conv_obs</span><span class="p">,</span> <span class="n">sat_obs</span><span class="p">,</span> <span class="n">request_time</span><span class="p">)</span>
+
+        <span class="c1"># Check if all (sensor, time) buckets are empty</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">df</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">time_list</span> <span class="ow">in</span> <span class="n">obs_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">df</span> <span class="ow">in</span> <span class="n">time_list</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No observations after filtering, returning empty analysis&quot;</span><span class="p">)</span>
+            <span class="p">(</span><span class="n">output_coords</span><span class="p">,)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_coords</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">input_coords</span><span class="p">(),</span> <span class="n">request_time</span><span class="o">=</span><span class="n">request_time</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_empty_output</span><span class="p">(</span><span class="n">output_coords</span><span class="p">)</span>
+
+        <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_input</span><span class="p">(</span><span class="n">obs_dict</span><span class="p">,</span> <span class="n">request_time</span><span class="p">)</span>
+        <span class="n">prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+        <span class="p">(</span><span class="n">output_coords</span><span class="p">,)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_coords</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_coords</span><span class="p">(),</span> <span class="n">request_time</span><span class="o">=</span><span class="n">request_time</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_output</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">output_coords</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HealDA.create_generator">
+<a class="viewcode-back" href="../../../../modules/generated/models/da/earth2studio.models.da.HealDA.html#earth2studio.models.da.HealDA.create_generator">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_generator</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span>
+        <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">,</span>
+        <span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span>
+        <span class="kc">None</span><span class="p">,</span>
+    <span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a generator which accepts collection of input observations and</span>
+<span class="sd">        yields the output global assimilated data.</span>
+
+<span class="sd">        Yields</span>
+<span class="sd">        ------</span>
+<span class="sd">        xr.DataArray</span>
+<span class="sd">            Global analysis on the HEALPix grid</span>
+
+<span class="sd">        Receives</span>
+<span class="sd">        --------</span>
+<span class="sd">        tuple[pd.DataFrame | None, pd.DataFrame | None]</span>
+<span class="sd">            A ``(conv_obs, sat_obs)`` tuple sent via ``generator.send()``.</span>
+<span class="sd">            Either element may be ``None`` but not both.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="k">yield</span> <span class="kc">None</span>  <span class="c1"># type: ignore[misc]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">conv_obs</span><span class="p">,</span> <span class="n">sat_obs</span> <span class="o">=</span> <span class="n">inputs</span> <span class="k">if</span> <span class="n">inputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="n">da</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">conv_obs</span><span class="p">,</span> <span class="n">sat_obs</span><span class="p">)</span>
+                <span class="n">inputs</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">da</span>
+        <span class="k">except</span> <span class="ne">GeneratorExit</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;HealDA generator clean up complete.&quot;</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_channel_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build per-(sensor, local_channel) normalization stats table.&quot;&quot;&quot;</span>
+        <span class="n">rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">sensor_name</span> <span class="ow">in</span> <span class="n">ALL_SENSORS</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">sensor_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sensor_stats</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sensor_stats</span><span class="p">[</span><span class="n">sensor_name</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">sensor_name</span> <span class="o">==</span> <span class="s2">&quot;conv&quot;</span><span class="p">:</span>
+                <span class="n">rows</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;sensor&quot;</span><span class="p">:</span> <span class="n">sensor_name</span><span class="p">,</span>
+                        <span class="s2">&quot;local_channel&quot;</span><span class="p">:</span> <span class="n">ch_id</span><span class="p">,</span>
+                        <span class="s2">&quot;mean&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;means&quot;</span><span class="p">][</span><span class="n">ch_id</span><span class="p">]),</span>
+                        <span class="s2">&quot;std&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;stds&quot;</span><span class="p">][</span><span class="n">ch_id</span><span class="p">]),</span>
+                        <span class="s2">&quot;min_valid&quot;</span><span class="p">:</span> <span class="n">min_v</span><span class="p">,</span>
+                        <span class="s2">&quot;max_valid&quot;</span><span class="p">:</span> <span class="n">max_v</span><span class="p">,</span>
+                    <span class="p">}</span>
+                    <span class="k">for</span> <span class="n">ch_id</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">min_v</span><span class="p">,</span> <span class="n">max_v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">_CONV_CHANNEL_RANGES</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rows</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;sensor&quot;</span><span class="p">:</span> <span class="n">sensor_name</span><span class="p">,</span>
+                        <span class="s2">&quot;local_channel&quot;</span><span class="p">:</span> <span class="n">ch_id</span><span class="p">,</span>
+                        <span class="s2">&quot;mean&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;means&quot;</span><span class="p">][</span><span class="n">ch_id</span><span class="p">]),</span>
+                        <span class="s2">&quot;std&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;stds&quot;</span><span class="p">][</span><span class="n">ch_id</span><span class="p">]),</span>
+                        <span class="s2">&quot;min_valid&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+                        <span class="s2">&quot;max_valid&quot;</span><span class="p">:</span> <span class="mf">400.0</span><span class="p">,</span>
+                    <span class="p">}</span>
+                    <span class="k">for</span> <span class="n">ch_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;means&quot;</span><span class="p">]))</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">({</span><span class="s2">&quot;local_channel&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">})</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">prep_sat_sensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">sensor</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Standardize a satellite DataFrame into the unified obs schema.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pd.DataFrame</span>
+<span class="sd">            Raw satellite observation DataFrame from UFSObsSat</span>
+<span class="sd">        sensor : str</span>
+<span class="sd">            Sensor name (atms, mhs, amsua, amsub)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pd.DataFrame</span>
+<span class="sd">            Standardized DataFrame with unified column schema</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sensor_stats</span><span class="p">[</span><span class="n">sensor</span><span class="p">]</span>
+        <span class="n">raw_ch</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;channel_index&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">platforms</span> <span class="o">=</span> <span class="n">SENSOR_PLATFORMS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">sensor</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">platform_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">platforms</span><span class="p">)}</span>
+
+        <span class="n">unknown_vars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;satellite&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">platform_map</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">unknown_vars</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown satellite platform(s) present: </span><span class="si">{</span><span class="n">unknown_vars</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">max_raw</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;raw_to_local&quot;</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">out_of_bounds</span> <span class="o">=</span> <span class="n">raw_ch</span><span class="p">[</span><span class="n">raw_ch</span> <span class="o">&gt;</span> <span class="n">max_raw</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">out_of_bounds</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Sensor </span><span class="si">{</span><span class="n">sensor</span><span class="si">!r}</span><span class="s2">: channel_index values </span><span class="si">{</span><span class="nb">set</span><span class="p">(</span><span class="n">out_of_bounds</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;exceed max channel </span><span class="si">{</span><span class="n">max_raw</span><span class="si">}</span><span class="s2"> in stats table&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;obs_time_ns&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;datetime64[ns]&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;observation&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;observation&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+                <span class="s2">&quot;local_channel&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;raw_to_local&quot;</span><span class="p">][</span><span class="n">raw_ch</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                <span class="s2">&quot;local_platform&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;satellite&quot;</span><span class="p">]</span>
+                <span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">platform_map</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+                <span class="s2">&quot;sensor&quot;</span><span class="p">:</span> <span class="n">sensor</span><span class="p">,</span>
+                <span class="s2">&quot;obs_type&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+                <span class="s2">&quot;pressure&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+                <span class="s2">&quot;scan_angle&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;scan_angle&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;sat_zenith_angle&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;satellite_za&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;sol_zenith_angle&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;solza&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">prep_conv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Standardize a conventional observation DataFrame into the unified obs schema.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pd.DataFrame</span>
+<span class="sd">            Raw conventional observation DataFrame from UFSObsConv</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pd.DataFrame</span>
+<span class="sd">            Standardized DataFrame with unified column schema</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">unknown_vars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;variable&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">CONV_VAR_CHANNEL</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">unknown_vars</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown conventional variable(s): </span><span class="si">{</span><span class="n">unknown_vars</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;obs_time_ns&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;datetime64[ns]&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;observation&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;observation&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+                <span class="s2">&quot;local_channel&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;variable&quot;</span><span class="p">]</span>
+                <span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">CONV_VAR_CHANNEL</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                <span class="s2">&quot;local_platform&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                <span class="s2">&quot;sensor&quot;</span><span class="p">:</span> <span class="s2">&quot;conv&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;obs_type&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;elev&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;pressure&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;pres&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="s2">&quot;scan_angle&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+                <span class="s2">&quot;sat_zenith_angle&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+                <span class="s2">&quot;sol_zenith_angle&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">filter_and_normalize</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">conv_obs</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sat_obs</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">request_time</span><span class="p">:</span> <span class="n">TimeArray</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Pre-process, QC-filter, z-score normalize, and split observations by</span>
+<span class="sd">        sensor and request time.</span>
+
+<span class="sd">        This method handles the full observation pipeline:</span>
+
+<span class="sd">        1. Convert raw inputs via :meth:`prep_conv` / :meth:`prep_sat_sensor`.</span>
+<span class="sd">        2. Merge per-channel normalization statistics.</span>
+<span class="sd">        3. Apply QC filters (range checks, height/pressure bounds for conv).</span>
+<span class="sd">        4. Z-score normalize observations.</span>
+<span class="sd">        5. Split into per-sensor, per-time buckets.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        conv_obs : pd.DataFrame | None</span>
+<span class="sd">            Raw conventional observation DataFrame (or ``None``)</span>
+<span class="sd">        sat_obs : pd.DataFrame | None</span>
+<span class="sd">            Raw satellite observation DataFrame (or ``None``)</span>
+<span class="sd">        request_time : TimeArray</span>
+<span class="sd">            One or more analysis valid times</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict[str, list[pd.DataFrame | None]]</span>
+<span class="sd">            Dictionary to dictionary mapping sensor name to list of data frames for each</span>
+<span class="sd">            request time.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># 1. Standardize raw inputs into a unified schema.</span>
+        <span class="n">parts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">conv_obs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">conv_obs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prep_conv</span><span class="p">(</span><span class="n">conv_obs</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">sat_obs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">sat_obs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="n">SAT_SENSORS</span><span class="p">:</span>
+                <span class="n">sensor_df</span> <span class="o">=</span> <span class="n">sat_obs</span><span class="p">[</span><span class="n">sat_obs</span><span class="p">[</span><span class="s2">&quot;variable&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">sensor</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sensor_df</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prep_sat_sensor</span><span class="p">(</span><span class="n">sensor_df</span><span class="p">,</span> <span class="n">sensor</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">parts</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="n">s</span><span class="p">:</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">request_time</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">ALL_SENSORS</span><span class="p">}</span>
+
+        <span class="n">obs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">parts</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Convert cudf to pandas if needed (TODO: See if can be removed)</span>
+        <span class="k">if</span> <span class="n">cudf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obs</span><span class="p">,</span> <span class="n">cudf</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+            <span class="n">obs</span> <span class="o">=</span> <span class="n">obs</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
+
+        <span class="c1"># 2. QC and normalize once on the full set (time-independent).</span>
+        <span class="n">obs</span> <span class="o">=</span> <span class="n">obs</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_channel_stats</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;sensor&quot;</span><span class="p">,</span> <span class="s2">&quot;local_channel&quot;</span><span class="p">],</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;observation&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
+        <span class="n">valid</span> <span class="o">&amp;=</span> <span class="p">(</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;observation&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;min_valid&quot;</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span>
+            <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;observation&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;max_valid&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Conv-specific: height and pressure physical bounds</span>
+        <span class="n">is_conv</span> <span class="o">=</span> <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;sensor&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;conv&quot;</span>
+        <span class="k">if</span> <span class="n">is_conv</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">is_gps</span> <span class="o">=</span> <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;local_channel&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">2</span>
+            <span class="n">pres_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="n">is_conv</span> <span class="o">&amp;</span> <span class="n">is_gps</span><span class="p">,</span>
+                <span class="n">_QC_PRESSURE_MIN_GPS</span><span class="p">,</span>
+                <span class="n">_QC_PRESSURE_MIN_DEFAULT</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">height_ok</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
+                <span class="o">&amp;</span> <span class="p">(</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">_QC_HEIGHT_MIN</span><span class="p">)</span>
+                <span class="o">&amp;</span> <span class="p">(</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">_QC_HEIGHT_MAX</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">pressure_ok</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
+                <span class="o">&amp;</span> <span class="p">(</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">pres_min</span><span class="p">)</span>
+                <span class="o">&amp;</span> <span class="p">(</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">_QC_PRESSURE_MAX</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">valid</span> <span class="o">&amp;=</span> <span class="o">~</span><span class="n">is_conv</span> <span class="o">|</span> <span class="p">(</span><span class="n">height_ok</span> <span class="o">&amp;</span> <span class="n">pressure_ok</span><span class="p">)</span>
+
+        <span class="n">obs</span> <span class="o">=</span> <span class="n">obs</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;observation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;observation&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;std&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+        <span class="p">)</span>
+        <span class="n">obs</span> <span class="o">=</span> <span class="n">obs</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="s2">&quot;std&quot;</span><span class="p">,</span> <span class="s2">&quot;min_valid&quot;</span><span class="p">,</span> <span class="s2">&quot;max_valid&quot;</span><span class="p">])</span>
+
+        <span class="c1"># 3. Split by sensor, then by time within each sensor.</span>
+        <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="n">ALL_SENSORS</span><span class="p">:</span>
+            <span class="n">sensor_df</span> <span class="o">=</span> <span class="n">obs</span><span class="p">[</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;sensor&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">sensor</span><span class="p">]</span>
+            <span class="n">time_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">request_time</span><span class="p">:</span>
+                <span class="n">t_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">t</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;datetime64[ns]&quot;</span><span class="p">)</span>
+                <span class="n">df_t</span> <span class="o">=</span> <span class="n">filter_time_range</span><span class="p">(</span>
+                    <span class="n">sensor_df</span><span class="p">,</span> <span class="n">t_arr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tolerance</span><span class="p">,</span> <span class="n">time_column</span><span class="o">=</span><span class="s2">&quot;obs_time_ns&quot;</span>
+                <span class="p">)</span>
+                <span class="n">time_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df_t</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">df_t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">sensor</span><span class="p">]</span> <span class="o">=</span> <span class="n">time_list</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_datetime64_to_epoch_sec</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert a numpy datetime64 to integer UTC epoch seconds.&quot;&quot;&quot;</span>
+        <span class="n">t_dt</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">to_pydatetime</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="n">dt</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span>
+                <span class="n">t_dt</span><span class="o">.</span><span class="n">year</span><span class="p">,</span>
+                <span class="n">t_dt</span><span class="o">.</span><span class="n">month</span><span class="p">,</span>
+                <span class="n">t_dt</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+                <span class="n">t_dt</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span>
+                <span class="n">t_dt</span><span class="o">.</span><span class="n">minute</span><span class="p">,</span>
+                <span class="n">t_dt</span><span class="o">.</span><span class="n">second</span><span class="p">,</span>
+                <span class="n">tzinfo</span><span class="o">=</span><span class="n">dt</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_input</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">obs_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]],</span>
+        <span class="n">request_time</span><span class="p">:</span> <span class="n">TimeArray</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert the per-(sensor, time) observation dict into model-ready tensors.</span>
+
+<span class="sd">        Observations are laid out **sensor-major, time-minor** in the flat</span>
+<span class="sd">        tensor so that all observations for a given sensor are contiguous:</span>
+
+<span class="sd">        ``[s0_t0, s0_t1, …, s0_tN, s1_t0, s1_t1, …, sK_tN]``</span>
+
+<span class="sd">        The ``offsets`` tensor (shape [sensors, batch, 1]) stores the</span>
+<span class="sd">        cumulative end-index in that layout, guaranteeing</span>
+<span class="sd">        ``offsets[s,:,:] &lt; offsets[s+1,:,:]`` and</span>
+<span class="sd">        ``offsets[s,t,:] &lt;= offsets[s,t+1,:]``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        obs_dict : dict[str, list[pd.DataFrame | None]]</span>
+<span class="sd">            Keyed by sensor name (:data:`ALL_SENSORS`).  Each value is a list</span>
+<span class="sd">            of length ``len(request_time)`` with a observation DataFrame per time slot</span>
+<span class="sd">            (or ``None`` when no observations exist for that slot).</span>
+<span class="sd">        request_time : TimeArray</span>
+<span class="sd">            Analysis valid times</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict[str, torch.Tensor]</span>
+<span class="sd">            Dictionary of tensors ready for the internal model forward call.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">n_times</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">request_time</span><span class="p">)</span>
+        <span class="n">n_sensors</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ALL_SENSORS</span><span class="p">)</span>
+
+        <span class="c1"># Iterate sensor-major, time-minor. Note that time here is actually batch</span>
+        <span class="c1"># dimension for the model (not to be confused with time_length in the HealDA</span>
+        <span class="c1"># which is input time window)</span>
+        <span class="n">ordered_parts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">target_time_parts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">offsets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_sensors</span><span class="p">,</span> <span class="n">n_times</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">running</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">s_idx</span><span class="p">,</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ALL_SENSORS</span><span class="p">):</span>
+            <span class="n">time_list</span> <span class="o">=</span> <span class="n">obs_dict</span><span class="p">[</span><span class="n">sensor</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">t_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_times</span><span class="p">):</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="n">time_list</span><span class="p">[</span><span class="n">t_idx</span><span class="p">]</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">ordered_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+                    <span class="n">epoch_sec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datetime64_to_epoch_sec</span><span class="p">(</span><span class="n">request_time</span><span class="p">[</span><span class="n">t_idx</span><span class="p">])</span>
+                    <span class="n">target_time_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n</span><span class="p">,),</span> <span class="n">epoch_sec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="n">running</span> <span class="o">+=</span> <span class="n">n</span>
+                <span class="n">offsets</span><span class="p">[</span><span class="n">s_idx</span><span class="p">,</span> <span class="n">t_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">running</span>
+
+        <span class="c1"># target_time: [total_obs] - epoch seconds matching the flat order</span>
+        <span class="k">if</span> <span class="n">target_time_parts</span><span class="p">:</span>
+            <span class="n">target_time</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">target_time_parts</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">target_time</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># Concatenate all observations in sensor-major order.</span>
+        <span class="k">if</span> <span class="n">ordered_parts</span><span class="p">:</span>
+            <span class="n">obs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">ordered_parts</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">obs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
+                    <span class="s2">&quot;lat&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;lon&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;obs_time_ns&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;observation&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;local_channel&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;local_platform&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;sensor&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;obs_type&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;height&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;pressure&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;scan_angle&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;sat_zenith_angle&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;sol_zenith_angle&quot;</span><span class="p">,</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">to_dev</span><span class="p">(</span><span class="n">col</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">obs</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">lat</span> <span class="o">=</span> <span class="n">to_dev</span><span class="p">(</span><span class="s2">&quot;lat&quot;</span><span class="p">)</span>
+        <span class="n">lon</span> <span class="o">=</span> <span class="n">to_dev</span><span class="p">(</span><span class="s2">&quot;lon&quot;</span><span class="p">)</span>
+        <span class="c1"># obs_time_ns is datetime64[ns]; convert to int64 epoch nanoseconds</span>
+        <span class="n">obs_time_int</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;obs_time_ns&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;datetime64[ns]&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">float_metadata</span> <span class="o">=</span> <span class="n">HealDA</span><span class="o">.</span><span class="n">_compute_unified_metadata</span><span class="p">(</span>
+            <span class="n">target_time</span><span class="p">,</span>
+            <span class="n">lon</span><span class="o">=</span><span class="n">lon</span><span class="p">,</span>
+            <span class="n">time</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">obs_time_int</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">height</span><span class="o">=</span><span class="n">to_dev</span><span class="p">(</span><span class="s2">&quot;height&quot;</span><span class="p">),</span>
+            <span class="n">pressure</span><span class="o">=</span><span class="n">to_dev</span><span class="p">(</span><span class="s2">&quot;pressure&quot;</span><span class="p">),</span>
+            <span class="n">scan_angle</span><span class="o">=</span><span class="n">to_dev</span><span class="p">(</span><span class="s2">&quot;scan_angle&quot;</span><span class="p">),</span>
+            <span class="n">sat_zenith_angle</span><span class="o">=</span><span class="n">to_dev</span><span class="p">(</span><span class="s2">&quot;sat_zenith_angle&quot;</span><span class="p">),</span>
+            <span class="n">sol_zenith_angle</span><span class="o">=</span><span class="n">to_dev</span><span class="p">(</span><span class="s2">&quot;sol_zenith_angle&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Calendar features &amp; condition expansion.</span>
+        <span class="n">seconds_of_day</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">days_of_year</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">request_time</span><span class="p">:</span>
+            <span class="n">t_dt</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">to_pydatetime</span><span class="p">()</span>
+            <span class="n">midnight</span> <span class="o">=</span> <span class="n">t_dt</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">hour</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">minute</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">second</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">microsecond</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">jan1</span> <span class="o">=</span> <span class="n">t_dt</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">month</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">day</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">hour</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">minute</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">second</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">seconds_of_day</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">t_dt</span> <span class="o">-</span> <span class="n">midnight</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">())</span>
+            <span class="n">days_of_year</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">t_dt</span> <span class="o">-</span> <span class="n">jan1</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">/</span> <span class="mf">86400.0</span><span class="p">)</span>
+
+        <span class="c1"># Expand condition to match batch with the number of time inputs</span>
+        <span class="n">condition</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">condition</span>  <span class="c1"># [batch, in_channels, time_length, npix]</span>
+        <span class="k">if</span> <span class="n">condition</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">!=</span> <span class="n">n_times</span><span class="p">:</span>
+            <span class="n">condition</span> <span class="o">=</span> <span class="n">condition</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_times</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;obs&quot;</span><span class="p">:</span> <span class="n">to_dev</span><span class="p">(</span><span class="s2">&quot;observation&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;float_metadata&quot;</span><span class="p">:</span> <span class="n">float_metadata</span><span class="p">,</span>
+            <span class="s2">&quot;pix&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span><span class="o">.</span><span class="n">ang2pix</span><span class="p">(</span><span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">)</span><span class="o">.</span><span class="n">int</span><span class="p">(),</span>
+            <span class="s2">&quot;local_channel&quot;</span><span class="p">:</span> <span class="n">to_dev</span><span class="p">(</span><span class="s2">&quot;local_channel&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;local_platform&quot;</span><span class="p">:</span> <span class="n">to_dev</span><span class="p">(</span><span class="s2">&quot;local_platform&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;obs_type&quot;</span><span class="p">:</span> <span class="n">to_dev</span><span class="p">(</span><span class="s2">&quot;obs_type&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;offsets&quot;</span><span class="p">:</span> <span class="n">offsets</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="s2">&quot;condition&quot;</span><span class="p">:</span> <span class="n">condition</span><span class="p">,</span>
+            <span class="s2">&quot;second_of_day&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="n">seconds_of_day</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+            <span class="s2">&quot;day_of_year&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="n">days_of_year</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_output</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prediction</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">output_coords</span><span class="p">:</span> <span class="n">CoordSystem</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert model output tensor to xarray DataArray.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        prediction : torch.Tensor</span>
+<span class="sd">            Model output [batch, variable, 1, npix]</span>
+<span class="sd">        output_coords : CoordSystem</span>
+<span class="sd">            Output coordinate system</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        xr.DataArray</span>
+<span class="sd">            Analysis field, either on HEALPix (npix) or lat-lon grid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lat_lon</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_regridder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_regridder</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">double</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span> <span class="ow">and</span> <span class="n">cp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lat_lon</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+                <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;variable&quot;</span><span class="p">,</span> <span class="s2">&quot;lat&quot;</span><span class="p">,</span> <span class="s2">&quot;lon&quot;</span><span class="p">],</span>
+                <span class="n">coords</span><span class="o">=</span><span class="n">output_coords</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;variable&quot;</span><span class="p">,</span> <span class="s2">&quot;npix&quot;</span><span class="p">],</span>
+            <span class="n">coords</span><span class="o">=</span><span class="n">output_coords</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_empty_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_coords</span><span class="p">:</span> <span class="n">CoordSystem</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return an empty (NaN-filled) DataArray.&quot;&quot;&quot;</span>
+        <span class="n">n_time</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_coords</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span>
+        <span class="n">n_var</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_coords</span><span class="p">[</span><span class="s2">&quot;variable&quot;</span><span class="p">])</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">condition</span><span class="o">.</span><span class="n">device</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lat_lon</span><span class="p">:</span>
+            <span class="n">n_lat</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_coords</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">])</span>
+            <span class="n">n_lon</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_coords</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">])</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">n_time</span><span class="p">,</span> <span class="n">n_var</span><span class="p">,</span> <span class="n">n_lat</span><span class="p">,</span> <span class="n">n_lon</span><span class="p">)</span>
+            <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;variable&quot;</span><span class="p">,</span> <span class="s2">&quot;lat&quot;</span><span class="p">,</span> <span class="s2">&quot;lon&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">n_pix</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_coords</span><span class="p">[</span><span class="s2">&quot;npix&quot;</span><span class="p">])</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">n_time</span><span class="p">,</span> <span class="n">n_var</span><span class="p">,</span> <span class="n">n_pix</span><span class="p">)</span>  <span class="c1"># type: ignore[assignment]</span>
+            <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;variable&quot;</span><span class="p">,</span> <span class="s2">&quot;npix&quot;</span><span class="p">]</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span> <span class="ow">and</span> <span class="n">cp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data_np</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data_np</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">data_np</span><span class="p">,</span>
+            <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span>
+            <span class="n">coords</span><span class="o">=</span><span class="n">output_coords</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_fourier_features</span><span class="p">(</span><span class="n">x_norm</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">num_freqs</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">x_norm</span><span class="o">.</span><span class="n">device</span>
+        <span class="n">freqs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_freqs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x_norm</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span>
+        <span class="p">)</span>
+        <span class="n">x_expanded</span> <span class="o">=</span> <span class="n">x_norm</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">freqs</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x_expanded</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">x_expanded</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_unified_metadata</span><span class="p">(</span>
+        <span class="n">target_time_sec</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">lon</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">time</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">height</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">pressure</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">scan_angle</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">sat_zenith_angle</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">sol_zenith_angle</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute 28-dim observation metadata features.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        target_time_sec : torch.Tensor</span>
+<span class="sd">            Target time as epoch seconds (int64), broadcast to all obs</span>
+<span class="sd">        lon : torch.Tensor</span>
+<span class="sd">            Longitude in degrees [n_obs]</span>
+<span class="sd">        time : torch.Tensor</span>
+<span class="sd">            Observation times as epoch nanoseconds (int64) [n_obs]</span>
+<span class="sd">        height : torch.Tensor</span>
+<span class="sd">            Height in meters [n_obs], NaN for satellite obs</span>
+<span class="sd">        pressure : torch.Tensor</span>
+<span class="sd">            Pressure in hPa [n_obs], NaN for satellite obs</span>
+<span class="sd">        scan_angle : torch.Tensor</span>
+<span class="sd">            Scan angle in degrees [n_obs], NaN for conventional obs</span>
+<span class="sd">        sat_zenith_angle : torch.Tensor</span>
+<span class="sd">            Satellite zenith angle in degrees [n_obs], NaN for conventional obs</span>
+<span class="sd">        sol_zenith_angle : torch.Tensor</span>
+<span class="sd">            Solar zenith angle in degrees [n_obs], NaN for conventional obs</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Metadata features [n_obs, 28]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">features</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Local solar time (4 features)</span>
+        <span class="n">sod</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span> <span class="o">//</span> <span class="mi">1_000_000_000</span><span class="p">)</span> <span class="o">%</span> <span class="mi">86400</span>
+        <span class="n">utc_hours</span> <span class="o">=</span> <span class="n">sod</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">/</span> <span class="mf">3600.0</span>
+        <span class="n">lst</span> <span class="o">=</span> <span class="p">(</span><span class="n">utc_hours</span> <span class="o">+</span> <span class="n">lon</span> <span class="o">/</span> <span class="mf">15.0</span><span class="p">)</span> <span class="o">%</span> <span class="mf">24.0</span>
+        <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealDA</span><span class="o">.</span><span class="n">_fourier_features</span><span class="p">(</span><span class="n">lst</span> <span class="o">/</span> <span class="mf">24.0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># Relative time (2 features)</span>
+        <span class="n">target_ns</span> <span class="o">=</span> <span class="n">target_time_sec</span> <span class="o">*</span> <span class="mi">1_000_000_000</span>
+        <span class="n">dt_sec</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span> <span class="o">-</span> <span class="n">target_ns</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">*</span> <span class="mf">1e-9</span>
+        <span class="n">dt_norm</span> <span class="o">=</span> <span class="n">dt_sec</span> <span class="o">/</span> <span class="mf">86400.0</span>
+        <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">dt_norm</span><span class="p">,</span> <span class="n">dt_norm</span><span class="o">**</span><span class="mi">2</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># Height (8 features)</span>
+        <span class="n">h_valid</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">height</span><span class="p">)</span>
+        <span class="n">h_norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">height</span> <span class="o">/</span> <span class="mf">60000.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="n">h_feat</span> <span class="o">=</span> <span class="n">HealDA</span><span class="o">.</span><span class="n">_fourier_features</span><span class="p">(</span><span class="n">h_norm</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="n">h_feat</span><span class="p">[</span><span class="o">~</span><span class="n">h_valid</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h_feat</span><span class="p">)</span>
+
+        <span class="c1"># Pressure (8 features)</span>
+        <span class="n">p_valid</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">pressure</span><span class="p">)</span>
+        <span class="n">p_norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">pressure</span> <span class="o">/</span> <span class="mf">1100.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="n">p_feat</span> <span class="o">=</span> <span class="n">HealDA</span><span class="o">.</span><span class="n">_fourier_features</span><span class="p">(</span><span class="n">p_norm</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="n">p_feat</span><span class="p">[</span><span class="o">~</span><span class="n">p_valid</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p_feat</span><span class="p">)</span>
+
+        <span class="c1"># Scan angle (2 features)</span>
+        <span class="n">s_valid</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">scan_angle</span><span class="p">)</span>
+        <span class="n">xi</span> <span class="o">=</span> <span class="n">scan_angle</span> <span class="o">/</span> <span class="mf">50.0</span>
+        <span class="n">s_feat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">xi</span><span class="p">,</span> <span class="n">xi</span><span class="o">**</span><span class="mi">2</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">s_feat</span><span class="p">[</span><span class="o">~</span><span class="n">s_valid</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s_feat</span><span class="p">)</span>
+
+        <span class="c1"># Satellite zenith (2 features)</span>
+        <span class="n">sat_valid</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">sat_zenith_angle</span><span class="p">)</span>
+        <span class="n">cos_sat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">sat_zenith_angle</span><span class="p">))</span>
+        <span class="n">sat_feat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">cos_sat</span><span class="p">,</span> <span class="n">cos_sat</span><span class="o">**</span><span class="mi">2</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">sat_feat</span><span class="p">[</span><span class="o">~</span><span class="n">sat_valid</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sat_feat</span><span class="p">)</span>
+
+        <span class="c1"># Solar zenith (2 features)</span>
+        <span class="n">sol_valid</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">sol_zenith_angle</span><span class="p">)</span>
+        <span class="n">cos_sol</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">sol_zenith_angle</span><span class="p">))</span>
+        <span class="n">sin_sol</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">sol_zenith_angle</span><span class="p">))</span>
+        <span class="n">sol_feat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">cos_sol</span><span class="p">,</span> <span class="n">sin_sol</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">sol_feat</span><span class="p">[</span><span class="o">~</span><span class="n">sol_valid</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sol_feat</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># [n_obs, 28]</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, NVIDIA.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

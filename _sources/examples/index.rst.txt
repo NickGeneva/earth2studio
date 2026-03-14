@@ -400,6 +400,23 @@ and commonly used workflows.
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Producing a global weather analysis from satellite and in-situ observations.">
+
+.. only:: html
+
+  .. image:: /examples/images/thumb/sphx_glr_22_healda_thumb.png
+    :alt:
+
+  :doc:`/examples/22_healda`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">HealDA Global Data Assimilation</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -431,6 +448,7 @@ and commonly used workflows.
    /examples/19_local_datasource
    /examples/20_stormscope_goes_example
    /examples/21_stormcast_sda
+   /examples/22_healda
 
 
 Extending Earth2Studio
