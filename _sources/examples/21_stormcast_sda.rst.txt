@@ -180,7 +180,7 @@ temporally relevant data.
 .. code-block:: Python
 
     stations = ISD.get_stations_bbox((32.0, -105.0, 45.0, -90.0))
-    isd = ISD(stations=stations, tolerance=timedelta(minutes=15), verbose=False)
+    isd = ISD(stations=stations, time_tolerance=timedelta(minutes=15), verbose=False)
 
 
 .. GENERATED FROM PYTHON SOURCE LINES 160-163

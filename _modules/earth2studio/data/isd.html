@@ -442,7 +442,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">nest_asyncio</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -457,6 +457,8 @@
     <span class="n">prep_data_inputs</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">earth2studio.lexicon</span><span class="w"> </span><span class="kn">import</span> <span class="n">ISDLexicon</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">earth2studio.utils.time</span><span class="w"> </span><span class="kn">import</span> <span class="n">normalize_time_tolerance</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">earth2studio.utils.type</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeTolerance</span>
 
 
 <span class="nd">@dataclass</span>
@@ -478,9 +480,10 @@
 <span class="sd">    stations : list[str]</span>
 <span class="sd">        Station IDs as the concatenation of USAF (6 chars) and WBAN (5 digits) to</span>
 <span class="sd">        attempt to fetch data from.</span>
-<span class="sd">    tolerance : timedelta | np.timedelta64, optional</span>
-<span class="sd">        Time tolerance; nearest row within +/- tolerance is used per request, by default</span>
-<span class="sd">        np.timedelta64(0)</span>
+<span class="sd">    time_tolerance : TimeTolerance, optional</span>
+<span class="sd">        Time tolerance window for filtering observations. Accepts a single value</span>
+<span class="sd">        (symmetric ± window) or a tuple (lower, upper) for asymmetric windows,</span>
+<span class="sd">        by default np.timedelta64(10, &#39;m&#39;)</span>
 <span class="sd">    cache : bool, optional</span>
 <span class="sd">        Cache data source on local memory, by default True</span>
 <span class="sd">    verbose : bool, optional</span>
@@ -516,7 +519,7 @@
 
 <span class="sd">        # Bay area, lat lon bounding box (lat min, lon min, lat max, lon max)</span>
 <span class="sd">        stations = ISD.get_stations_bbox((36, -124, 40, -120))</span>
-<span class="sd">        ds = ISD(stations, tolerance=timedelta(hours=2))</span>
+<span class="sd">        ds = ISD(stations, time_tolerance=timedelta(hours=2))</span>
 <span class="sd">        df = ds(datetime(2024, 1, 1, 20), [&quot;t2m&quot;, &quot;ws10m&quot;])</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -550,17 +553,16 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">stations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-        <span class="n">tolerance</span><span class="p">:</span> <span class="n">timedelta</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">time_tolerance</span><span class="p">:</span> <span class="n">TimeTolerance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">),</span>
         <span class="n">cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">async_timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">600</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stations</span> <span class="o">=</span> <span class="n">stations</span>
-        <span class="c1"># Normalize tolerance to python timedelta</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tolerance</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_timedelta</span><span class="p">(</span><span class="n">tolerance</span><span class="p">)</span><span class="o">.</span><span class="n">to_pytimedelta</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span> <span class="o">=</span> <span class="n">tolerance</span>
+        <span class="c1"># Normalize tolerance to (lower, upper) python timedelta bounds</span>
+        <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span> <span class="o">=</span> <span class="n">normalize_time_tolerance</span><span class="p">(</span><span class="n">time_tolerance</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tolerance_lower</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_timedelta</span><span class="p">(</span><span class="n">lower</span><span class="p">)</span><span class="o">.</span><span class="n">to_pytimedelta</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tolerance_upper</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_timedelta</span><span class="p">(</span><span class="n">upper</span><span class="p">)</span><span class="o">.</span><span class="n">to_pytimedelta</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="n">cache</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_tmp_cache_hash</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span> <span class="o">=</span> <span class="n">verbose</span>
@@ -697,8 +699,8 @@
                 <span class="n">df</span> <span class="o">=</span> <span class="n">station_year_dfs</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
                 <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
 
-                <span class="n">tmin</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span>
-                <span class="n">tmax</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span>
+                <span class="n">tmin</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tolerance_lower</span>
+                <span class="n">tmax</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tolerance_upper</span>
 
                 <span class="k">if</span> <span class="n">df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
                     <span class="k">continue</span>
