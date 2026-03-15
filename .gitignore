@@ -93,3 +93,5 @@ multirun/
 !examples/.env
 
 docs/
+
+cufile.log
