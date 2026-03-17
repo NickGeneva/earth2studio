@@ -51,19 +51,20 @@ In this example you will learn:
 - How to create a simple ensemble inference loop
 - How to visualize results
 
-.. GENERATED FROM PYTHON SOURCE LINES 53-60
+.. GENERATED FROM PYTHON SOURCE LINES 53-61
 
 .. code-block:: Python
 
     # /// script
     # dependencies = [
+    #   "torch==2.9.1", # Match lock file to avoid torch-harmonics issue
     #   "earth2studio[sfno] @ git+https://github.com/NVIDIA/earth2studio.git",
     #   "cartopy",
     # ]
     # ///
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 61-76
+.. GENERATED FROM PYTHON SOURCE LINES 62-77
 
 Set Up
 ------
@@ -81,7 +82,7 @@ This example also needs the following:
 - Perturbation Method: HENS uses a novel perturbation method :py:class:`earth2studio.perturbation.HemisphericCentredBredVector`.
 - Seeding Perturbation Method: Perturbation method to seed the Bred Vector :py:class:`earth2studio.perturbation.CorrelatedSphericalGaussian`.
 
-.. GENERATED FROM PYTHON SOURCE LINES 78-116
+.. GENERATED FROM PYTHON SOURCE LINES 79-117
 
 .. code-block:: Python
 
@@ -124,7 +125,7 @@ This example also needs the following:
     data = GFS()
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 117-130
+.. GENERATED FROM PYTHON SOURCE LINES 118-131
 
 Execute the Workflow
 --------------------
@@ -140,7 +141,7 @@ Before the ensemble workflow can get executed the following set up is needed:
 If multiple GPUs are being used, one could parallelize inference using different
 checkpoints on each card.
 
-.. GENERATED FROM PYTHON SOURCE LINES 132-187
+.. GENERATED FROM PYTHON SOURCE LINES 133-188
 
 .. code-block:: Python
 
@@ -200,7 +201,7 @@ checkpoints on each card.
         torch.cuda.empty_cache()
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 188-194
+.. GENERATED FROM PYTHON SOURCE LINES 189-195
 
 Post Processing
 ---------------
@@ -209,7 +210,7 @@ respective checkpoints used.
 The rest of the example is focused on some basic post processing to visualize the
 results.
 
-.. GENERATED FROM PYTHON SOURCE LINES 196-254
+.. GENERATED FROM PYTHON SOURCE LINES 197-255
 
 .. code-block:: Python
 

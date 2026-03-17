@@ -37,19 +37,20 @@ In this example you will learn:
 - How to run the interpolation model
 - How to visualize the results
 
-.. GENERATED FROM PYTHON SOURCE LINES 38-45
+.. GENERATED FROM PYTHON SOURCE LINES 38-46
 
 .. code-block:: Python
 
     # /// script
     # dependencies = [
+    #   "torch==2.9.1", # Match lock file to avoid torch-harmonics issue
     #   "earth2studio[sfno,interp-modafno] @ git+https://github.com/NVIDIA/earth2studio.git",
     #   "matplotlib",
     # ]
     # ///
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 46-58
+.. GENERATED FROM PYTHON SOURCE LINES 47-59
 
 Set Up
 ------
@@ -64,7 +65,7 @@ This example needs the following:
 - Prognostic Base Model: Use SFNO model :py:class:`earth2studio.models.px.SFNO`.
 - Datasource: Pull data from the GFS data api :py:class:`earth2studio.data.GFS`.
 
-.. GENERATED FROM PYTHON SOURCE LINES 60-84
+.. GENERATED FROM PYTHON SOURCE LINES 61-85
 
 .. code-block:: Python
 
@@ -93,7 +94,7 @@ This example needs the following:
     io = ZarrBackend()
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 85-90
+.. GENERATED FROM PYTHON SOURCE LINES 86-91
 
 Run the Interpolation Model
 ---------------------------
@@ -101,7 +102,7 @@ Now run the interpolation model to get forecasts at a finer time resolution.
 The base model (SFNO) produces forecasts at 6-hour intervals, and the
 interpolation model will interpolate to 1-hour intervals.
 
-.. GENERATED FROM PYTHON SOURCE LINES 92-104
+.. GENERATED FROM PYTHON SOURCE LINES 93-105
 
 .. code-block:: Python
 
@@ -118,14 +119,14 @@ interpolation model will interpolate to 1-hour intervals.
     print(io.root.tree())
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 105-109
+.. GENERATED FROM PYTHON SOURCE LINES 106-110
 
 Visualize Results
 -----------------
 Let's visualize the total column water vapour (tcwv) at each time step
 and save them as separate files.
 
-.. GENERATED FROM PYTHON SOURCE LINES 111-130
+.. GENERATED FROM PYTHON SOURCE LINES 112-131
 
 .. code-block:: Python
 

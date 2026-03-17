@@ -36,19 +36,20 @@ In this example you will learn:
 - How to couple the TC tracker to a prognostic model
 - Post-processing results
 
-.. GENERATED FROM PYTHON SOURCE LINES 37-44
+.. GENERATED FROM PYTHON SOURCE LINES 37-45
 
 .. code-block:: Python
 
     # /// script
     # dependencies = [
+    #   "torch==2.9.1", # Match lock file to avoid torch-harmonics issue
     #   "earth2studio[cyclone,sfno] @ git+https://github.com/NVIDIA/earth2studio.git",
     #   "cartopy",
     # ]
     # ///
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 45-58
+.. GENERATED FROM PYTHON SOURCE LINES 46-59
 
 Set Up
 ------
@@ -64,7 +65,7 @@ This example needs the following:
 - Datasource: Pull data from the WB2 ERA5 data api :py:class:`earth2studio.data.WB2ERA5`.
 - Prognostic Model: Use the built in FourCastNet Model :py:class:`earth2studio.models.px.FCN`.
 
-.. GENERATED FROM PYTHON SOURCE LINES 60-89
+.. GENERATED FROM PYTHON SOURCE LINES 61-90
 
 .. code-block:: Python
 
@@ -98,7 +99,7 @@ This example needs the following:
     start_time = datetime(2009, 8, 5)  # Start date for inference
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 90-98
+.. GENERATED FROM PYTHON SOURCE LINES 91-99
 
 Tracking Analysis Data
 ----------------------
@@ -109,7 +110,7 @@ We can fetch a small time range from the data source and provide it to our model
 For the forecast we will predict for two days (these will get executed as a batch) for
 20 forecast steps which is 5 days.
 
-.. GENERATED FROM PYTHON SOURCE LINES 100-117
+.. GENERATED FROM PYTHON SOURCE LINES 101-118
 
 .. code-block:: Python
 
@@ -131,7 +132,7 @@ For the forecast we will predict for two days (these will get executed as a batc
     torch.save(era5_tracks, "outputs/13_era5_paths.pt")
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 118-127
+.. GENERATED FROM PYTHON SOURCE LINES 119-128
 
 Notice that the output tensor grows as iterations are performed.
 This is because the tracker builds tracks based on previous forward passes returning
@@ -143,7 +144,7 @@ Up next lets also repeat the same process using the prognostic AI model.
 One could use one of the build in workflows but here we will manually implement the
 inference loop.
 
-.. GENERATED FROM PYTHON SOURCE LINES 129-165
+.. GENERATED FROM PYTHON SOURCE LINES 130-166
 
 .. code-block:: Python
 
@@ -184,7 +185,7 @@ inference loop.
     torch.save(sfno_tracks, "outputs/13_sfno_paths.pt")
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 166-178
+.. GENERATED FROM PYTHON SOURCE LINES 167-179
 
 Note that before the inference loop of the AI model, the path buffer of the tracker
 was reset which refreshes the tracker's path state starting from scratch.
@@ -199,7 +200,7 @@ The lat/lon coords are the first two variables in the last dimension.
 Lastly we just need to be mindful of the NaN filler values which can get easily
 masked out and any "path" that isnt over 2 points long
 
-.. GENERATED FROM PYTHON SOURCE LINES 180-258
+.. GENERATED FROM PYTHON SOURCE LINES 181-259
 
 .. code-block:: Python
 
@@ -282,7 +283,7 @@ masked out and any "path" that isnt over 2 points long
     plt.savefig(f"outputs/13_{start_time}_cyclone_tracks.jpg", bbox_inches="tight", dpi=300)
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 259-265
+.. GENERATED FROM PYTHON SOURCE LINES 260-266
 
 In addition to filtering out the NaN values, users may want to apply other post
 processing steps on the paths which may be enforcing path lengths are above a certain

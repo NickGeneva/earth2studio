@@ -35,19 +35,24 @@ In this example you will learn:
 - Running a simple built in workflow for ensembling
 - Post-processing results
 
-.. GENERATED FROM PYTHON SOURCE LINES 36-43
+.. GENERATED FROM PYTHON SOURCE LINES 36-48
 
 .. code-block:: Python
 
     # /// script
     # dependencies = [
+    #   "torch==2.9.1", # Match lock file to avoid torch-harmonics issue
     #   "earth2studio[fcn,perturbation] @ git+https://github.com/NVIDIA/earth2studio.git",
+    #   "scipy>=1.15.2",
     #   "cartopy",
     # ]
+    #
+    # [tool.uv]
+    # no-build-isolation-package = ["torch-harmonics"]
     # ///
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 44-49
+.. GENERATED FROM PYTHON SOURCE LINES 49-54
 
 Set Up
 ------
@@ -55,14 +60,14 @@ All workflows inside Earth2Studio require constructed components to be
 handed to them. In this example, we will use the built in ensemble workflow
 :py:meth:`earth2studio.run.ensemble`.
 
-.. GENERATED FROM PYTHON SOURCE LINES 51-55
+.. GENERATED FROM PYTHON SOURCE LINES 56-60
 
 .. literalinclude:: ../../earth2studio/run.py
    :language: python
    :start-after: # sphinx - ensemble start
    :end-before: # sphinx - ensemble end
 
-.. GENERATED FROM PYTHON SOURCE LINES 57-63
+.. GENERATED FROM PYTHON SOURCE LINES 62-68
 
 We need the following:
 
@@ -71,7 +76,7 @@ We need the following:
 - Datasource: Pull data from the GFS data api :py:class:`earth2studio.data.GFS`.
 - IO Backend: Save the outputs into a Zarr store :py:class:`earth2studio.io.ZarrBackend`.
 
-.. GENERATED FROM PYTHON SOURCE LINES 65-98
+.. GENERATED FROM PYTHON SOURCE LINES 70-103
 
 .. code-block:: Python
 
@@ -109,7 +114,7 @@ We need the following:
     )
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 99-108
+.. GENERATED FROM PYTHON SOURCE LINES 104-113
 
 Execute the Workflow
 --------------------
@@ -121,7 +126,7 @@ saving to file. Check the API docs for more information.
 For the forecast we will predict for 10 steps (for FCN, this is 60 hours) with 8 ensemble
 members which will be ran in 2 batches with batch size 4.
 
-.. GENERATED FROM PYTHON SOURCE LINES 110-126
+.. GENERATED FROM PYTHON SOURCE LINES 115-131
 
 .. code-block:: Python
 
@@ -142,7 +147,7 @@ members which will be ran in 2 batches with batch size 4.
     )
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 127-133
+.. GENERATED FROM PYTHON SOURCE LINES 132-138
 
 Post Processing
 ---------------
@@ -151,7 +156,7 @@ fields on projections of a sphere.
 
 Notice that the Zarr IO function has additional APIs to interact with the stored data.
 
-.. GENERATED FROM PYTHON SOURCE LINES 135-191
+.. GENERATED FROM PYTHON SOURCE LINES 140-196
 
 .. code-block:: Python
 
