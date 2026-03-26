@@ -206,7 +206,7 @@ class GenCastOperational(torch.nn.Module, AutoModelMixin, PrognosticMixin):
         sst_nan_mask: np.ndarray,
         sampler_steps: int = 20,
         seed: int | None = 0,
-        jit_compile: bool = False,
+        jit_compile: bool = True,
     ):
         super().__init__()
 
@@ -318,7 +318,7 @@ class GenCastOperational(torch.nn.Module, AutoModelMixin, PrognosticMixin):
         cls,
         package: Package,
         sampler_steps: int = 20,
-        jit_compile: bool = False,
+        jit_compile: bool = True,
         seed: int | None = 0,
     ) -> PrognosticModel:
         """Load prognostic model from package.
@@ -332,9 +332,7 @@ class GenCastOperational(torch.nn.Module, AutoModelMixin, PrognosticMixin):
             by default 20. Each noise level requires two denoiser forward
             passes (40 total at default).
         jit_compile : bool, optional
-            JIT-compile the model forward pass, by default False.
-            JIT compilation requires approximately 250 GB of host RAM for
-            this operational model.
+            JIT-compile the model forward pass, by default True.
         seed : int | None, optional
             Random seed for stochastic sampling, by default 0. If None,
             produces fully non-reproducible forecasts.
