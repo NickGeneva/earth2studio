@@ -31,6 +31,7 @@ from earth2studio.models.px.fcn3 import FCN3
 from earth2studio.models.px.fengwu import FengWu
 from earth2studio.models.px.fuxi import FuXi
 from earth2studio.models.px.gencast_mini import GenCastMini
+from earth2studio.models.px.gencast_operational import GenCastOperational
 from earth2studio.models.px.graphcast_operational import GraphCastOperational
 from earth2studio.models.px.graphcast_small import GraphCastSmall
 from earth2studio.models.px.interpmodafno import InterpModAFNO

@@ -48,6 +48,7 @@ Thus are typically used to generate forecast predictions.
       FengWu
       FuXi
       GenCastMini
+      GenCastOperational
       GraphCastOperational
       GraphCastSmall
       InterpModAFNO
