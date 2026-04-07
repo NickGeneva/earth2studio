@@ -2,261 +2,139 @@
 # SPDX-FileCopyrightText: All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-"""Convert decoded BUFR subsets into a PyArrow Table."""
+"""Convert decoded BUFR data into wide-format PyArrow Tables."""
 
 from __future__ import annotations
 
-import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import pyarrow as pa  # type: ignore[import-untyped]
 
-if TYPE_CHECKING:
-    from earth2bufrio._types import DecodedSubset
-
 # ---------------------------------------------------------------------------
-# Schema definition
+# Fixed columns — always present in every table
 # ---------------------------------------------------------------------------
-TABLE_SCHEMA = pa.schema(
-    [
-        pa.field("message_index", pa.int32()),
-        pa.field("subset_index", pa.int32()),
-        pa.field("data_category", pa.int32()),
-        pa.field("latitude", pa.float64()),
-        pa.field("longitude", pa.float64()),
-        pa.field("time", pa.timestamp("us")),
-        pa.field("station_id", pa.string()),
-        pa.field("pressure", pa.float64()),
-        pa.field("elevation", pa.float64()),
-        pa.field("descriptor_id", pa.string()),
-        pa.field("descriptor_name", pa.string()),
-        pa.field("value", pa.float64()),
-        pa.field("units", pa.string()),
-        pa.field("quality_mark", pa.int32()),
-    ]
-)
-
-# ---------------------------------------------------------------------------
-# Well-known descriptor sets  (FXY int -> promoted column name)
-# ---------------------------------------------------------------------------
-_LATITUDE_FXYS: frozenset[int] = frozenset({5001, 5002})
-_LONGITUDE_FXYS: frozenset[int] = frozenset({6001, 6002})
-_STATION_ID_FXYS: frozenset[int] = frozenset({1015, 1018, 1019})
-_PRESSURE_FXYS: frozenset[int] = frozenset({7004, 10004})
-_ELEVATION_FXYS: frozenset[int] = frozenset({7001, 7002, 10199})
-_TIME_FXYS: frozenset[int] = frozenset({4001, 4002, 4003, 4004, 4005, 4006})
-_QUALITY_FXYS: frozenset[int] = frozenset({33007})
-
-_ALL_PROMOTED: frozenset[int] = (
-    _LATITUDE_FXYS
-    | _LONGITUDE_FXYS
-    | _STATION_ID_FXYS
-    | _PRESSURE_FXYS
-    | _ELEVATION_FXYS
-    | _TIME_FXYS
-    | _QUALITY_FXYS
-)
-
-
-def _extract_promoted(
-    subset: DecodedSubset,
-) -> tuple[dict[str, Any], dict[int, int]]:
-    """Extract well-known descriptor values from a decoded subset.
-
-    Parameters
-    ----------
-    subset : DecodedSubset
-        A single decoded BUFR subset.
-
-    Returns
-    -------
-    tuple[dict[str, Any], dict[int, int]]
-        A 2-tuple of (promoted column values, time-part FXY-to-int mapping).
-    """
-    promoted: dict[str, Any] = {
-        "latitude": None,
-        "longitude": None,
-        "station_id": None,
-        "pressure": None,
-        "elevation": None,
-        "quality_mark": None,
-    }
-    time_parts: dict[int, int] = {}
-
-    for desc, val in subset.values:
-        fxy = desc.fxy
-        if fxy in _LATITUDE_FXYS and val is not None:
-            promoted["latitude"] = float(val) if not isinstance(val, str) else None
-        elif fxy in _LONGITUDE_FXYS and val is not None:
-            promoted["longitude"] = float(val) if not isinstance(val, str) else None
-        elif fxy in _STATION_ID_FXYS and val is not None:
-            promoted["station_id"] = str(val)
-        elif fxy in _PRESSURE_FXYS and val is not None:
-            promoted["pressure"] = float(val) if not isinstance(val, str) else None
-        elif fxy in _ELEVATION_FXYS and val is not None:
-            promoted["elevation"] = float(val) if not isinstance(val, str) else None
-        elif fxy in _TIME_FXYS and val is not None:
-            time_parts[fxy] = int(val)
-        elif fxy in _QUALITY_FXYS and val is not None:
-            promoted["quality_mark"] = int(val)
-
-    return promoted, time_parts
-
-
-def _build_timestamp(
-    time_parts: dict[int, int],
-    msg_year: int,
-    msg_month: int,
-    msg_day: int,
-    msg_hour: int,
-    msg_minute: int,
-    msg_second: int,
-) -> datetime.datetime | None:
-    """Construct a datetime from descriptor time parts or message-level fields.
-
-    Parameters
-    ----------
-    time_parts : dict[int, int]
-        Mapping of FXY -> integer value for time descriptors found in the subset.
-    msg_year : int
-        Message-level year.
-    msg_month : int
-        Message-level month.
-    msg_day : int
-        Message-level day.
-    msg_hour : int
-        Message-level hour.
-    msg_minute : int
-        Message-level minute.
-    msg_second : int
-        Message-level second.
-
-    Returns
-    -------
-    datetime.datetime | None
-        The constructed timestamp, or ``None`` if the year is 0.
-    """
-    year = time_parts.get(4001, msg_year)
-    month = time_parts.get(4002, msg_month)
-    day = time_parts.get(4003, msg_day)
-    hour = time_parts.get(4004, msg_hour)
-    minute = time_parts.get(4005, msg_minute)
-    second = time_parts.get(4006, msg_second)
-
-    if year == 0:
-        return None
-
-    try:
-        return datetime.datetime(year, month, day, hour, minute, second)
-    except (ValueError, OverflowError):
-        return None
+_FIXED_COLUMNS = ("message_type", "message_index", "subset_index")
+_TIME_COLUMNS = ("YEAR", "MNTH", "DAYS", "HOUR", "MINU", "SECO")
+_ALL_FIXED = _FIXED_COLUMNS + _TIME_COLUMNS
 
 
 def build_table(
-    decoded_messages: list[dict[str, Any]],
-    columns: list[str] | None = None,
+    rows: list[dict[str, Any]],
+    mnemonics: list[str] | None = None,
 ) -> pa.Table:
-    """Convert decoded BUFR messages into a PyArrow Table.
+    """Convert rows of mnemonic-keyed data into a wide-format PyArrow Table.
 
-    Each decoded subset produces one row per non-promoted descriptor. Promoted
-    (well-known) descriptor values are replicated across all rows from that
-    subset.
+    Each dict in *rows* represents one BUFR subset.  Keys include the
+    fixed columns (``message_type``, ``message_index``, ``subset_index``,
+    ``YEAR``, ``MNTH``, ``DAYS``, ``HOUR``, ``MINU``, ``SECO``) plus
+    one key per extracted mnemonic.
 
     Parameters
     ----------
-    decoded_messages : list[dict]
-        Each dict has keys: ``message_index``, ``data_category``, ``year``,
-        ``month``, ``day``, ``hour``, ``minute``, ``second``, ``subsets``
-        (a list of :class:`DecodedSubset`).
-    columns : list[str] | None, optional
-        If given, only these columns are included in the returned table.
+    rows : list[dict[str, Any]]
+        One dict per subset.  Values are scalars (``float``, ``int``,
+        ``str``) or lists (replicated data).
+    mnemonics : list[str] | None, optional
+        If given, only these mnemonic columns are included (fixed columns
+        are always present).
 
     Returns
     -------
     pa.Table
-        Long-format table with the 14-column BUFR observation schema.
+        Wide-format table with one row per subset.
     """
-    # Column accumulators
-    col_message_index: list[int] = []
-    col_subset_index: list[int] = []
-    col_data_category: list[int] = []
-    col_latitude: list[float | None] = []
-    col_longitude: list[float | None] = []
-    col_time: list[datetime.datetime | None] = []
-    col_station_id: list[str | None] = []
-    col_pressure: list[float | None] = []
-    col_elevation: list[float | None] = []
-    col_descriptor_id: list[str] = []
-    col_descriptor_name: list[str] = []
-    col_value: list[float | None] = []
-    col_units: list[str] = []
-    col_quality_mark: list[int | None] = []
+    if not rows:
+        schema = pa.schema(
+            [
+                pa.field("message_type", pa.string()),
+                pa.field("message_index", pa.int32()),
+                pa.field("subset_index", pa.int32()),
+                pa.field("YEAR", pa.int32()),
+                pa.field("MNTH", pa.int32()),
+                pa.field("DAYS", pa.int32()),
+                pa.field("HOUR", pa.int32()),
+                pa.field("MINU", pa.int32()),
+                pa.field("SECO", pa.int32()),
+            ]
+        )
+        return pa.table(
+            {
+                name: pa.array([], type=f.type)
+                for name, f in zip(schema.names, schema, strict=True)
+            },
+            schema=schema,
+        )
 
-    for msg in decoded_messages:
-        msg_idx: int = msg["message_index"]
-        data_cat: int = msg["data_category"]
-        subsets: list[DecodedSubset] = msg["subsets"]
+    # Discover all mnemonic keys across rows (preserving insertion order)
+    mnemonic_keys: list[str] = []
+    seen: set[str] = set()
+    for row in rows:
+        for key in row:
+            if key not in _ALL_FIXED and key not in seen:
+                seen.add(key)
+                mnemonic_keys.append(key)
 
-        for subset_idx, subset in enumerate(subsets):
-            # First pass: extract promoted values
-            promoted, time_parts = _extract_promoted(subset)
+    # Apply mnemonics filter
+    if mnemonics is not None:
+        allowed = set(mnemonics)
+        mnemonic_keys = [k for k in mnemonic_keys if k in allowed]
 
-            timestamp = _build_timestamp(
-                time_parts,
-                msg["year"],
-                msg["month"],
-                msg["day"],
-                msg["hour"],
-                msg["minute"],
-                msg["second"],
-            )
-
-            # Second pass: create rows for non-promoted descriptors
-            for desc, val in subset.values:
-                if desc.fxy in _ALL_PROMOTED:
-                    continue
-
-                col_message_index.append(msg_idx)
-                col_subset_index.append(subset_idx)
-                col_data_category.append(data_cat)
-                col_latitude.append(promoted["latitude"])
-                col_longitude.append(promoted["longitude"])
-                col_time.append(timestamp)
-                col_station_id.append(promoted["station_id"])
-                col_pressure.append(promoted["pressure"])
-                col_elevation.append(promoted["elevation"])
-                col_descriptor_id.append(f"{desc.fxy:06d}")
-                col_descriptor_name.append(desc.entry.name)
-                col_units.append(desc.entry.units)
-                col_quality_mark.append(promoted["quality_mark"])
-
-                # Value: only floats/ints go in the value column
-                if val is None or isinstance(val, str):
-                    col_value.append(None)
+    # Determine type for each mnemonic column by inspecting first non-None value
+    col_types: dict[str, pa.DataType] = {}
+    for key in mnemonic_keys:
+        for row in rows:
+            val = row.get(key)
+            if val is not None:
+                if isinstance(val, list):
+                    # Check inner type
+                    if val and isinstance(val[0], str):
+                        col_types[key] = pa.list_(pa.string())
+                    else:
+                        col_types[key] = pa.list_(pa.float64())
+                elif isinstance(val, str):
+                    col_types[key] = pa.string()
                 else:
-                    col_value.append(float(val))
+                    col_types[key] = pa.float64()
+                break
+        else:
+            # All None — default to float64
+            col_types[key] = pa.float64()
 
-    table = pa.table(
-        {
-            "message_index": pa.array(col_message_index, type=pa.int32()),
-            "subset_index": pa.array(col_subset_index, type=pa.int32()),
-            "data_category": pa.array(col_data_category, type=pa.int32()),
-            "latitude": pa.array(col_latitude, type=pa.float64()),
-            "longitude": pa.array(col_longitude, type=pa.float64()),
-            "time": pa.array(col_time, type=pa.timestamp("us")),
-            "station_id": pa.array(col_station_id, type=pa.string()),
-            "pressure": pa.array(col_pressure, type=pa.float64()),
-            "elevation": pa.array(col_elevation, type=pa.float64()),
-            "descriptor_id": pa.array(col_descriptor_id, type=pa.string()),
-            "descriptor_name": pa.array(col_descriptor_name, type=pa.string()),
-            "value": pa.array(col_value, type=pa.float64()),
-            "units": pa.array(col_units, type=pa.string()),
-            "quality_mark": pa.array(col_quality_mark, type=pa.int32()),
-        },
-        schema=TABLE_SCHEMA,
-    )
+    # Build column arrays
+    col_data: dict[str, list[Any]] = {name: [] for name in _ALL_FIXED}
+    for key in mnemonic_keys:
+        col_data[key] = []
 
-    if columns is not None:
-        table = table.select(columns)
+    for row in rows:
+        col_data["message_type"].append(row.get("message_type", ""))
+        col_data["message_index"].append(row.get("message_index", 0))
+        col_data["subset_index"].append(row.get("subset_index", 0))
+        for tc in _TIME_COLUMNS:
+            col_data[tc].append(row.get(tc, 0))
+        for key in mnemonic_keys:
+            col_data[key].append(row.get(key))
 
-    return table
+    # Build schema
+    fields: list[pa.Field] = [
+        pa.field("message_type", pa.string()),
+        pa.field("message_index", pa.int32()),
+        pa.field("subset_index", pa.int32()),
+    ]
+    for tc in _TIME_COLUMNS:
+        fields.append(pa.field(tc, pa.int32()))
+    for key in mnemonic_keys:
+        fields.append(pa.field(key, col_types[key]))
+
+    schema = pa.schema(fields)
+
+    # Build arrays
+    arrays: dict[str, pa.Array] = {}
+    arrays["message_type"] = pa.array(col_data["message_type"], type=pa.string())
+    arrays["message_index"] = pa.array(col_data["message_index"], type=pa.int32())
+    arrays["subset_index"] = pa.array(col_data["subset_index"], type=pa.int32())
+    for tc in _TIME_COLUMNS:
+        arrays[tc] = pa.array(col_data[tc], type=pa.int32())
+    for key in mnemonic_keys:
+        arrays[key] = pa.array(col_data[key], type=col_types[key])
+
+    return pa.table(arrays, schema=schema)
