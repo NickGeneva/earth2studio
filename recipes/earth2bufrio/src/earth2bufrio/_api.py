@@ -47,6 +47,29 @@ def _load_table_json(filename: str) -> str:
     return ref.read_text(encoding="utf-8")
 
 
+@functools.lru_cache(maxsize=1)
+def _load_all_local_table_jsons() -> dict[str, str]:
+    """Load all bundled local Table B override JSON files.
+
+    Returns a dict keyed by ``"{centre}_{local_version}"`` (e.g.
+    ``"98_101"``) with the raw JSON string as value.  This is passed to
+    the Rust backend so it can apply per-message local table overrides.
+
+    Returns
+    -------
+    dict[str, str]
+        Mapping of centre/version key to JSON string content.
+    """
+    from earth2bufrio._tables import _LOCAL_TABLE_B_FILES
+
+    result: dict[str, str] = {}
+    for (centre, version), filename in _LOCAL_TABLE_B_FILES.items():
+        key = f"{centre}_{version}"
+        ref = importlib.resources.files("earth2bufrio.tables").joinpath(filename)
+        result[key] = ref.read_text(encoding="utf-8")
+    return result
+
+
 def read_bufr(
     path: str | Path,
     *,
@@ -122,8 +145,14 @@ def read_bufr(
         table_b_str = _load_table_json("table_b.json")
         table_d_str = _load_table_json("table_d.json")
         cat_filter = filters.get("data_category") if filters else None
+        local_tables = _load_all_local_table_jsons()
         batch = read_bufr_rust(
-            str(file_path), table_b_str, table_d_str, mnemonics, cat_filter
+            str(file_path),
+            table_b_str,
+            table_d_str,
+            mnemonics,
+            cat_filter,
+            local_tables if local_tables else None,
         )
         return pa.Table.from_batches([batch])
 

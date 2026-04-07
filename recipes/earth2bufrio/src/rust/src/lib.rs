@@ -68,6 +68,23 @@ impl TableSet {
         Ok(TableSet { table_b, table_d })
     }
 
+    /// Merge local table overrides into the base Table B.
+    fn merge_local_b(&mut self, local_json: &str) -> Result<(), String> {
+        let raw_local: HashMap<String, TableBEntryJson> =
+            serde_json::from_str(local_json).map_err(|e| format!("Local Table B parse error: {e}"))?;
+        for (key, entry) in raw_local {
+            let fxy: u32 = key.parse().map_err(|e| format!("Bad local Table B key {key}: {e}"))?;
+            self.table_b.insert(fxy, TableBEntry {
+                name: entry.name,
+                units: entry.units,
+                scale: entry.scale,
+                reference_value: entry.reference_value,
+                bit_width: entry.bit_width,
+            });
+        }
+        Ok(())
+    }
+
     fn lookup_b(&self, fxy: u32) -> Option<&TableBEntry> {
         self.table_b.get(&fxy)
     }
@@ -95,6 +112,8 @@ struct IndicatorSection {
 struct IdentificationSection {
     originating_center: u16,
     data_category: u8,
+    master_table_version: u8,
+    local_table_version: u8,
     year: u16,
     month: u8,
     day: u8,
@@ -265,6 +284,8 @@ fn parse_identification_ed4(data: &[u8], offset: &mut usize) -> Result<Identific
 
     let center = u16::from_be_bytes([data[base + 1], data[base + 2]]);
     let data_cat = data[base + 7];
+    let master_table_version = data[base + 10];
+    let local_table_version = data[base + 11];
     let year = u16::from_be_bytes([data[base + 12], data[base + 13]]);
     let month = data[base + 14];
     let day = data[base + 15];
@@ -276,6 +297,8 @@ fn parse_identification_ed4(data: &[u8], offset: &mut usize) -> Result<Identific
     Ok(IdentificationSection {
         originating_center: center,
         data_category: data_cat,
+        master_table_version,
+        local_table_version,
         year, month, day, hour, minute, second,
         num_subsets: 0, observed: false, compressed: false,
     })
@@ -287,6 +310,8 @@ fn parse_identification_ed3(data: &[u8], offset: &mut usize) -> Result<Identific
 
     let center = data[base + 2] as u16;
     let data_cat = data[base + 5];
+    let master_table_version = data[base + 7];
+    let local_table_version = data[base + 8];
     let yoc = data[base + 9];
     let year = if yoc >= 70 { 1900 + yoc as u16 } else { 2000 + yoc as u16 };
     let month = data[base + 10];
@@ -298,6 +323,8 @@ fn parse_identification_ed3(data: &[u8], offset: &mut usize) -> Result<Identific
     Ok(IdentificationSection {
         originating_center: center,
         data_category: data_cat,
+        master_table_version,
+        local_table_version,
         year, month, day, hour, minute, second: 0,
         num_subsets: 0, observed: false, compressed: false,
     })
@@ -348,11 +375,27 @@ struct OperatorState {
     width_delta: i32,
     scale_delta: i32,
     assoc_field_width: u32,
+    bitmap_context: bool,
 }
 
 impl Default for OperatorState {
     fn default() -> Self {
-        Self { width_delta: 0, scale_delta: 0, assoc_field_width: 0 }
+        Self { width_delta: 0, scale_delta: 0, assoc_field_width: 0, bitmap_context: false }
+    }
+}
+
+/// Synthetic zero-bit-width Table B entry used for F=2 operator markers
+/// (operators 222-237).  The decoder sees these in the expanded list but
+/// skips them because `bit_width == 0`.
+const OPERATOR_MARKER_NAME: &str = "OPERATOR MARKER";
+
+fn make_operator_marker_entry() -> TableBEntry {
+    TableBEntry {
+        name: OPERATOR_MARKER_NAME.into(),
+        units: "NUMERIC".into(),
+        scale: 0,
+        reference_value: 0,
+        bit_width: 0,
     }
 }
 
@@ -463,6 +506,15 @@ fn expand_inner(
                             state.width_delta = ((10 * y + 2) / 3) as i32;
                         }
                     }
+                    22 | 23 | 24 | 25 | 32 | 35 | 36 | 37 => {
+                        // Operators 222-225, 232, 235-237: quality information,
+                        // substituted/replaced values, and bitmap operators.
+                        // Emit a zero-width synthetic descriptor as a passthrough marker.
+                        result.push(ExpandedItem::Descriptor(ExpandedDescriptor {
+                            fxy,
+                            entry: make_operator_marker_entry(),
+                        }));
+                    }
                     _ => {}
                 }
                 idx += 1;
@@ -497,6 +549,9 @@ fn read_bits(data: &[u8], bit_offset: usize, num_bits: u32) -> u64 {
 }
 
 fn is_missing(raw: u64, num_bits: u32) -> bool {
+    if num_bits <= 1 {
+        return false;
+    }
     raw == (1u64 << num_bits) - 1
 }
 
@@ -673,12 +728,16 @@ fn decode_items_compressed(
                         for sv in subset_values.iter_mut() {
                             let increment = read_bits(data, bit_offset, nbinc);
                             bit_offset += nbinc as usize;
-                            let combined = r0 + increment;
-                            let dv = match decode_value(combined, entry) {
-                                Some(v) => DecodedValue::Float(v),
-                                None => DecodedValue::Missing,
-                            };
-                            sv.push((desc.clone(), dv));
+                            if is_missing(increment, nbinc) {
+                                sv.push((desc.clone(), DecodedValue::Missing));
+                            } else {
+                                let combined = r0 + increment;
+                                let dv = match decode_value(combined, entry) {
+                                    Some(v) => DecodedValue::Float(v),
+                                    None => DecodedValue::Missing,
+                                };
+                                sv.push((desc.clone(), dv));
+                            }
                         }
                     }
                 }
@@ -963,7 +1022,7 @@ fn rows_to_record_batch(
 // ── PyO3 entry point ─────────────────────────────────────────────────
 
 #[pyfunction]
-#[pyo3(signature = (file_path, table_b_json, table_d_json, mnemonics=None, data_category_filter=None))]
+#[pyo3(signature = (file_path, table_b_json, table_d_json, mnemonics=None, data_category_filter=None, local_tables_json=None))]
 fn read_bufr_rust(
     py: Python<'_>,
     file_path: &str,
@@ -971,8 +1030,9 @@ fn read_bufr_rust(
     table_d_json: &str,
     mnemonics: Option<Vec<String>>,
     data_category_filter: Option<i32>,
+    local_tables_json: Option<HashMap<String, String>>,
 ) -> PyResult<PyArrowType<RecordBatch>> {
-    let tables = TableSet::from_json(table_b_json, table_d_json)
+    let base_tables = TableSet::from_json(table_b_json, table_d_json)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
 
     let raw_data = std::fs::read(file_path)
@@ -1007,6 +1067,20 @@ fn read_bufr_rust(
         let all_rows: Vec<DecodedRow> = filtered
             .par_iter()
             .flat_map(|(msg_idx, parsed)| {
+                // Build per-message table set with local overrides
+                let mut tables = TableSet {
+                    table_b: base_tables.table_b.clone(),
+                    table_d: base_tables.table_d.clone(),
+                };
+                let centre = parsed.identification.originating_center;
+                let local_ver = parsed.identification.local_table_version;
+                let local_key = format!("{centre}_{local_ver}");
+                if let Some(ref locals) = local_tables_json {
+                    if let Some(local_json) = locals.get(&local_key) {
+                        let _ = tables.merge_local_b(local_json);
+                    }
+                }
+
                 let expanded = match expand_descriptors(&parsed.descriptors, &tables) {
                     Ok(e) => e,
                     Err(_) => return Vec::new(),
