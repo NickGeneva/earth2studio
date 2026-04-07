@@ -1,4 +1,4 @@
-.PHONY: lint format test test-cov docs fortran
+.PHONY: lint format test test-cov docs fortran rust
 
 lint:
 	ruff check src/ tests/
@@ -19,3 +19,6 @@ fortran:
 	cmake -S src/fortran -B build/fortran -DCMAKE_BUILD_TYPE=Release
 	cmake --build build/fortran --parallel
 	cp build/fortran/libearth2bufrio_fort.so src/earth2bufrio/
+
+rust:
+	cd src/rust && maturin develop --release

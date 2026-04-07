@@ -66,6 +66,7 @@ markers = [
     "crossval: cross-validation tests against reference decoders",
     "integration: tests requiring external resources",
     "fortran: tests requiring the Fortran backend (make fortran)",
+    "rust: tests requiring the Rust backend (maturin develop)",
     "slow: long-running tests",
 ]
 
