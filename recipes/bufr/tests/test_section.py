@@ -5,8 +5,8 @@
 from __future__ import annotations
 
 import pytest
-from earth2bufrio._section import parse_message
-from earth2bufrio._types import BufrMessage
+from earth2bufr._section import parse_message
+from earth2bufr._types import BufrMessage
 
 
 # ---------------------------------------------------------------------------
@@ -151,7 +151,7 @@ def _assemble_message(
 @pytest.mark.unit
 def test_parse_indicator() -> None:
     """Indicator section (Section 0) is parsed correctly."""
-    from earth2bufrio._section import _parse_indicator
+    from earth2bufr._section import _parse_indicator
 
     data = _build_indicator(256, 4)
     result = _parse_indicator(data)
@@ -165,7 +165,7 @@ def test_parse_indicator() -> None:
 @pytest.mark.unit
 def test_parse_identification_ed4() -> None:
     """Edition 4 Section 1 fields are parsed correctly."""
-    from earth2bufrio._section import _parse_identification_ed4
+    from earth2bufr._section import _parse_identification_ed4
 
     sec1 = _build_section1_ed4(
         center=7, data_cat=2, year=2024, month=6, day=15, hour=12, minute=30, second=45
@@ -194,7 +194,7 @@ def test_parse_identification_ed4() -> None:
 @pytest.mark.unit
 def test_parse_identification_ed3() -> None:
     """Edition 3 Section 1 with year-of-century < 70 -> 2000+year."""
-    from earth2bufrio._section import _parse_identification_ed3
+    from earth2bufr._section import _parse_identification_ed3
 
     sec1 = _build_section1_ed3(
         center=7, data_cat=3, year=24, month=6, day=15, hour=12, minute=30
@@ -215,7 +215,7 @@ def test_parse_identification_ed3() -> None:
 @pytest.mark.unit
 def test_parse_identification_ed3_year_70() -> None:
     """Edition 3 with year-of-century == 70 -> 1970."""
-    from earth2bufrio._section import _parse_identification_ed3
+    from earth2bufr._section import _parse_identification_ed3
 
     sec1 = _build_section1_ed3(year=70)
     ident, _ = _parse_identification_ed3(sec1, 0)
@@ -228,7 +228,7 @@ def test_parse_identification_ed3_year_70() -> None:
 @pytest.mark.unit
 def test_parse_data_description() -> None:
     """Section 3 descriptors, num_subsets, and flags are parsed correctly."""
-    from earth2bufrio._section import _parse_data_description
+    from earth2bufr._section import _parse_data_description
 
     sec3 = _build_section3(
         num_subsets=5, observed=True, compressed=False, descriptors=[301011, 12001]

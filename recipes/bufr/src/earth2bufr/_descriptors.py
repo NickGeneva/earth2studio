@@ -5,7 +5,7 @@
 """Descriptor expansion for BUFR decoding.
 
 Expands raw FXY descriptor sequences into a flat list of
-:class:`~earth2bufrio._types.ExpandedDescriptor` objects, handling
+:class:`~earth2bufr._types.ExpandedDescriptor` objects, handling
 Table D sequences, replication operators (F=1), and data-description
 operators (F=2).
 """
@@ -16,7 +16,7 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from earth2bufrio._types import (
+from earth2bufr._types import (
     BufrDecodeError,
     DelayedReplicationMarker,
     ExpandedDescriptor,
@@ -24,7 +24,7 @@ from earth2bufrio._types import (
 )
 
 if TYPE_CHECKING:
-    from earth2bufrio._tables import TableSet
+    from earth2bufr._tables import TableSet
 
 logger = logging.getLogger(__name__)
 

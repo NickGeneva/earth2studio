@@ -17,7 +17,7 @@ import math
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import earth2bufrio
+import earth2bufr
 import pytest
 
 if TYPE_CHECKING:
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 # Backend availability probes
 # ---------------------------------------------------------------------------
 try:
-    from earth2bufrio._fortran_backend import _load_lib
+    from earth2bufr._fortran_backend import _load_lib
 
     _load_lib()  # Actually try to open the .so — import alone is not enough
     HAS_FORTRAN = True
@@ -35,7 +35,7 @@ except Exception:
     HAS_FORTRAN = False
 
 try:
-    from earth2bufrio._lib import read_bufr_rust as _read_bufr_rust  # noqa: F401
+    from earth2bufr._lib import read_bufr_rust as _read_bufr_rust  # noqa: F401
 
     HAS_RUST = True
 except ImportError:
@@ -205,7 +205,7 @@ class TestBackendConsistency:
 
         tables: dict[str, pa.Table] = {}
         for backend in backends:
-            tables[backend] = earth2bufrio.read_bufr(bufr_path, backend=backend)
+            tables[backend] = earth2bufr.read_bufr(bufr_path, backend=backend)
 
         ref_name = "python"
         ref_table = tables[ref_name]
@@ -238,14 +238,14 @@ class TestBackendConsistency:
             pytest.skip("Need at least two backends")
 
         ref_cols = sorted(
-            earth2bufrio.read_bufr(bufr_path, backend="python").column_names
+            earth2bufr.read_bufr(bufr_path, backend="python").column_names
         )
 
         for backend in backends:
             if backend == "python":
                 continue
             cmp_cols = sorted(
-                earth2bufrio.read_bufr(bufr_path, backend=backend).column_names
+                earth2bufr.read_bufr(bufr_path, backend=backend).column_names
             )
             assert ref_cols == cmp_cols, (
                 f"{filename}: column names differ between python and {backend}\n"
@@ -264,12 +264,12 @@ class TestBackendConsistency:
         if len(backends) < 2:
             pytest.skip("Need at least two backends")
 
-        ref_table = earth2bufrio.read_bufr(bufr_path, backend="python")
+        ref_table = earth2bufr.read_bufr(bufr_path, backend="python")
 
         for backend in backends:
             if backend == "python":
                 continue
-            cmp_table = earth2bufrio.read_bufr(bufr_path, backend=backend)
+            cmp_table = earth2bufr.read_bufr(bufr_path, backend=backend)
             for col in FIXED_COLUMNS:
                 if col not in ref_table.column_names:
                     continue
@@ -294,13 +294,13 @@ class TestBackendConsistency:
         if len(backends) < 2:
             pytest.skip("Need at least two backends")
 
-        ref_table = earth2bufrio.read_bufr(bufr_path, backend="python")
+        ref_table = earth2bufr.read_bufr(bufr_path, backend="python")
         mnemonic_cols = [c for c in ref_table.column_names if c not in FIXED_COLUMNS]
 
         for backend in backends:
             if backend == "python":
                 continue
-            cmp_table = earth2bufrio.read_bufr(bufr_path, backend=backend)
+            cmp_table = earth2bufr.read_bufr(bufr_path, backend=backend)
             mismatches: list[str] = []
             for col in mnemonic_cols:
                 if col not in cmp_table.column_names:

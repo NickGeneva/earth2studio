@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 cmake_minimum_required(VERSION 3.15)
-project(earth2bufrio_fort Fortran C)
+project(earth2bufr_fort Fortran C)
 
 # ------------------------------------------------------------------
 # Options
@@ -26,15 +26,15 @@ endif()
 # ------------------------------------------------------------------
 # Build the wrapper shared library
 # ------------------------------------------------------------------
-add_library(earth2bufrio_fort SHARED earth2bufrio_fort.f90)
-target_link_libraries(earth2bufrio_fort PRIVATE ${BUFR_LIB})
+add_library(earth2bufr_fort SHARED earth2bufr_fort.f90)
+target_link_libraries(earth2bufr_fort PRIVATE ${BUFR_LIB})
 
 # Position-independent code for shared library
-set_target_properties(earth2bufrio_fort PROPERTIES
+set_target_properties(earth2bufr_fort PROPERTIES
   POSITION_INDEPENDENT_CODE ON
   Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/mod"
 )
 
 # Install rule (used by Makefile cp step)
-install(TARGETS earth2bufrio_fort
+install(TARGETS earth2bufr_fort
         LIBRARY DESTINATION lib)

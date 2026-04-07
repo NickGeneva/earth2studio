@@ -5,8 +5,8 @@
 from __future__ import annotations
 
 import pytest
-from earth2bufrio._reader import read_messages
-from earth2bufrio._types import BufrDecodeError, BufrMessage
+from earth2bufr._reader import read_messages
+from earth2bufr._types import BufrDecodeError, BufrMessage
 
 
 def _make_valid_message() -> bytes:

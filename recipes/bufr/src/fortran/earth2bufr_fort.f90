@@ -2,11 +2,11 @@
 ! SPDX-FileCopyrightText: All rights reserved.
 ! SPDX-License-Identifier: Apache-2.0
 
-!> ISO_C_BINDING wrapper around NCEPLIBS-bufr for earth2bufrio.
+!> ISO_C_BINDING wrapper around NCEPLIBS-bufr for earth2bufr.
 !!
 !! Exposes a small set of C-callable functions that the Python ctypes
 !! layer can call to read BUFR / PrepBUFR files.
-module earth2bufrio_fort
+module earth2bufr_fort
   use iso_c_binding
   implicit none
 
@@ -182,4 +182,4 @@ contains
     e2b_get_bmiss = real(getbmiss(), c_double)
   end function e2b_get_bmiss
 
-end module earth2bufrio_fort
+end module earth2bufr_fort

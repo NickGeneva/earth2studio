@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 import pyarrow as pa  # type: ignore[import-untyped]
 import pytest
-from earth2bufrio import read_bufr
+from earth2bufr import read_bufr
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -13,17 +13,17 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from earth2bufrio._arrow import build_table
-from earth2bufrio._decoder import decode
-from earth2bufrio._descriptors import expand_descriptors
-from earth2bufrio._reader import read_messages
-from earth2bufrio._section import parse_message
-from earth2bufrio._tables import TableSet
+from earth2bufr._arrow import build_table
+from earth2bufr._decoder import decode
+from earth2bufr._descriptors import expand_descriptors
+from earth2bufr._reader import read_messages
+from earth2bufr._section import parse_message
+from earth2bufr._tables import TableSet
 
 if TYPE_CHECKING:
     import pyarrow as pa  # type: ignore[import-untyped]
 
-    from earth2bufrio._types import DecodedSubset, ParsedMessage
+    from earth2bufr._types import DecodedSubset, ParsedMessage
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ def _load_table_json(filename: str) -> str:
     Parameters
     ----------
     filename : str
-        Filename inside the ``earth2bufrio.tables`` package (e.g.
+        Filename inside the ``earth2bufr.tables`` package (e.g.
         ``"table_b.json"``).
 
     Returns
@@ -43,7 +43,7 @@ def _load_table_json(filename: str) -> str:
     str
         The raw JSON string.
     """
-    ref = importlib.resources.files("earth2bufrio.tables").joinpath(filename)
+    ref = importlib.resources.files("earth2bufr.tables").joinpath(filename)
     return ref.read_text(encoding="utf-8")
 
 
@@ -60,12 +60,12 @@ def _load_all_local_table_jsons() -> dict[str, str]:
     dict[str, str]
         Mapping of centre/version key to JSON string content.
     """
-    from earth2bufrio._tables import _LOCAL_TABLE_B_FILES
+    from earth2bufr._tables import _LOCAL_TABLE_B_FILES
 
     result: dict[str, str] = {}
     for (centre, version), filename in _LOCAL_TABLE_B_FILES.items():
         key = f"{centre}_{version}"
-        ref = importlib.resources.files("earth2bufrio.tables").joinpath(filename)
+        ref = importlib.resources.files("earth2bufr.tables").joinpath(filename)
         result[key] = ref.read_text(encoding="utf-8")
     return result
 
@@ -117,8 +117,8 @@ def read_bufr(
 
     Examples
     --------
-    >>> import earth2bufrio
-    >>> table = earth2bufrio.read_bufr("observations.bufr")
+    >>> import earth2bufr
+    >>> table = earth2bufr.read_bufr("observations.bufr")
     >>> table.column_names[:3]
     ['message_type', 'message_index', 'subset_index']
     """
@@ -128,7 +128,7 @@ def read_bufr(
         raise FileNotFoundError(msg)
 
     if backend == "fortran":
-        from earth2bufrio._fortran_backend import read_ncep
+        from earth2bufr._fortran_backend import read_ncep
 
         return read_ncep(
             file_path,
@@ -140,7 +140,7 @@ def read_bufr(
     if backend == "rust":
         import pyarrow as pa  # type: ignore[import-untyped]
 
-        from earth2bufrio._lib import read_bufr_rust
+        from earth2bufr._lib import read_bufr_rust
 
         table_b_str = _load_table_json("table_b.json")
         table_d_str = _load_table_json("table_d.json")

@@ -10,7 +10,7 @@ test:
 	pytest tests/ -v
 
 test-cov:
-	pytest tests/ -v --cov=earth2bufrio --cov-report=term-missing --cov-fail-under=80
+	pytest tests/ -v --cov=earth2bufr --cov-report=term-missing --cov-fail-under=80
 
 docs:
 	sphinx-build -b html docs/ docs/_build/html
@@ -18,7 +18,7 @@ docs:
 fortran:
 	cmake -S src/fortran -B build/fortran -DCMAKE_BUILD_TYPE=Release
 	cmake --build build/fortran --parallel
-	cp build/fortran/libearth2bufrio_fort.so src/earth2bufrio/
+	cp build/fortran/libearth2bufr_fort.so src/earth2bufr/
 
 rust:
 	cd src/rust && maturin develop --release

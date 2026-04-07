@@ -1,12 +1,12 @@
 # Backend Architecture
 
-earth2bufrio supports multiple decoding backends behind a unified `read_bufr()`
+earth2bufr supports multiple decoding backends behind a unified `read_bufr()`
 API.  The `backend=` parameter controls which implementation is used.
 
 ## Pure Python (default)
 
 ```python
-table = earth2bufrio.read_bufr("observations.bufr", backend="python")
+table = earth2bufr.read_bufr("observations.bufr", backend="python")
 ```
 
 The default backend is implemented entirely in Python.  It reads individual bits
@@ -31,7 +31,7 @@ into a PyArrow Table.
 ## Fortran Backend (NCEPLIBS-bufr)
 
 ```python
-table = earth2bufrio.read_bufr("prepbufr.gdas", backend="fortran")
+table = earth2bufr.read_bufr("prepbufr.gdas", backend="fortran")
 ```
 
 The Fortran backend wraps NOAA's
@@ -58,7 +58,7 @@ make fortran
 ```
 
 This runs CMake to build NCEPLIBS-bufr (bundled or system-installed) and the
-ISO C wrapper, producing `libearth2bufrio_fort.so` in the package directory.
+ISO C wrapper, producing `libearth2bufr_fort.so` in the package directory.
 
 **Requirements:**
 
@@ -68,7 +68,7 @@ ISO C wrapper, producing `libearth2bufrio_fort.so` in the package directory.
 
 ### How it works
 
-The Fortran wrapper (`src/fortran/earth2bufrio_fort.f90`) exposes these
+The Fortran wrapper (`src/fortran/earth2bufr_fort.f90`) exposes these
 C-callable functions:
 
 | Function | Purpose |
@@ -98,7 +98,7 @@ for all I/O.  For parallel processing, use separate processes (not threads).
 ## Rust Backend (PyO3 / maturin)
 
 ```python
-table = earth2bufrio.read_bufr("observations.bufr", backend="rust")
+table = earth2bufr.read_bufr("observations.bufr", backend="rust")
 ```
 
 The Rust backend reimplements the full BUFR pipeline in compiled Rust code.
@@ -129,7 +129,7 @@ make rust
 ```
 
 This runs `maturin develop --release` to compile the Rust crate and install the
-`earth2bufrio._lib` extension module.
+`earth2bufr._lib` extension module.
 
 **Requirements:**
 

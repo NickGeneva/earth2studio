@@ -1,9 +1,9 @@
-# earth2bufrio
+# earth2bufr
 
 **BUFR decoder with Python and Fortran backends — reads WMO BUFR and NCEP
 PrepBUFR files into PyArrow Tables.**
 
-earth2bufrio decodes binary BUFR (Binary Universal Form for the Representation
+earth2bufr decodes binary BUFR (Binary Universal Form for the Representation
 of meteorological data) files produced by WMO member agencies and returns the
 observations as a wide-format [PyArrow](https://arrow.apache.org/docs/python/)
 `Table` with one column per mnemonic, ready for downstream analytics.
@@ -13,7 +13,7 @@ observations as a wide-format [PyArrow](https://arrow.apache.org/docs/python/)
 Install from a local checkout:
 
 ```bash
-pip install earth2bufrio
+pip install earth2bufr
 ```
 
 For development (includes linters and test dependencies):
@@ -33,43 +33,43 @@ make fortran
 ### Python backend (any WMO BUFR file)
 
 ```python
-import earth2bufrio
+import earth2bufr
 
 # Read an entire BUFR file — wide format, one column per descriptor
-table = earth2bufrio.read_bufr("observations.bufr")
+table = earth2bufr.read_bufr("observations.bufr")
 print(table.column_names)
 # ['message_type', 'message_index', 'subset_index',
 #  'YEAR', 'MNTH', 'DAYS', 'HOUR', 'MINU', 'SECO', ...]
 
 # Filter to a specific data category
-marine = earth2bufrio.read_bufr(
+marine = earth2bufr.read_bufr(
     "observations.bufr",
     filters={"data_category": 1},
 )
 
 # Select only specific mnemonics
-subset = earth2bufrio.read_bufr(
+subset = earth2bufr.read_bufr(
     "observations.bufr",
     mnemonics=["CLATH", "CLONH", "TMBR"],
 )
 
 # Speed up large files with parallel decoding
-table = earth2bufrio.read_bufr("large_file.bufr", workers=4)
+table = earth2bufr.read_bufr("large_file.bufr", workers=4)
 ```
 
 ### Fortran backend (NCEP BUFR / PrepBUFR)
 
 ```python
-import earth2bufrio
+import earth2bufr
 
 # Read PrepBUFR with the Fortran backend
-table = earth2bufrio.read_bufr(
+table = earth2bufr.read_bufr(
     "prepbufr.gdas.2024010100",
     backend="fortran",
 )
 
 # Read satellite radiance BUFR
-table = earth2bufrio.read_bufr(
+table = earth2bufr.read_bufr(
     "1bamua.gdas.2024010100.bufr",
     backend="fortran",
     mnemonics=["SAID", "CLAT", "CLON", "TMBR", "CHNM"],

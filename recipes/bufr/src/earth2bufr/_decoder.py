@@ -5,12 +5,12 @@
 """Bit-level BUFR data section decoder.
 
 Reads the raw data bits from Section 4 using the expanded descriptor
-list to produce :class:`~earth2bufrio._types.DecodedSubset` objects.
+list to produce :class:`~earth2bufr._types.DecodedSubset` objects.
 """
 
 from __future__ import annotations
 
-from earth2bufrio._types import (
+from earth2bufr._types import (
     DecodedSubset,
     DelayedReplicationMarker,
     ExpandedDescriptor,

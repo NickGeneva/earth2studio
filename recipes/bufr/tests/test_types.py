@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import pytest
-from earth2bufrio._types import (
+from earth2bufr._types import (
     BufrDecodeError,
     BufrMessage,
     DataDescriptionSection,

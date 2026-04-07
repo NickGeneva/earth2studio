@@ -5,8 +5,8 @@
 """Tests for WMO table management."""
 
 import pytest
-from earth2bufrio._tables import TableSet, load_table_b, load_table_d
-from earth2bufrio._types import TableBEntry, TableDEntry
+from earth2bufr._tables import TableSet, load_table_b, load_table_d
+from earth2bufr._types import TableBEntry, TableDEntry
 
 
 @pytest.mark.unit

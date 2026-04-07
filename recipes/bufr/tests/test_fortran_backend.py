@@ -22,7 +22,7 @@ class TestLoadLib:
     def test_load_lib_raises_when_not_found(self) -> None:
         """RuntimeError raised when shared lib is not found."""
         with patch("ctypes.CDLL", side_effect=OSError("not found")):
-            from earth2bufrio._fortran_backend import _load_lib
+            from earth2bufr._fortran_backend import _load_lib
 
             with pytest.raises(RuntimeError, match="Could not load"):
                 _load_lib()
@@ -72,8 +72,8 @@ class TestReadNcep:
         p.write_bytes(b"dummy")
 
         mock_lib = self._make_mock_lib()
-        with patch("earth2bufrio._fortran_backend._load_lib", return_value=mock_lib):
-            from earth2bufrio._fortran_backend import read_ncep
+        with patch("earth2bufr._fortran_backend._load_lib", return_value=mock_lib):
+            from earth2bufr._fortran_backend import read_ncep
 
             table = read_ncep(p, mnemonics=["CLATH"])
 

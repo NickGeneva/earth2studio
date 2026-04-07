@@ -7,7 +7,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "earth2bufrio"
+name = "earth2bufr"
 version = "0.1.0"
 description = "Pure-Python BUFR decoder — reads WMO BUFR Edition 3/4 files into PyArrow Tables"
 readme = "README.md"
@@ -39,7 +39,7 @@ fortran = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/earth2bufrio"]
+packages = ["src/earth2bufr"]
 
 [tool.ruff]
 line-length = 120
@@ -71,7 +71,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["earth2bufrio"]
+source = ["earth2bufr"]
 
 [tool.coverage.report]
 show_missing = true

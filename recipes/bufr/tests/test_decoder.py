@@ -7,13 +7,13 @@
 from __future__ import annotations
 
 import pytest
-from earth2bufrio._decoder import (
+from earth2bufr._decoder import (
     _decode_value,
     _is_missing,
     _read_bits,
     decode,
 )
-from earth2bufrio._types import (
+from earth2bufr._types import (
     DecodedSubset,
     ExpandedDescriptor,
     TableBEntry,

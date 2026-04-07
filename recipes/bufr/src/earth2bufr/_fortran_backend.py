@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from earth2bufrio._arrow import build_table
+from earth2bufr._arrow import build_table
 
 if TYPE_CHECKING:
     import pyarrow as pa  # type: ignore[import-untyped]
@@ -122,14 +122,14 @@ _MAX_LEVELS: int = 255
 
 
 def _load_lib() -> ctypes.CDLL:
-    """Find and load ``libearth2bufrio_fort.so``.
+    """Find and load ``libearth2bufr_fort.so``.
 
     Raises
     ------
     RuntimeError
         If the shared library cannot be found.
     """
-    lib_name = "libearth2bufrio_fort.so"
+    lib_name = "libearth2bufr_fort.so"
     pkg_dir = Path(__file__).parent
     candidates = [pkg_dir / lib_name, lib_name]
     for candidate in candidates:

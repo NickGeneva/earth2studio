@@ -17,7 +17,7 @@ import importlib.resources
 import json
 from typing import TYPE_CHECKING, Any
 
-from earth2bufrio._types import TableBEntry, TableDEntry
+from earth2bufr._types import TableBEntry, TableDEntry
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -42,7 +42,7 @@ def load_table_b() -> dict[int, TableBEntry]:
     dict[int, TableBEntry]
         Mapping of integer FXY descriptor to its Table B metadata.
     """
-    ref = importlib.resources.files("earth2bufrio.tables").joinpath("table_b.json")
+    ref = importlib.resources.files("earth2bufr.tables").joinpath("table_b.json")
     raw: dict[str, Any] = json.loads(ref.read_text(encoding="utf-8"))
     table: dict[int, TableBEntry] = {}
     for key, val in raw.items():
@@ -69,7 +69,7 @@ def load_table_d() -> dict[int, TableDEntry]:
     dict[int, TableDEntry]
         Mapping of integer FXY descriptor to its Table D sequence entry.
     """
-    ref = importlib.resources.files("earth2bufrio.tables").joinpath("table_d.json")
+    ref = importlib.resources.files("earth2bufr.tables").joinpath("table_d.json")
     raw: dict[str, list[int]] = json.loads(ref.read_text(encoding="utf-8"))
     table: dict[int, TableDEntry] = {}
     for key, members in raw.items():
@@ -98,7 +98,7 @@ def load_local_table_b(centre: int, local_version: int) -> dict[int, TableBEntry
     filename = _LOCAL_TABLE_B_FILES.get((centre, local_version))
     if filename is None:
         return {}
-    ref = importlib.resources.files("earth2bufrio.tables").joinpath(filename)
+    ref = importlib.resources.files("earth2bufr.tables").joinpath(filename)
     raw: dict[str, Any] = json.loads(ref.read_text(encoding="utf-8"))
     table: dict[int, TableBEntry] = {}
     for key, val in raw.items():

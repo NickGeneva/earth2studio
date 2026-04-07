@@ -2,7 +2,7 @@
 
 BUFR (Binary Universal Form for the Representation of meteorological data) is a
 WMO standard binary format used worldwide for exchanging weather observations,
-satellite retrievals, and model output.  earth2bufrio supports **Edition 3** and
+satellite retrievals, and model output.  earth2bufr supports **Edition 3** and
 **Edition 4** of the BUFR specification.
 
 ## File Structure
@@ -13,12 +13,12 @@ A BUFR message is composed of six sections:
 |---------|-----------------------|-----------------------------------------------|
 | 0       | Indicator             | Magic bytes `BUFR`, total message length, edition number |
 | 1       | Identification        | Originating centre, data category, timestamp, subsets, flags |
-| 2       | Optional              | Local-use data (skipped by earth2bufrio)       |
+| 2       | Optional              | Local-use data (skipped by earth2bufr)       |
 | 3       | Data Description      | Unexpanded descriptor sequence that defines the data layout |
 | 4       | Data                  | Bit-packed observation values                  |
 | 5       | End                   | End marker `7777`                              |
 
-Multiple BUFR messages can be concatenated in a single file.  earth2bufrio's
+Multiple BUFR messages can be concatenated in a single file.  earth2bufr's
 reader stage (`_reader.py`) splits the byte stream by scanning for `BUFR` /
 `7777` boundaries.
 
@@ -34,7 +34,7 @@ The two editions differ mainly in Section 1 layout:
 | Local table version  | Single byte         | Same                    |
 | Sub-centre           | Not present         | 2-byte field            |
 
-earth2bufrio's section parser (`_section.py`) detects the edition from Section 0
+earth2bufr's section parser (`_section.py`) detects the edition from Section 0
 and applies the correct Section 1 layout automatically.
 
 ## Descriptor System
@@ -57,7 +57,7 @@ The F field determines the descriptor category:
 - **F = 3 — Sequence descriptor**: expand via **Table D** into a pre-defined
   list of other descriptors.
 
-earth2bufrio's descriptor expansion (`_descriptors.py`) recursively expands all
+earth2bufr's descriptor expansion (`_descriptors.py`) recursively expands all
 F = 3 references and builds replication groups, producing a flat list of
 `ExpandedDescriptor` and `DelayedReplicationMarker` objects that the decoder
 consumes.
@@ -87,6 +87,6 @@ strings have all bytes set to `0xFF`.
 
 NCEP distributes observations in **PrepBUFR** files, which embed WMO Table B/D
 definitions inside the file itself as "DX table" messages (data category 11).
-earth2bufrio detects these messages, extracts the embedded tables, and uses them
+earth2bufr detects these messages, extracts the embedded tables, and uses them
 for descriptor look-up in subsequent messages.  This allows decoding PrepBUFR
 files without shipping external table files.

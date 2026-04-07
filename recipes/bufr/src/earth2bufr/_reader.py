@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-from earth2bufrio._types import BufrDecodeError, BufrMessage
+from earth2bufr._types import BufrDecodeError, BufrMessage
 
 _BUFR_MARKER = b"BUFR"
 _END_MARKER = b"7777"
@@ -23,7 +23,7 @@ def read_messages(data: bytes) -> Iterator[BufrMessage]:
 
     The function searches for ``b"BUFR"`` start markers, reads the 3-byte
     big-endian total length field, validates the ``b"7777"`` end marker,
-    and yields a :class:`~earth2bufrio._types.BufrMessage` for every valid
+    and yields a :class:`~earth2bufr._types.BufrMessage` for every valid
     message.
 
     Parameters

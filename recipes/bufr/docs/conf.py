@@ -2,12 +2,12 @@
 # SPDX-FileCopyrightText: All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-"""Sphinx configuration for earth2bufrio documentation."""
+"""Sphinx configuration for earth2bufr documentation."""
 
 from __future__ import annotations
 
 # -- Project information -----------------------------------------------------
-project = "earth2bufrio"
+project = "earth2bufr"
 copyright = "2025 NVIDIA CORPORATION & AFFILIATES"  # noqa: A001
 author = "NVIDIA Corporation"
 version = "0.1.0"
@@ -35,7 +35,7 @@ source_suffix = {
 }
 
 # -- AutoAPI configuration ---------------------------------------------------
-autoapi_dirs = ["../src/earth2bufrio"]
+autoapi_dirs = ["../src/earth2bufr"]
 autoapi_type = "python"
 autoapi_ignore = ["*/_types.py"]
 autoapi_options = [
@@ -54,7 +54,7 @@ numpydoc_show_class_members = False
 
 # -- HTML output -------------------------------------------------------------
 html_theme = "nvidia_sphinx_theme"
-html_title = "earth2bufrio"
+html_title = "earth2bufr"
 
 # -- Miscellaneous -----------------------------------------------------------
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]

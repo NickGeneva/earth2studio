@@ -1,6 +1,6 @@
 # API Reference
 
-The public API of earth2bufrio consists of a single entry-point function and one
+The public API of earth2bufr consists of a single entry-point function and one
 exception class.  Full signatures and docstrings are generated automatically by
 [sphinx-autoapi](https://sphinx-autoapi.readthedocs.io/) from the source code.
 
@@ -9,9 +9,9 @@ exception class.  Full signatures and docstrings are generated automatically by
 The primary function for decoding BUFR files:
 
 ```python
-import earth2bufrio
+import earth2bufr
 
-table = earth2bufrio.read_bufr(
+table = earth2bufr.read_bufr(
     "observations.bufr",
     mnemonics=None,                  # Optional list of mnemonic names to extract
     filters={"data_category": 102},  # Optional message-level filters
@@ -88,10 +88,10 @@ Raised when a BUFR message cannot be decoded — for example when the file is
 truncated, contains an unsupported edition, or has malformed section headers.
 
 ```python
-from earth2bufrio import BufrDecodeError
+from earth2bufr import BufrDecodeError
 
 try:
-    table = earth2bufrio.read_bufr("corrupt.bufr")
+    table = earth2bufr.read_bufr("corrupt.bufr")
 except BufrDecodeError as exc:
     print(f"Decode failed at byte {exc.offset}: {exc}")
 ```
@@ -100,4 +100,4 @@ except BufrDecodeError as exc:
 
 The sections below are produced by sphinx-autoapi from the package source.
 Internal modules (prefixed with `_`) are excluded except where they define
-public symbols re-exported by `earth2bufrio.__init__`.
+public symbols re-exported by `earth2bufr.__init__`.

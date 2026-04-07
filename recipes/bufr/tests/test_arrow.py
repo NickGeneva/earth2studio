@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pyarrow as pa  # type: ignore[import-untyped]
 import pytest
-from earth2bufrio._arrow import build_table
+from earth2bufr._arrow import build_table
 
 
 class TestBuildTableBasic:

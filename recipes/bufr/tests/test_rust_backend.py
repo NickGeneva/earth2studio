@@ -12,7 +12,7 @@ import pytest
 
 # Skip entire module if Rust backend is not compiled
 try:
-    from earth2bufrio._lib import read_bufr_rust
+    from earth2bufr._lib import read_bufr_rust
 
     HAS_RUST = True
 except ImportError:
@@ -32,7 +32,7 @@ def table_b_json() -> str:
     """Load table_b.json as string."""
     import importlib.resources
 
-    ref = importlib.resources.files("earth2bufrio.tables").joinpath("table_b.json")
+    ref = importlib.resources.files("earth2bufr.tables").joinpath("table_b.json")
     return ref.read_text(encoding="utf-8")
 
 
@@ -41,7 +41,7 @@ def table_d_json() -> str:
     """Load table_d.json as string."""
     import importlib.resources
 
-    ref = importlib.resources.files("earth2bufrio.tables").joinpath("table_d.json")
+    ref = importlib.resources.files("earth2bufr.tables").joinpath("table_d.json")
     return ref.read_text(encoding="utf-8")
 
 
@@ -70,11 +70,11 @@ class TestReadBufrRustIntegration:
 
     def test_api_dispatch(self, tmp_path):
         """read_bufr(backend='rust') dispatches to the Rust backend."""
-        import earth2bufrio
+        import earth2bufr
 
         empty_file = tmp_path / "empty.bufr"
         empty_file.write_bytes(b"")
-        table = earth2bufrio.read_bufr(empty_file, backend="rust")
+        table = earth2bufr.read_bufr(empty_file, backend="rust")
         assert table.num_rows == 0
         assert "message_type" in table.column_names
 
@@ -92,14 +92,14 @@ class TestReadBufrRustCrossval:
     )
     def test_crossval_row_counts(self, filename, table_b_json, table_d_json):
         """Rust and Python backends produce same row count."""
-        import earth2bufrio
+        import earth2bufr
 
         bufr_path = DATA_DIR / filename
         if not bufr_path.exists():
             pytest.skip(f"Test fixture {filename} not found")
 
-        py_table = earth2bufrio.read_bufr(bufr_path, backend="python")
-        rust_table = earth2bufrio.read_bufr(bufr_path, backend="rust")
+        py_table = earth2bufr.read_bufr(bufr_path, backend="python")
+        rust_table = earth2bufr.read_bufr(bufr_path, backend="rust")
 
         assert (
             py_table.num_rows == rust_table.num_rows
@@ -115,14 +115,14 @@ class TestReadBufrRustCrossval:
     )
     def test_crossval_fixed_columns(self, filename, table_b_json, table_d_json):
         """Rust and Python backends produce same fixed column values."""
-        import earth2bufrio
+        import earth2bufr
 
         bufr_path = DATA_DIR / filename
         if not bufr_path.exists():
             pytest.skip(f"Test fixture {filename} not found")
 
-        py_table = earth2bufrio.read_bufr(bufr_path, backend="python")
-        rust_table = earth2bufrio.read_bufr(bufr_path, backend="rust")
+        py_table = earth2bufr.read_bufr(bufr_path, backend="python")
+        rust_table = earth2bufr.read_bufr(bufr_path, backend="rust")
 
         for col in ["message_index", "subset_index", "YEAR", "MNTH", "DAYS"]:
             if col in py_table.column_names and col in rust_table.column_names:

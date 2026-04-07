@@ -5,8 +5,8 @@
 """Tests for descriptor expansion logic."""
 
 import pytest
-from earth2bufrio._tables import TableSet
-from earth2bufrio._types import (
+from earth2bufr._tables import TableSet
+from earth2bufr._types import (
     BufrDecodeError,
     ExpandedDescriptor,
     TableBEntry,
@@ -67,7 +67,7 @@ class TestExpandSingleTableB:
     """F=0 (Table B element) expansion."""
 
     def test_single_element_returns_one_expanded(self, tables):
-        from earth2bufrio._descriptors import expand_descriptors
+        from earth2bufr._descriptors import expand_descriptors
 
         result = expand_descriptors((12001,), tables)
         assert len(result) == 1
@@ -78,7 +78,7 @@ class TestExpandSingleTableB:
         assert result[0].entry.bit_width == 12
 
     def test_multiple_elements(self, tables):
-        from earth2bufrio._descriptors import expand_descriptors
+        from earth2bufr._descriptors import expand_descriptors
 
         result = expand_descriptors((4001, 4002, 4003), tables)
         assert len(result) == 3
@@ -92,7 +92,7 @@ class TestExpandTableD:
     """F=3 (Table D sequence) expansion."""
 
     def test_table_d_expands_to_members(self, tables):
-        from earth2bufrio._descriptors import expand_descriptors
+        from earth2bufr._descriptors import expand_descriptors
 
         result = expand_descriptors((301011,), tables)
         assert len(result) == 3
@@ -101,7 +101,7 @@ class TestExpandTableD:
         assert result[2].fxy == 4003
 
     def test_nested_table_d_fully_flattens(self, tables):
-        from earth2bufrio._descriptors import expand_descriptors
+        from earth2bufr._descriptors import expand_descriptors
 
         # 399001 -> [301011, 12001] -> [4001, 4002, 4003, 12001]
         result = expand_descriptors((399001,), tables)
@@ -117,7 +117,7 @@ class TestReplicationRegular:
     """F=1 regular replication."""
 
     def test_replicate_one_descriptor_three_times(self, tables):
-        from earth2bufrio._descriptors import expand_descriptors
+        from earth2bufr._descriptors import expand_descriptors
 
         # 101003 = replicate next 1 descriptor 3 times, followed by 12001
         result = expand_descriptors((101003, 12001), tables)
@@ -127,7 +127,7 @@ class TestReplicationRegular:
             assert item.entry.name == "TEMPERATURE"
 
     def test_replicate_two_descriptors_twice(self, tables):
-        from earth2bufrio._descriptors import expand_descriptors
+        from earth2bufr._descriptors import expand_descriptors
 
         # 102002 = replicate next 2 descriptors 2 times
         result = expand_descriptors((102002, 4001, 4002), tables)
@@ -143,8 +143,8 @@ class TestReplicationDelayed:
     """F=1 delayed replication (Y=0)."""
 
     def test_delayed_replication_includes_factor_descriptor(self, tables):
-        from earth2bufrio._descriptors import expand_descriptors
-        from earth2bufrio._types import DelayedReplicationMarker
+        from earth2bufr._descriptors import expand_descriptors
+        from earth2bufr._types import DelayedReplicationMarker
 
         # 101000 = delayed replication of 1 descriptor; next is 31001 (factor), then 12001
         result = expand_descriptors((101000, 31001, 12001), tables)
@@ -163,7 +163,7 @@ class TestOperator201ChangeWidth:
     """F=2 operator 201YYY — change data width."""
 
     def test_201_increases_bit_width(self, tables):
-        from earth2bufrio._descriptors import expand_descriptors
+        from earth2bufr._descriptors import expand_descriptors
 
         # 201010: width delta = 10 - 128 = -118 ... let's use a sensible one
         # 201131: width delta = 131 - 128 = +3
@@ -174,7 +174,7 @@ class TestOperator201ChangeWidth:
         assert result[0].entry.bit_width == 15
 
     def test_201_reset_restores_original(self, tables):
-        from earth2bufrio._descriptors import expand_descriptors
+        from earth2bufr._descriptors import expand_descriptors
 
         # 201131 applies +3, then 201000 resets
         result = expand_descriptors((201131, 12001, 201000, 5001), tables)
@@ -190,7 +190,7 @@ class TestOperator202ChangeScale:
     """F=2 operator 202YYY — change scale."""
 
     def test_202_increases_scale(self, tables):
-        from earth2bufrio._descriptors import expand_descriptors
+        from earth2bufr._descriptors import expand_descriptors
 
         # 202130: scale delta = 130 - 128 = +2
         result = expand_descriptors((202130, 12001, 202000), tables)
@@ -200,7 +200,7 @@ class TestOperator202ChangeScale:
         assert result[0].entry.scale == 3
 
     def test_202_reset_restores_original(self, tables):
-        from earth2bufrio._descriptors import expand_descriptors
+        from earth2bufr._descriptors import expand_descriptors
 
         result = expand_descriptors((202130, 12001, 202000, 5001), tables)
         assert len(result) == 2
@@ -215,7 +215,7 @@ class TestMaxDepthGuard:
     """Recursive expansion deeper than 50 levels should raise BufrDecodeError."""
 
     def test_deep_recursion_raises(self, tables):
-        from earth2bufrio._descriptors import expand_descriptors
+        from earth2bufr._descriptors import expand_descriptors
 
         # Build a chain of 51 nested Table D entries: each references the next
         for i in range(51):
@@ -236,7 +236,7 @@ class TestUnknownDescriptor:
     """Unknown F=0 descriptor should raise an error."""
 
     def test_unknown_table_b_raises(self, tables):
-        from earth2bufrio._descriptors import expand_descriptors
+        from earth2bufr._descriptors import expand_descriptors
 
         with pytest.raises((BufrDecodeError, KeyError)):
             expand_descriptors((99999,), tables)
