@@ -34,6 +34,9 @@ docs = [
     "sphinx-copybutton>=0.5",
     "numpydoc>=1.10",
 ]
+fortran = [
+    "numpy>=1.24",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/earth2bufrio"]
@@ -62,6 +65,7 @@ markers = [
     "unit: fast isolated unit tests",
     "crossval: cross-validation tests against reference decoders",
     "integration: tests requiring external resources",
+    "fortran: tests requiring the Fortran backend (make fortran)",
     "slow: long-running tests",
 ]
 

@@ -1,4 +1,4 @@
-.PHONY: lint format test test-cov docs
+.PHONY: lint format test test-cov docs fortran
 
 lint:
 	ruff check src/ tests/
@@ -14,3 +14,8 @@ test-cov:
 
 docs:
 	sphinx-build -b html docs/ docs/_build/html
+
+fortran:
+	cmake -S src/fortran -B build/fortran -DCMAKE_BUILD_TYPE=Release
+	cmake --build build/fortran --parallel
+	cp build/fortran/libearth2bufrio_fort.so src/earth2bufrio/
