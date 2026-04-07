@@ -1,34 +1,104 @@
 # Backend Architecture
 
-earth2bufrio separates the high-level pipeline orchestration (message splitting,
-section parsing, descriptor expansion, table building) from the performance-
-critical inner loop — the **bit-level decoder** in `_decoder.py`.  This design
-makes it straightforward to swap in an optimised native backend without changing
-the public API.
+earth2bufrio supports multiple decoding backends behind a unified `read_bufr()`
+API.  The `backend=` parameter controls which implementation is used.
 
-## Current: Pure Python
+## Pure Python (default)
+
+```python
+table = earth2bufrio.read_bufr("observations.bufr", backend="python")
+```
 
 The default backend is implemented entirely in Python.  It reads individual bits
 from the data section using byte indexing and bitwise operations, applies the
 Table B encoding parameters (reference value, scale, bit width), and produces
-`DecodedSubset` objects that the Arrow stage converts into columnar arrays.
+`DecodedSubset` objects that are converted into wide-format row dicts and then
+into a PyArrow Table.
 
-Advantages:
+**Advantages:**
 
 - Zero native dependencies — installs with `pip` on any platform.
+- Supports all WMO BUFR Edition 3 and Edition 4 files.
 - Easy to debug and extend.
 - Adequate throughput for moderate file sizes (< 100 MB).
 
-Limitations:
+**Limitations:**
 
 - Bit-level Python loops are inherently slow for very large files.
 - Parallel decoding via `ProcessPoolExecutor` helps but adds serialisation
   overhead.
 
+## Fortran Backend (NCEPLIBS-bufr)
+
+```python
+table = earth2bufrio.read_bufr("prepbufr.gdas", backend="fortran")
+```
+
+The Fortran backend wraps NOAA's
+[NCEPLIBS-bufr](https://github.com/NOAA-EMC/NCEPLIBS-bufr) library via
+`ctypes` and ISO C bindings.  It is optimised for NCEP BUFR and PrepBUFR files
+(satellite radiance, conventional observations).
+
+**Supported message types:**
+
+| Type | Message ID | Mnemonics |
+| --- | --- | --- |
+| ATMS | NC021203 | SAID, CLATH, CLONH, SAZA, SOZA, IANG, TMBR, CHNM |
+| AMSU-A | NC021023 | SAID, CLAT, CLON, SAZA, SOZA, IANG, TMBR, CHNM |
+| MHS | NC021027 | SAID, CLAT, CLON, SAZA, SOZA, IANG, TMBR, CHNM |
+| PrepBUFR | (various) | YOB, XOB, DHR, ELV, TYP, POB, QOB, TOB, ZOB, UOB, VOB, PWO, TDO, PMO |
+
+### Building the Fortran library
+
+The Fortran backend requires a compiled shared library.  Build it with:
+
+```bash
+cd recipes/earth2bufrio
+make fortran
+```
+
+This runs CMake to build NCEPLIBS-bufr (bundled or system-installed) and the
+ISO C wrapper, producing `libearth2bufrio_fort.so` in the package directory.
+
+**Requirements:**
+
+- Fortran compiler (gfortran 9+ or Intel ifx)
+- CMake >= 3.15
+- Make
+
+### How it works
+
+The Fortran wrapper (`src/fortran/earth2bufrio_fort.f90`) exposes these
+C-callable functions:
+
+| Function | Purpose |
+| --- | --- |
+| `e2b_open` | Open a BUFR file (wraps `openbf`) |
+| `e2b_next_message` | Read next message (wraps `readmg`) |
+| `e2b_next_subset` | Read next subset (wraps `readsb`) |
+| `e2b_read_values` | Read scalar mnemonics (wraps `ufbint`) |
+| `e2b_read_replicated` | Read replicated mnemonics (wraps `ufbrep`) |
+| `e2b_close` | Close file (wraps `closbf`) |
+| `e2b_get_bmiss` | Get missing value sentinel |
+
+The Python side (`_fortran_backend.py`) loads the shared library via `ctypes`,
+iterates over messages and subsets, and converts the results into the same
+wide-format PyArrow Table as the Python backend.
+
+### Missing values
+
+NCEPLIBS-bufr uses `10E10` (~1.0E+11) as the missing value sentinel.  The
+Fortran backend converts these to `None` (null) in the output table.
+
+### Thread safety
+
+NCEPLIBS-bufr is **not thread-safe**.  The Fortran backend uses a single thread
+for all I/O.  For parallel processing, use separate processes (not threads).
+
 ## Planned: Rust Backend (PyO3 / maturin)
 
-A Rust implementation of the `decode()` function is planned as the primary
-high-performance backend.  The Rust module would:
+A Rust implementation is planned as the primary high-performance backend.  The
+Rust module would:
 
 1. Accept the expanded descriptor list and raw `bytes` from Python.
 2. Perform all bit extraction and value scaling in compiled code.
@@ -40,42 +110,15 @@ Integration path:
 - Build with [maturin](https://www.maturin.rs/) as an optional extension
   (`earth2bufrio[rust]`).
 - At import time, earth2bufrio checks whether the compiled module is available
-  and transparently delegates `_decoder.decode()` to it.
+  and transparently delegates to it.
 - Falls back to the pure-Python decoder if the extension is not installed.
 
-## Planned: Fortran Backend
+## Backend Comparison
 
-For environments where a Fortran toolchain is available (e.g. HPC clusters),
-a thin Fortran binding is under consideration:
-
-- Wraps NCEP's existing `bufrlib` or a custom Fortran kernel.
-- Exposes a C-compatible interface called via `ctypes` or `cffi`.
-- Targets the same `decode()` entry point as the Rust backend.
-
-## Swap Point: `_decoder.decode()`
-
-All backends implement the same contract:
-
-```python
-def decode(
-    expanded: list[ExpandedItem],
-    data_bytes: bytes,
-    num_subsets: int,
-    compressed: bool,
-) -> list[DecodedSubset]:
-    ...
-```
-
-The `_api.py` module calls `decode()` without knowing which implementation is
-active.  Backend selection happens at import time in `_decoder.py`:
-
-```python
-try:
-    from earth2bufrio._rust_decoder import decode  # Rust
-except ImportError:
-    # fall back to pure Python
-    ...
-```
-
-This pattern keeps the public API stable while allowing incremental performance
-improvements.
+| Feature | Python | Fortran | Rust (planned) |
+| --- | --- | --- | --- |
+| WMO BUFR Ed3/Ed4 | Yes | NCEP formats only | Yes |
+| Native deps | None | gfortran + CMake | maturin |
+| Speed | Moderate | Fast | Fast |
+| Install | `pip install` | `make fortran` | `pip install .[rust]` |
+| Parallel | ProcessPoolExecutor | Single-process | Native threads |

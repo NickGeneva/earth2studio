@@ -13,30 +13,67 @@ import earth2bufrio
 
 table = earth2bufrio.read_bufr(
     "observations.bufr",
-    columns=None,                    # Optional list of column names
+    mnemonics=None,                  # Optional list of mnemonic names to extract
     filters={"data_category": 102},  # Optional message-level filters
     workers=1,                       # >1 enables multiprocess decoding
+    backend="python",                # "python" or "fortran"
 )
 ```
 
-`read_bufr` returns a `pyarrow.Table` in long format with the following columns:
+### Parameters
 
-| Column             | Type      | Description                                    |
-|--------------------|-----------|------------------------------------------------|
-| `message_index`    | `int64`   | Zero-based index of the BUFR message in the file |
-| `subset_index`     | `int64`   | Zero-based index of the subset within the message |
-| `data_category`    | `int64`   | BUFR Table A data category code                |
-| `latitude`         | `float64` | Observation latitude (degrees north)           |
-| `longitude`        | `float64` | Observation longitude (degrees east)           |
-| `time`             | `string`  | ISO-8601 observation timestamp                 |
-| `station_id`       | `string`  | Station or platform identifier                 |
-| `pressure`         | `float64` | Pressure level (Pa)                            |
-| `elevation`        | `float64` | Station elevation (m)                          |
-| `descriptor_id`    | `string`  | FXY descriptor in ``"FXXYYY"`` notation        |
-| `descriptor_name`  | `string`  | Human-readable element name from Table B       |
-| `value`            | `float64` | Decoded physical value                         |
-| `units`            | `string`  | Unit string from Table B                       |
-| `quality_mark`     | `float64` | Quality indicator (when available)             |
+**path** (`str | Path`) -- *(required)* Path to a BUFR file.
+
+**mnemonics** (`list[str] | None`) -- Mnemonic column names to include.
+`None` extracts all available fields.
+
+**filters** (`dict[str, Any] | None`) -- Message-level filters
+(e.g. `{"data_category": 102}`).
+
+**workers** (`int`) -- Number of parallel decode workers. Default `1`
+runs in the current process.
+
+**backend** (`str`) -- Decoding backend. `"python"` (default, pure
+Python) or `"fortran"` (NCEPLIBS-bufr via ctypes).
+
+### Output Schema (wide format)
+
+`read_bufr` returns a `pyarrow.Table` in **wide format** — one row per subset,
+one column per mnemonic.
+
+**Fixed columns** (always present):
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `message_type` | `string` | BUFR message type identifier |
+| `message_index` | `int32` | Zero-based message index in the file |
+| `subset_index` | `int32` | Zero-based subset index within the message |
+| `YEAR` | `int32` | Observation year |
+| `MNTH` | `int32` | Observation month |
+| `DAYS` | `int32` | Observation day |
+| `HOUR` | `int32` | Observation hour |
+| `MINU` | `int32` | Observation minute |
+| `SECO` | `int32` | Observation second |
+
+**Dynamic columns** (one per mnemonic):
+
+Each mnemonic found in the data becomes a column.  The column type is inferred
+from the data:
+
+- **Scalar numeric** values → `float64`
+- **String** values → `string`
+- **Replicated** values (e.g. multi-channel brightness temperatures) → `list<float64>`
+
+Missing values are represented as `null`.
+
+### Backends
+
+**Python backend** (`backend="python"`): Uses the built-in pure-Python BUFR
+decoder.  Works on any WMO BUFR Edition 3/4 file.  No native dependencies.
+
+**Fortran backend** (`backend="fortran"`): Uses NCEPLIBS-bufr via ctypes for
+NCEP BUFR and PrepBUFR files.  Requires building the Fortran shared library
+first (`make fortran`).  See {doc}`backends` for details.
 
 ## `BufrDecodeError`
 

@@ -1,11 +1,12 @@
 # earth2bufrio
 
-**Pure-Python BUFR decoder — reads WMO BUFR Edition 3/4 files into PyArrow Tables.**
+**BUFR decoder with Python and Fortran backends — reads WMO BUFR and NCEP
+PrepBUFR files into PyArrow Tables.**
 
 earth2bufrio decodes binary BUFR (Binary Universal Form for the Representation
 of meteorological data) files produced by WMO member agencies and returns the
-observations as a flat [PyArrow](https://arrow.apache.org/docs/python/) `Table`
-with 14 columns ready for downstream analytics.
+observations as a wide-format [PyArrow](https://arrow.apache.org/docs/python/)
+`Table` with one column per mnemonic, ready for downstream analytics.
 
 ## Installation
 
@@ -21,32 +22,58 @@ For development (includes linters and test dependencies):
 pip install -e ".[dev,docs]"
 ```
 
+To enable the Fortran backend (requires gfortran and CMake):
+
+```bash
+make fortran
+```
+
 ## Quickstart
+
+### Python backend (any WMO BUFR file)
 
 ```python
 import earth2bufrio
 
-# Read an entire BUFR file
+# Read an entire BUFR file — wide format, one column per descriptor
 table = earth2bufrio.read_bufr("observations.bufr")
-print(table.schema.names)
-# ['message_index', 'subset_index', 'data_category', 'latitude', 'longitude',
-#  'time', 'station_id', 'pressure', 'elevation', 'descriptor_id',
-#  'descriptor_name', 'value', 'units', 'quality_mark']
+print(table.column_names)
+# ['message_type', 'message_index', 'subset_index',
+#  'YEAR', 'MNTH', 'DAYS', 'HOUR', 'MINU', 'SECO', ...]
 
-# Filter to a specific data category (e.g. surface marine)
+# Filter to a specific data category
 marine = earth2bufrio.read_bufr(
     "observations.bufr",
     filters={"data_category": 1},
 )
 
-# Select only a subset of columns
+# Select only specific mnemonics
 subset = earth2bufrio.read_bufr(
     "observations.bufr",
-    columns=["latitude", "longitude", "value", "units"],
+    mnemonics=["CLATH", "CLONH", "TMBR"],
 )
 
 # Speed up large files with parallel decoding
 table = earth2bufrio.read_bufr("large_file.bufr", workers=4)
+```
+
+### Fortran backend (NCEP BUFR / PrepBUFR)
+
+```python
+import earth2bufrio
+
+# Read PrepBUFR with the Fortran backend
+table = earth2bufrio.read_bufr(
+    "prepbufr.gdas.2024010100",
+    backend="fortran",
+)
+
+# Read satellite radiance BUFR
+table = earth2bufrio.read_bufr(
+    "1bamua.gdas.2024010100.bufr",
+    backend="fortran",
+    mnemonics=["SAID", "CLAT", "CLON", "TMBR", "CHNM"],
+)
 ```
 
 ## Contents
