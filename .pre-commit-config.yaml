@@ -76,7 +76,7 @@ repos:
                 test |
                 serve/test/.* |
                 docs |
-                recipes/.*/tests?/.* |
+                recipes/.* |
                 earth2studio/models/nn)
         additional_dependencies: ['types-requests']
 
