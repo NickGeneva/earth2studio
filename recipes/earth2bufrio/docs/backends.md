@@ -95,30 +95,53 @@ Fortran backend converts these to `None` (null) in the output table.
 NCEPLIBS-bufr is **not thread-safe**.  The Fortran backend uses a single thread
 for all I/O.  For parallel processing, use separate processes (not threads).
 
-## Planned: Rust Backend (PyO3 / maturin)
+## Rust Backend (PyO3 / maturin)
 
-A Rust implementation is planned as the primary high-performance backend.  The
-Rust module would:
+```python
+table = earth2bufrio.read_bufr("observations.bufr", backend="rust")
+```
 
-1. Accept the expanded descriptor list and raw `bytes` from Python.
-2. Perform all bit extraction and value scaling in compiled code.
-3. Return decoded values as Arrow-compatible arrays (via `arrow-rs` or plain
-   buffers).
+The Rust backend reimplements the full BUFR pipeline in compiled Rust code.
+It uses [Rayon](https://docs.rs/rayon/) for message-level parallelism and
+[arrow-rs](https://docs.rs/arrow/) for zero-copy Arrow FFI transfer to
+PyArrow via [pyo3-arrow](https://docs.rs/pyo3-arrow/).
 
-Integration path:
+**Advantages:**
 
-- Build with [maturin](https://www.maturin.rs/) as an optional extension
-  (`earth2bufrio[rust]`).
-- At import time, earth2bufrio checks whether the compiled module is available
-  and transparently delegates to it.
-- Falls back to the pure-Python decoder if the extension is not installed.
+- All BUFR parsing, descriptor expansion, and bit-level decoding in compiled
+  code — no Python in the hot path.
+- Rayon thread pool for automatic message-level parallelism (no GIL).
+- Zero-copy Arrow transfer — the RecordBatch is shared between Rust and Python
+  without serialization.
+- Supports all WMO BUFR Edition 3 and Edition 4 files (same as Python backend).
+
+**Limitations:**
+
+- Requires Rust toolchain and maturin to compile.
+- The `workers` parameter is ignored — Rayon manages its own thread pool
+  internally using all available CPUs.
+
+### Building the Rust module
+
+```bash
+cd recipes/earth2bufrio
+make rust
+```
+
+This runs `maturin develop --release` to compile the Rust crate and install the
+`earth2bufrio._lib` extension module.
+
+**Requirements:**
+
+- Rust stable toolchain (edition 2021)
+- maturin >= 1.0
 
 ## Backend Comparison
 
-| Feature | Python | Fortran | Rust (planned) |
+| Feature | Python | Fortran | Rust |
 | --- | --- | --- | --- |
 | WMO BUFR Ed3/Ed4 | Yes | NCEP formats only | Yes |
-| Native deps | None | gfortran + CMake | maturin |
+| Native deps | None | gfortran + CMake | Rust + maturin |
 | Speed | Moderate | Fast | Fast |
-| Install | `pip install` | `make fortran` | `pip install .[rust]` |
-| Parallel | ProcessPoolExecutor | Single-process | Native threads |
+| Install | `pip install` | `make fortran` | `make rust` |
+| Parallel | ProcessPoolExecutor | Single-process | Rayon threads |

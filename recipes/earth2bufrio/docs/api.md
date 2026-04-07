@@ -16,7 +16,7 @@ table = earth2bufrio.read_bufr(
     mnemonics=None,                  # Optional list of mnemonic names to extract
     filters={"data_category": 102},  # Optional message-level filters
     workers=1,                       # >1 enables multiprocess decoding
-    backend="python",                # "python" or "fortran"
+    backend="python",                # "python", "fortran", or "rust"
 )
 ```
 
@@ -34,7 +34,8 @@ table = earth2bufrio.read_bufr(
 runs in the current process.
 
 **backend** (`str`) -- Decoding backend. `"python"` (default, pure
-Python) or `"fortran"` (NCEPLIBS-bufr via ctypes).
+Python), `"fortran"` (NCEPLIBS-bufr via ctypes), or `"rust"` (compiled
+Rust with Rayon parallelism).
 
 ### Output Schema (wide format)
 
@@ -74,6 +75,12 @@ decoder.  Works on any WMO BUFR Edition 3/4 file.  No native dependencies.
 **Fortran backend** (`backend="fortran"`): Uses NCEPLIBS-bufr via ctypes for
 NCEP BUFR and PrepBUFR files.  Requires building the Fortran shared library
 first (`make fortran`).  See {doc}`backends` for details.
+
+**Rust backend** (`backend="rust"`): Uses the compiled Rust module for
+high-performance decoding with Rayon message-level parallelism and zero-copy
+Arrow FFI.  Requires building with `make rust` (needs Rust toolchain and
+maturin).  The `workers` parameter is ignored — Rayon manages its own thread
+pool.  See {doc}`backends` for details.
 
 ## `BufrDecodeError`
 
