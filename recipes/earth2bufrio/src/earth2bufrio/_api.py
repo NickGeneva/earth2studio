@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+import functools
+import importlib.resources
 import logging
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -24,6 +26,25 @@ if TYPE_CHECKING:
     from earth2bufrio._types import DecodedSubset, ParsedMessage
 
 logger = logging.getLogger(__name__)
+
+
+@functools.lru_cache(maxsize=2)
+def _load_table_json(filename: str) -> str:
+    """Load a bundled table JSON file and return its content as a string.
+
+    Parameters
+    ----------
+    filename : str
+        Filename inside the ``earth2bufrio.tables`` package (e.g.
+        ``"table_b.json"``).
+
+    Returns
+    -------
+    str
+        The raw JSON string.
+    """
+    ref = importlib.resources.files("earth2bufrio.tables").joinpath(filename)
+    return ref.read_text(encoding="utf-8")
 
 
 def read_bufr(
@@ -53,7 +74,8 @@ def read_bufr(
     backend : str, optional
         Decoding backend.  ``"python"`` (default) uses the pure-Python
         decoder.  ``"fortran"`` uses the NCEPLIBS-bufr Fortran backend
-        (requires ``make fortran`` first).
+        (requires ``make fortran`` first).  ``"rust"`` uses the Rust
+        backend with Rayon parallelism (requires ``make rust`` first).
 
     Returns
     -------
@@ -68,7 +90,7 @@ def read_bufr(
     BufrDecodeError
         If the file contains malformed BUFR data.
     ValueError
-        If *backend* is not ``"python"`` or ``"fortran"``.
+        If *backend* is not ``"python"``, ``"fortran"``, or ``"rust"``.
 
     Examples
     --------
@@ -92,8 +114,21 @@ def read_bufr(
             workers=workers,
         )
 
+    if backend == "rust":
+        import pyarrow as pa  # type: ignore[import-untyped]
+
+        from earth2bufrio._lib import read_bufr_rust
+
+        table_b_str = _load_table_json("table_b.json")
+        table_d_str = _load_table_json("table_d.json")
+        cat_filter = filters.get("data_category") if filters else None
+        batch = read_bufr_rust(
+            str(file_path), table_b_str, table_d_str, mnemonics, cat_filter
+        )
+        return pa.Table.from_batches([batch])
+
     if backend != "python":
-        msg = f"Unknown backend: {backend!r}. Use 'python' or 'fortran'."
+        msg = f"Unknown backend: {backend!r}. Use 'python', 'fortran', or 'rust'."
         raise ValueError(msg)
 
     # --- Python backend ---
