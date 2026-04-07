@@ -32,12 +32,12 @@ FIXTURE_INFO: dict[str, dict] = {
         "reason": "",
     },
     "g2nd_208.bufr": {
-        "xfail": True,
-        "reason": "Uses operators 224/236 (substituted values) not yet implemented",
+        "xfail": False,
+        "reason": "",
     },
     "b005_89.bufr": {
-        "xfail": True,
-        "reason": "Uses operators 222/224/236/237 (QC/substitution) not yet implemented",
+        "xfail": False,
+        "reason": "",
     },
 }
 
@@ -53,8 +53,17 @@ def _fixture_ids() -> list[str]:
 
 
 def _load_reference(fname: str) -> list[dict]:
-    """Load the .ref.json for a fixture."""
+    """Load the .ref.json for a fixture.
+
+    Raises
+    ------
+    pytest.skip
+        If the reference file does not exist (e.g. oversized files
+        excluded from version control).
+    """
     ref_path = DATA_DIR / Path(fname).with_suffix(".ref.json")
+    if not ref_path.exists():
+        pytest.skip(f"Reference file not found: {ref_path.name}")
     return json.loads(ref_path.read_text(encoding="utf-8"))
 
 
@@ -74,7 +83,10 @@ def _decode_with_earth2bufrio(
     msg = messages[0]
     parsed = parse_message(msg)
 
-    tables = TableSet()
+    tables = TableSet(
+        centre=parsed.identification.originating_center,
+        local_table_version=parsed.identification.local_table_version,
+    )
     expanded = expand_descriptors(parsed.data_description.descriptors, tables)
 
     subsets = decode(
@@ -90,6 +102,9 @@ def _decode_with_earth2bufrio(
         for desc, val in subset.values:
             # Skip synthetic associated-field descriptors (fxy=999999)
             if desc.fxy == 999999:
+                continue
+            # Skip zero-width operator markers (222-237)
+            if desc.entry.bit_width == 0:
                 continue
             pairs.append((desc.fxy, val))
         result.append(pairs)
@@ -163,7 +178,12 @@ def test_crossval(fname: str) -> None:
         actual_pairs = actual_subsets[subset_idx]
 
         # Filter out special pybufrkit descriptors (negative FXY = associated/stats)
-        filtered_ref: list[list] = [pair for pair in ref_values if pair[0] >= 0]
+        # and F=2 operator descriptors (222000-237255 = QC/bitmap operators)
+        filtered_ref: list[list] = [
+            pair
+            for pair in ref_values
+            if pair[0] >= 0 and not (200000 <= pair[0] < 300000)
+        ]
 
         if len(actual_pairs) != len(filtered_ref):
             mismatches.append(

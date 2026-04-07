@@ -93,11 +93,15 @@ def test_identification_section() -> None:
         num_subsets=1,
         observed=True,
         compressed=False,
+        master_table_version=0,
+        local_table_version=0,
     )
     assert sec.originating_center == 7
     assert sec.year == 2024
     assert sec.observed is True
     assert sec.compressed is False
+    assert sec.master_table_version == 0
+    assert sec.local_table_version == 0
 
 
 # ---------------------------------------------------------------------------
@@ -134,6 +138,8 @@ def test_parsed_message() -> None:
         num_subsets=1,
         observed=True,
         compressed=False,
+        master_table_version=0,
+        local_table_version=0,
     )
     data_desc = DataDescriptionSection(descriptors=(301011,))
     parsed = ParsedMessage(

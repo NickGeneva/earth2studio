@@ -92,13 +92,17 @@ def test_read_bits() -> None:
 # ---------------------------------------------------------------------------
 @pytest.mark.unit
 def test_is_missing() -> None:
-    """All bits set to 1 for a given width is detected as missing."""
+    """All bits set to 1 for a given width is detected as missing.
+
+    For 1-bit descriptors (e.g. 031031 DATA PRESENT INDICATOR),
+    the all-ones pattern is a valid value, not a missing indicator.
+    """
     # 12-bit all-ones = 0xFFF = 4095
     assert _is_missing(0xFFF, 12) is True
     # Not all ones
     assert _is_missing(0xFFE, 12) is False
-    # 1-bit missing
-    assert _is_missing(1, 1) is True
+    # 1-bit fields are never missing (value 1 is valid data)
+    assert _is_missing(1, 1) is False
     assert _is_missing(0, 1) is False
 
 

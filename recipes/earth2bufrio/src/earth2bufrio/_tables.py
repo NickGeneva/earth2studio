@@ -5,7 +5,9 @@
 """WMO BUFR Table B / D management.
 
 Loads the bundled WMO table JSON files and provides a :class:`TableSet`
-container for descriptor look-ups during BUFR decoding.
+container for descriptor look-ups during BUFR decoding.  Supports
+optional local table overlays keyed by originating centre and local
+table version.
 """
 
 from __future__ import annotations
@@ -19,6 +21,13 @@ from earth2bufrio._types import TableBEntry, TableDEntry
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+
+
+# Mapping of (centre, local_table_version) to local override file.
+_LOCAL_TABLE_B_FILES: dict[tuple[int, int], str] = {
+    (98, 101): "table_b_local_98_101.json",
+    (98, 1): "table_b_local_98_1.json",
+}
 
 
 def load_table_b() -> dict[int, TableBEntry]:
@@ -69,6 +78,41 @@ def load_table_d() -> dict[int, TableDEntry]:
     return table
 
 
+def load_local_table_b(centre: int, local_version: int) -> dict[int, TableBEntry]:
+    """Load a bundled local Table B overlay for the given centre and version.
+
+    Parameters
+    ----------
+    centre : int
+        Originating centre code (e.g. 98 for ECMWF).
+    local_version : int
+        Local table version number from BUFR Section 1.
+
+    Returns
+    -------
+    dict[int, TableBEntry]
+        Mapping of integer FXY descriptor to the local Table B entry.
+        Returns an empty dict if no local table is bundled for the
+        given ``(centre, local_version)`` pair.
+    """
+    filename = _LOCAL_TABLE_B_FILES.get((centre, local_version))
+    if filename is None:
+        return {}
+    ref = importlib.resources.files("earth2bufrio.tables").joinpath(filename)
+    raw: dict[str, Any] = json.loads(ref.read_text(encoding="utf-8"))
+    table: dict[int, TableBEntry] = {}
+    for key, val in raw.items():
+        fxy = int(key)
+        table[fxy] = TableBEntry(
+            name=val["name"],
+            units=val["units"],
+            scale=int(val["scale"]),
+            reference_value=int(val["reference_value"]),
+            bit_width=int(val["bit_width"]),
+        )
+    return table
+
+
 class TableSet:
     """Container for BUFR Table B and Table D look-ups.
 
@@ -76,11 +120,27 @@ class TableSet:
     overridden via :meth:`add_b` / :meth:`add_d`, and the :meth:`scope`
     context manager allows temporary modifications that are automatically
     rolled back on exit (used for DX-table scoping in PrepBUFR decoding).
+
+    Parameters
+    ----------
+    centre : int | None, optional
+        Originating centre code.  When provided together with
+        *local_table_version*, the corresponding local table overlay is
+        automatically applied on top of the WMO base table.
+    local_table_version : int | None, optional
+        Local table version from the BUFR Section 1 header.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        centre: int | None = None,
+        local_table_version: int | None = None,
+    ) -> None:
         self._table_b: dict[int, TableBEntry] = load_table_b()
         self._table_d: dict[int, TableDEntry] = load_table_d()
+        if centre is not None and local_table_version is not None:
+            local_entries = load_local_table_b(centre, local_table_version)
+            self._table_b.update(local_entries)
 
     def lookup_b(self, fxy: int) -> TableBEntry:
         """Look up a Table B element descriptor.

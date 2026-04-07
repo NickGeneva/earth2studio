@@ -138,6 +138,8 @@ def _parse_identification_ed4(
     base = offset + 3  # skip 3-byte length
 
     center = int.from_bytes(data[base + 1 : base + 3], "big")
+    master_table_ver = data[base + 10]
+    local_table_ver = data[base + 11]
     data_cat = data[base + 7]
     year = int.from_bytes(data[base + 12 : base + 14], "big")
     month = data[base + 14]
@@ -158,6 +160,8 @@ def _parse_identification_ed4(
         num_subsets=0,
         observed=False,
         compressed=False,
+        master_table_version=master_table_ver,
+        local_table_version=local_table_ver,
     )
     return section, offset + sec_len
 
@@ -187,6 +191,8 @@ def _parse_identification_ed3(
     base = offset + 3  # skip 3-byte length
 
     center = data[base + 2]
+    master_table_ver = data[base + 7]
+    local_table_ver = data[base + 8]
     data_cat = data[base + 5]
     year_of_century = data[base + 9]
     year = (
@@ -209,6 +215,8 @@ def _parse_identification_ed3(
         num_subsets=0,
         observed=False,
         compressed=False,
+        master_table_version=master_table_ver,
+        local_table_version=local_table_ver,
     )
     return section, offset + sec_len
 

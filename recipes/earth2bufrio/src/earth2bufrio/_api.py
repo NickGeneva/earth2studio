@@ -140,8 +140,6 @@ def read_bufr(
     if not messages:
         return build_table([], mnemonics=mnemonics)
 
-    tables = TableSet()
-
     parsed_messages: list[tuple[int, ParsedMessage]] = []
     for msg in messages:
         parsed = parse_message(msg)
@@ -166,9 +164,9 @@ def read_bufr(
         return build_table([], mnemonics=mnemonics)
 
     if workers > 1 and len(parsed_messages) > 1:
-        decoded_msgs = _decode_parallel(parsed_messages, tables, workers)
+        decoded_msgs = _decode_parallel(parsed_messages, workers)
     else:
-        decoded_msgs = _decode_sequential(parsed_messages, tables)
+        decoded_msgs = _decode_sequential(parsed_messages)
 
     rows = _python_subsets_to_rows(decoded_msgs)
     return build_table(rows, mnemonics=mnemonics)
@@ -234,9 +232,12 @@ _FIXED_ROW_KEYS = frozenset(
 def _decode_single(
     msg_index: int,
     parsed: ParsedMessage,
-    tables: TableSet,
 ) -> dict[str, Any]:
     """Decode a single parsed message into the dict format for build_table.
+
+    A per-message :class:`TableSet` is created using the originating
+    centre and local table version from the BUFR identification section,
+    ensuring that local table overrides are applied correctly.
 
     Parameters
     ----------
@@ -244,8 +245,6 @@ def _decode_single(
         The original message index in the file.
     parsed : ParsedMessage
         The parsed (but not decoded) BUFR message.
-    tables : TableSet
-        The BUFR table set for descriptor look-ups.
 
     Returns
     -------
@@ -255,6 +254,10 @@ def _decode_single(
     ident = parsed.identification
     desc_section = parsed.data_description
 
+    tables = TableSet(
+        centre=ident.originating_center,
+        local_table_version=ident.local_table_version,
+    )
     expanded = expand_descriptors(desc_section.descriptors, tables)
 
     subsets = decode(
@@ -279,7 +282,6 @@ def _decode_single(
 
 def _decode_sequential(
     parsed_messages: list[tuple[int, ParsedMessage]],
-    tables: TableSet,
 ) -> list[dict[str, Any]]:
     """Decode messages sequentially in the current process.
 
@@ -287,8 +289,6 @@ def _decode_sequential(
     ----------
     parsed_messages : list[tuple[int, ParsedMessage]]
         List of (message_index, ParsedMessage) tuples.
-    tables : TableSet
-        BUFR table set.
 
     Returns
     -------
@@ -298,7 +298,7 @@ def _decode_sequential(
     results: list[dict[str, Any]] = []
     for msg_index, parsed in parsed_messages:
         try:
-            result = _decode_single(msg_index, parsed, tables)
+            result = _decode_single(msg_index, parsed)
             results.append(result)
         except Exception:
             logger.warning("Failed to decode message %d, skipping", msg_index)
@@ -307,7 +307,6 @@ def _decode_sequential(
 
 def _decode_parallel(
     parsed_messages: list[tuple[int, ParsedMessage]],
-    tables: TableSet,
     workers: int,
 ) -> list[dict[str, Any]]:
     """Decode messages using a ProcessPoolExecutor.
@@ -316,8 +315,6 @@ def _decode_parallel(
     ----------
     parsed_messages : list[tuple[int, ParsedMessage]]
         List of (message_index, ParsedMessage) tuples.
-    tables : TableSet
-        BUFR table set.
     workers : int
         Number of worker processes.
 
@@ -329,7 +326,7 @@ def _decode_parallel(
     results: list[dict[str, Any]] = []
     with ProcessPoolExecutor(max_workers=workers) as executor:
         futures = {
-            executor.submit(_decode_single, msg_index, parsed, tables): msg_index
+            executor.submit(_decode_single, msg_index, parsed): msg_index
             for msg_index, parsed in parsed_messages
         }
         for future in futures:

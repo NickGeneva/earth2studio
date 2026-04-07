@@ -566,6 +566,13 @@
     "reference_value": 0,
     "bit_width": 31
   },
+  "001211": {
+    "name": "ORIGINATOR OF RETRIEVED ATMOSPHERIC CONSTITUENT",
+    "units": "CODE TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 8
+  },
   "002001": {
     "name": "TYPE OF STATION",
     "units": "CODE TABLE",
@@ -1650,6 +1657,69 @@
     "scale": 0,
     "reference_value": 0,
     "bit_width": 7
+  },
+  "002196": {
+    "name": "SATELLITE CLASSIFICATION",
+    "units": "CODE TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 9
+  },
+  "002197": {
+    "name": "SATELLITE CHANNEL CENTRE FREQUENCY",
+    "units": "Hz",
+    "scale": -8,
+    "reference_value": 0,
+    "bit_width": 26
+  },
+  "002198": {
+    "name": "SATELLITE CHANNEL BAND WIDTH",
+    "units": "Hz",
+    "scale": -8,
+    "reference_value": 0,
+    "bit_width": 26
+  },
+  "002199": {
+    "name": "INTEGRATED MEAN HUMIDITY COMPUTATIONAL METHOD",
+    "units": "CODE TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 4
+  },
+  "002221": {
+    "name": "UNITS OF ELEVATION OR CONFIDENCE FACTOR",
+    "units": "CODE TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 4
+  },
+  "002222": {
+    "name": "SATELLITE DATA PROCESSING TECHNIQUE USED",
+    "units": "CODE TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 4
+  },
+  "002251": {
+    "name": "RADIANCE COMPUTATIONAL METHOD",
+    "units": "CODE TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 4
+  },
+  "002252": {
+    "name": "SATELLITE INSTRUMENT DATA USED IN PROCESSING",
+    "units": "FLAG TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 31
+  },
+  "002254": {
+    "name": "RADIANCE TYPE",
+    "units": "CODE TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 4
   },
   "004001": {
     "name": "YEAR",
@@ -4059,6 +4129,27 @@
     "reference_value": 0,
     "bit_width": 16
   },
+  "012193": {
+    "name": "DEPTH OF SNOW ABOVE GROUND MINIMUM THERMOMETER",
+    "units": "m",
+    "scale": 2,
+    "reference_value": -2,
+    "bit_width": 10
+  },
+  "012195": {
+    "name": "SPECTRAL RADIANCE",
+    "units": "W m-2 sr-1 m",
+    "scale": 10,
+    "reference_value": 0,
+    "bit_width": 31
+  },
+  "012196": {
+    "name": "RADIANCE",
+    "units": "W m-2 sr-1",
+    "scale": 3,
+    "reference_value": 0,
+    "bit_width": 16
+  },
   "013001": {
     "name": "SPECIFIC HUMIDITY",
     "units": "kg/kg",
@@ -5682,6 +5773,20 @@
     "scale": 0,
     "reference_value": 0,
     "bit_width": 4
+  },
+  "020193": {
+    "name": "ADDITIONAL WEATHER PHENOMENA",
+    "units": "CODE TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 7
+  },
+  "020194": {
+    "name": "HEIGHT OF TOP OF PHENOMENA",
+    "units": "m",
+    "scale": -1,
+    "reference_value": -40,
+    "bit_width": 11
   },
   "021001": {
     "name": "HORIZONTAL REFLECTIVITY",
@@ -8805,6 +8910,13 @@
     "reference_value": 0,
     "bit_width": 21
   },
+  "033054": {
+    "name": "OVERALL QUALITY OF RETRIEVED ATMOSPHERIC PROFILE",
+    "units": "CODE TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 3
+  },
   "033060": {
     "name": "GQISFLAGQUAL-INDIVIDUAL IASI-SYSTEM QUALITY FLAG",
     "units": "CODE TABLE",
@@ -8898,6 +9010,13 @@
   },
   "033078": {
     "name": "GEOLOCATION QUALITY",
+    "units": "CODE TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 4
+  },
+  "033252": {
+    "name": "MANUAL AUTOMATIC QUALITY CONTROL",
     "units": "CODE TABLE",
     "scale": 0,
     "reference_value": 0,

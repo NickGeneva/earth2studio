@@ -48,7 +48,10 @@ def _read_bits(data: bytes, bit_offset: int, num_bits: int) -> int:
 def _is_missing(raw: int, num_bits: int) -> bool:
     """Check whether *raw* represents a BUFR missing-value indicator.
 
-    A value is missing when all *num_bits* bits are set to 1.
+    A value is missing when all *num_bits* bits are set to 1.  As a
+    special case, 1-bit descriptors (such as 031031 DATA PRESENT
+    INDICATOR) are *never* treated as missing because the all-ones
+    pattern (value 1) is a valid data value.
 
     Parameters
     ----------
@@ -62,6 +65,8 @@ def _is_missing(raw: int, num_bits: int) -> bool:
     bool
         ``True`` if *raw* is the all-ones missing indicator.
     """
+    if num_bits <= 1:
+        return False
     return raw == (1 << num_bits) - 1
 
 
@@ -302,9 +307,12 @@ def _decode_items_compressed(
                     for s in range(num_subsets):
                         increment = _read_bits(data_bytes, bit_offset, nbinc)
                         bit_offset += nbinc
-                        combined = r0 + increment
-                        val = _decode_value(combined, entry)
-                        subset_values[s].append((item, val))
+                        if _is_missing(increment, nbinc):
+                            subset_values[s].append((item, None))
+                        else:
+                            combined = r0 + increment
+                            val = _decode_value(combined, entry)
+                            subset_values[s].append((item, val))
     return bit_offset
 
 

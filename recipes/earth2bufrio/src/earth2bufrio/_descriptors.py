@@ -41,6 +41,19 @@ class _OperatorState:
     width_delta: int = 0
     scale_delta: int = 0
     assoc_field_width: int = 0
+    bitmap_context: bool = False
+
+
+# Synthetic zero-bit-width Table B entries for QC/substitution operator markers.
+# These produce no data in the stream — they are bookkeeping markers that
+# pybufrkit also emits as (fxy, 0.0) pairs.
+_OPERATOR_MARKER_ENTRY = TableBEntry(
+    name="OPERATOR MARKER",
+    units="NUMERIC",
+    scale=0,
+    reference_value=0,
+    bit_width=0,
+)
 
 
 def expand_descriptors(
@@ -229,6 +242,27 @@ def _expand(
                 else:
                     state.scale_delta = y
                     state.width_delta = ((10 * y) + 2) // 3
+            elif operator in (22, 23, 24, 25, 32, 35, 36, 37):
+                # Operators 222-225, 232, 235-237: quality information,
+                # substituted/replaced values, and bitmap operators.
+                #
+                # These are pass-through markers — the expander emits a
+                # zero-width synthetic descriptor so the decoder sees them
+                # in sequence.  The subsequent descriptors in the
+                # unexpanded list (bitmap 031031 indicators, QC/replacement
+                # Table B elements) are already regular descriptors and
+                # will be expanded normally.
+                #
+                # 222000 — quality information follows
+                # 223000 — substituted operator values follow
+                # 224000 — first-order statistical values follow
+                # 225000 — difference statistical values follow
+                # 232000 — replaced/retained values follow
+                # 235000 — cancel backward data reference
+                # 236000 — define data present bitmap
+                # 237000 — use defined data present bitmap
+                # 2XX255 — cancel the corresponding XX context
+                result.append(ExpandedDescriptor(fxy=fxy, entry=_OPERATOR_MARKER_ENTRY))
             else:
                 logger.warning(
                     "Unsupported F=2 operator %03d%03d — ignoring", operator, y

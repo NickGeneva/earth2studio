@@ -94,6 +94,10 @@ class IdentificationSection:
         ``True`` if the data is observed (not forecast).
     compressed : bool
         ``True`` if data compression is used.
+    master_table_version : int
+        Version number of the WMO master table used.
+    local_table_version : int
+        Version number of the local table used by the originating centre.
     """
 
     originating_center: int
@@ -107,6 +111,8 @@ class IdentificationSection:
     num_subsets: int
     observed: bool
     compressed: bool
+    master_table_version: int
+    local_table_version: int
 
 
 @dataclass(frozen=True, slots=True)

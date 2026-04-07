@@ -1,0 +1,1885 @@
+{
+  "001192": {
+    "bit_width": 8,
+    "name": "MODEL VERSION NUMBER",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "001193": {
+    "bit_width": 4,
+    "name": "SIGMA_0 SIMULATION METHOD",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "001194": {
+    "bit_width": 72,
+    "name": "CARRIER BALLOON/AIRCRAFT IDENTIFIER",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CCITT IA5"
+  },
+  "001195": {
+    "bit_width": 72,
+    "name": "MOBIL LAND STATION IDENTIFIER",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CCITT IA5"
+  },
+  "001196": {
+    "bit_width": 72,
+    "name": "CONSTANT LEVEL BALLOON IDENTIFIER",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CCITT IA5"
+  },
+  "001197": {
+    "bit_width": 10,
+    "name": "RTP - PLATFORM TYPE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "001198": {
+    "bit_width": 10,
+    "name": "ITP - DECK ID",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "001199": {
+    "bit_width": 4,
+    "name": "DUP - DUPLICATE STATUS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "001201": {
+    "bit_width": 8,
+    "name": "GENERATING APPLICATION",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "001205": {
+    "bit_width": 10,
+    "name": "SATELLITE IDENTIFIER",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "001208": {
+    "bit_width": 31,
+    "name": "VELOCITY OF PLATFORM, X",
+    "reference_value": -1073741824,
+    "scale": 5,
+    "units": "m/s"
+  },
+  "001209": {
+    "bit_width": 31,
+    "name": "VELOCITY OF PLATFORM, Y",
+    "reference_value": -1073741824,
+    "scale": 5,
+    "units": "m/s"
+  },
+  "001210": {
+    "bit_width": 31,
+    "name": "VELOCITY OF PLATFORM, Z",
+    "reference_value": -1073741824,
+    "scale": 5,
+    "units": "m/s"
+  },
+  "002171": {
+    "bit_width": 4,
+    "name": "(TBP) MODIS AEROSOL ALGORITHM",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "002192": {
+    "bit_width": 9,
+    "name": "SAR AZIMUTH ANGLE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "deg"
+  },
+  "002193": {
+    "bit_width": 28,
+    "name": "1D VAR SATELLITE CHANNEL(S) USED",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "002194": {
+    "bit_width": 4,
+    "name": "CONSTANT LEVEL BALLOON TYPE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "002195": {
+    "bit_width": 4,
+    "name": "TYPE OF SATELLITE INSTRUMENTATION",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "002201": {
+    "bit_width": 4,
+    "name": "SIMULATED SATELLITE INSTRUMENT",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "002202": {
+    "bit_width": 4,
+    "name": "SIMULATED DATA PROCESSING TECHNIQUE USED",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "002220": {
+    "bit_width": 9,
+    "name": "DATA PRODUCER",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "002221": {
+    "bit_width": 18,
+    "name": "SEGMENT SIZE AT NADIR IN X DIRECTION",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "m"
+  },
+  "002222": {
+    "bit_width": 18,
+    "name": "SEGMENT SIZE AT NADIR IN Y DIRECTION",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "m"
+  },
+  "002223": {
+    "bit_width": 6,
+    "name": "TOVS/ATOVS/AVHRR CHANNEL NUMBER",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "002231": {
+    "bit_width": 4,
+    "name": "HEIGHT ASSIGNMENT METHOD",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "002232": {
+    "bit_width": 3,
+    "name": "TRACER CORRELATION METHOD",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "002240": {
+    "bit_width": 8,
+    "name": "TYPE OF TERMODYNAMIC SENSING",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "002241": {
+    "bit_width": 3,
+    "name": "TYPE OF ROCKET MOTOR",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "002242": {
+    "bit_width": 8,
+    "name": "TYPE OF WIND SENSING EQUIPMENT",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "002243": {
+    "bit_width": 3,
+    "name": "TERMODYNAMIC CORRECTION TECHNIQUE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "002244": {
+    "bit_width": 3,
+    "name": "WIND CORRECTION TECHNIQUE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "002245": {
+    "bit_width": 4,
+    "name": "METHOD OF REDUCING OF DATA",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "002253": {
+    "bit_width": 8,
+    "name": "HUMIDITY COMPUTATIONAL METHOD",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "005193": {
+    "bit_width": 10,
+    "name": "ALONG TRACK ROW NUMBER AT 50 KM",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "005194": {
+    "bit_width": 11,
+    "name": "ALONG TRACK ROW NUMBER AT 25 KM",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "005195": {
+    "bit_width": 7,
+    "name": "ENSEMBLE MEMBER NUMBER",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "005217": {
+    "bit_width": 31,
+    "name": "LOCATION OF PLATFORM, X",
+    "reference_value": -1073741824,
+    "scale": 2,
+    "units": "m"
+  },
+  "005232": {
+    "bit_width": 16,
+    "name": "DIRECTION (SPECTRAL)",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "deg"
+  },
+  "006193": {
+    "bit_width": 6,
+    "name": "CROSS TRACK CELL NUMBER AT 50 KM",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "006194": {
+    "bit_width": 7,
+    "name": "CROSS TRACK CELL NUMBER AT 25 KM",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "006217": {
+    "bit_width": 31,
+    "name": "LOCATION OF PLATFORM, Y",
+    "reference_value": -1073741824,
+    "scale": 2,
+    "units": "m"
+  },
+  "006232": {
+    "bit_width": 13,
+    "name": "WAVENUMBER (SPECTRAL)",
+    "reference_value": 0,
+    "scale": 5,
+    "units": "rad/m"
+  },
+  "007065": {
+    "bit_width": 16,
+    "name": "(VAL) REPRESENTATIVE HEIGHT OF SENSOR ABOVE LOCAL GROUND (OR DEC",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "m"
+  },
+  "007217": {
+    "bit_width": 31,
+    "name": "LOCATION OF PLATFORM, Z",
+    "reference_value": -1073741824,
+    "scale": 2,
+    "units": "m"
+  },
+  "008079": {
+    "bit_width": 3,
+    "name": "(VAL) CHANGE IN STATUS OF FOLLOWING PRODUCT",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "008193": {
+    "bit_width": 6,
+    "name": "TIME QUALIFIER",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "008194": {
+    "bit_width": 4,
+    "name": "TOVS/ATOVS PRODUCT QUALIFIER",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "008195": {
+    "bit_width": 7,
+    "name": "DATA TYPE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "008200": {
+    "bit_width": 8,
+    "name": "NUMBER OF OBSERVATIONS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "008222": {
+    "bit_width": 4,
+    "name": "GENERATOR SIGNIFICANCE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "008223": {
+    "bit_width": 7,
+    "name": "LAND/ICE SURFACE FLAG",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "008224": {
+    "bit_width": 10,
+    "name": "LAND/SEA FRACTION",
+    "reference_value": 0,
+    "scale": 3,
+    "units": "Numeric"
+  },
+  "010083": {
+    "bit_width": 17,
+    "name": "(CBS) OFF NADIR ANGLE OF THE SATELLITE FROM PLATFORM DATA",
+    "reference_value": -36000,
+    "scale": 2,
+    "units": "deg"
+  },
+  "010084": {
+    "bit_width": 17,
+    "name": "(CBS) OFF NADIR ANGLE OF THE SATELLITE FROM WAVEFORM DATA",
+    "reference_value": -36000,
+    "scale": 2,
+    "units": "deg"
+  },
+  "010195": {
+    "bit_width": 20,
+    "name": "HEIGHT(HIGH ACCURACY)",
+    "reference_value": -4096,
+    "scale": 1,
+    "units": "m"
+  },
+  "010196": {
+    "bit_width": 15,
+    "name": "SOLAR ZENITH ANGLE",
+    "reference_value": -9000,
+    "scale": 2,
+    "units": "deg"
+  },
+  "010197": {
+    "bit_width": 9,
+    "name": "ANEMOMETER HEIGHT",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "m"
+  },
+  "011192": {
+    "bit_width": 13,
+    "name": "U - COMPONENT AT 10 M",
+    "reference_value": -4096,
+    "scale": 1,
+    "units": "m/s"
+  },
+  "011193": {
+    "bit_width": 13,
+    "name": "V - COMPONENT AT 10 M",
+    "reference_value": -4096,
+    "scale": 1,
+    "units": "m/s"
+  },
+  "011194": {
+    "bit_width": 13,
+    "name": "W - COMPONENT AT 10 M",
+    "reference_value": -4096,
+    "scale": 1,
+    "units": "m/s"
+  },
+  "011195": {
+    "bit_width": 7,
+    "name": "STEADINESS OF WIND",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "%"
+  },
+  "011196": {
+    "bit_width": 19,
+    "name": "FRICTION VELOCITY",
+    "reference_value": 0,
+    "scale": 5,
+    "units": "m/s"
+  },
+  "011201": {
+    "bit_width": 13,
+    "name": "HORIZONTAL LINE OF SIGHT COMPONENT",
+    "reference_value": -4096,
+    "scale": 1,
+    "units": "m/s"
+  },
+  "011210": {
+    "bit_width": 12,
+    "name": "1D VAR WIND SPEED RETREIVED ERRO(S)",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "m/s"
+  },
+  "011211": {
+    "bit_width": 12,
+    "name": "WIND SPEED INDEPENDENT ESTIMATE OF ERROR(S)",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "m/s"
+  },
+  "011220": {
+    "bit_width": 12,
+    "name": "FORMAL UNCERTAINTY IN WIND SPEED",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "m/s"
+  },
+  "011221": {
+    "bit_width": 15,
+    "name": "FORMAL UNCERTAINTY IN WIND DIRECTION",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "deg"
+  },
+  "011230": {
+    "bit_width": 13,
+    "name": "MAXIMUM MEAN WIND SPEED",
+    "reference_value": -4096,
+    "scale": 1,
+    "units": "m/s"
+  },
+  "011231": {
+    "bit_width": 13,
+    "name": "MEAN WIND SPEED",
+    "reference_value": -4096,
+    "scale": 1,
+    "units": "m/s"
+  },
+  "011232": {
+    "bit_width": 13,
+    "name": "MINIMUM MEAN WIND SPEED",
+    "reference_value": -4096,
+    "scale": 1,
+    "units": "m/s"
+  },
+  "011233": {
+    "bit_width": 13,
+    "name": "HIGHEST GUST DURING THE 10 MINUTE PERIOD PRECEDING OBSERVATION",
+    "reference_value": -4096,
+    "scale": 1,
+    "units": "m/s"
+  },
+  "012193": {
+    "bit_width": 12,
+    "name": "COLDEST CLUSTER TEMPERATURE",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "K"
+  },
+  "012194": {
+    "bit_width": 31,
+    "name": "RADIANCE",
+    "reference_value": 0,
+    "scale": 6,
+    "units": "W m-2 sr-1 m"
+  },
+  "012197": {
+    "bit_width": 12,
+    "name": "MAXIMUM TEMPERATURE AT 2M, PAST 3 HOURS",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "K"
+  },
+  "012198": {
+    "bit_width": 12,
+    "name": "MINIMUM TEMPERATURE AT 2M, PAST 3 HOURS",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "K"
+  },
+  "012199": {
+    "bit_width": 12,
+    "name": "MAXIMUM TEMPERATURE AT 2M, PAST 6 HOURS",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "K"
+  },
+  "012200": {
+    "bit_width": 12,
+    "name": "MINIMUM TEMPERATURE AT 2M, PAST 6 HOURS",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "K"
+  },
+  "013192": {
+    "bit_width": 8,
+    "name": "RELATIVE HUMIDITY AT 2 M",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "%"
+  },
+  "013193": {
+    "bit_width": 8,
+    "name": "RELATIVE HUMIDITY",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "%"
+  },
+  "013194": {
+    "bit_width": 11,
+    "name": "TOTAL COLUMN WATER",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "kg m-2"
+  },
+  "013195": {
+    "bit_width": 5,
+    "name": "RAIN RATE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "kg m-2 h-1"
+  },
+  "013196": {
+    "bit_width": 7,
+    "name": "ANTECEDENT PRECIPITATION INDEX",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "kg m-2"
+  },
+  "013197": {
+    "bit_width": 10,
+    "name": "TOTAL COLUMN WATER VAPOUR",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "kg m-2"
+  },
+  "013198": {
+    "bit_width": 3,
+    "name": "RAIN FLAG",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "013199": {
+    "bit_width": 14,
+    "name": "SPECIFIC HUMIDITY AT 2 M",
+    "reference_value": 0,
+    "scale": 5,
+    "units": "kg/kg"
+  },
+  "013201": {
+    "bit_width": 14,
+    "name": "CLOUD LIQUID WATER",
+    "reference_value": 0,
+    "scale": 7,
+    "units": "kg/kg"
+  },
+  "013202": {
+    "bit_width": 8,
+    "name": "TYPE OF SURFACE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "013203": {
+    "bit_width": 12,
+    "name": "1D VAR ESTIMATE OF RAIN RATE",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "kg m-2 h-1"
+  },
+  "013204": {
+    "bit_width": 12,
+    "name": "SSMI INDEPENDENT ESTIMATE OF RAIN RATE",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "kg m-2 h-1"
+  },
+  "013205": {
+    "bit_width": 14,
+    "name": "CLOUD LIQUID WATER PATH",
+    "reference_value": 0,
+    "scale": 4,
+    "units": "kg m-2"
+  },
+  "013206": {
+    "bit_width": 14,
+    "name": "TOTAL PRECIPITATION ICE CONTENT",
+    "reference_value": 0,
+    "scale": 6,
+    "units": "kg m-2"
+  },
+  "013207": {
+    "bit_width": 14,
+    "name": "TOTAL CLOUD LIQUID WATER",
+    "reference_value": 0,
+    "scale": 6,
+    "units": "kg m-2"
+  },
+  "013208": {
+    "bit_width": 17,
+    "name": "SURFACE RAIN RATE ( INSTANTANEOUS )",
+    "reference_value": 0,
+    "scale": 5,
+    "units": "kg m-2 s-1"
+  },
+  "013209": {
+    "bit_width": 9,
+    "name": "RAIN POSSIBILITY",
+    "reference_value": -256,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "013210": {
+    "bit_width": 14,
+    "name": "1D VAR CLOUD LIQUID WATER PATH RETRIEVED ERROR(S)",
+    "reference_value": 0,
+    "scale": 4,
+    "units": "kg m-2"
+  },
+  "013211": {
+    "bit_width": 11,
+    "name": "TOTAL PRECIPITABLE WATER INDIPENDENT ESTIMATE OF ERROR(S)",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "kg m-2"
+  },
+  "013212": {
+    "bit_width": 14,
+    "name": "CLOUD LIQUID WATER PATH INDIPENDENT ESTIMATE OF ERROR(S)",
+    "reference_value": 0,
+    "scale": 4,
+    "units": "kg m-2"
+  },
+  "013230": {
+    "bit_width": 14,
+    "name": "CONVECTIVE PRECIPITATION",
+    "reference_value": -1,
+    "scale": 1,
+    "units": "kg m-2"
+  },
+  "013231": {
+    "bit_width": 14,
+    "name": "LARGE SCALE PRECIPITATION",
+    "reference_value": -1,
+    "scale": 1,
+    "units": "kg m-2"
+  },
+  "013240": {
+    "bit_width": 10,
+    "name": "AIR DENSITY",
+    "reference_value": 0,
+    "scale": 3,
+    "units": "kg m-3"
+  },
+  "013241": {
+    "bit_width": 17,
+    "name": "CONVECTIVE AVAILABLE POTENTIAL ENERGY",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "J/kg"
+  },
+  "013242": {
+    "bit_width": 14,
+    "name": "MOST UNSTABLE CAPE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "J/kg"
+  },
+  "015008": {
+    "bit_width": 24,
+    "name": "(VAL) SCALED VOLUMETRIC MIXING RATIO",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "015021": {
+    "bit_width": 24,
+    "name": "(VAL) SCALED INTEGRATED MASS DENSITY",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "kg m-2"
+  },
+  "015042": {
+    "bit_width": 20,
+    "name": "(VAL) REFLECTANCE",
+    "reference_value": 0,
+    "scale": 6,
+    "units": "Numeric"
+  },
+  "015043": {
+    "bit_width": 10,
+    "name": "NUMBER OF AVERAGING KERNEL LAYERS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "015044": {
+    "bit_width": 31,
+    "name": "(VAL) AVERAGING KERNEL VALUE",
+    "reference_value": -5000000,
+    "scale": 6,
+    "units": "Numeric"
+  },
+  "015202": {
+    "bit_width": 12,
+    "name": "INTEGRATED ELECTRON DENSITY",
+    "reference_value": 13000,
+    "scale": 3,
+    "units": "m-2"
+  },
+  "020079": {
+    "bit_width": 2,
+    "name": "(VAL) SNOW/ICE CRYSTALS INDICATOR",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "020192": {
+    "bit_width": 14,
+    "name": "SPECIAL PHENOMENA",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "020194": {
+    "bit_width": 7,
+    "name": "AMOUNT OF SEGMENT CLOUD FREE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "%"
+  },
+  "020215": {
+    "bit_width": 14,
+    "name": "PRESSURE AT THE BASE OF CLOUD",
+    "reference_value": 0,
+    "scale": -1,
+    "units": "Pa"
+  },
+  "020250": {
+    "bit_width": 5,
+    "name": "CALCULATED SURFACE TYPE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "020251": {
+    "bit_width": 3,
+    "name": "ICE AGE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "020252": {
+    "bit_width": 3,
+    "name": "ICE EDGE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "020253": {
+    "bit_width": 3,
+    "name": "SURFACE TYPE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "020254": {
+    "bit_width": 7,
+    "name": "ICE CONCENTRATION",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "%"
+  },
+  "021192": {
+    "bit_width": 13,
+    "name": "RADAR BACK SCATTER",
+    "reference_value": -5000,
+    "scale": 2,
+    "units": "dB"
+  },
+  "021193": {
+    "bit_width": 7,
+    "name": "NOISE FIGURE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "%"
+  },
+  "021194": {
+    "bit_width": 8,
+    "name": "BACKGROUND NOISE LEVEL",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "021195": {
+    "bit_width": 8,
+    "name": "MISSING PACKET COUNTER",
+    "reference_value": -127,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "021196": {
+    "bit_width": 12,
+    "name": "UWA PRODUCT CONFIDENCE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "021197": {
+    "bit_width": 12,
+    "name": "UWI PRODUCT CONFIDENCE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "021198": {
+    "bit_width": 8,
+    "name": "URA PRODUCT CONFIDENCE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "021199": {
+    "bit_width": 7,
+    "name": "UAT PRODUCT CONFIDENCE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "021200": {
+    "bit_width": 15,
+    "name": "MWI PRODUCT CONFIDENCE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "021201": {
+    "bit_width": 16,
+    "name": "PEAKINESS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "021202": {
+    "bit_width": 4,
+    "name": "ALTIMETER CALIBRATION STATUS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "021203": {
+    "bit_width": 9,
+    "name": "ALTIMETER INSTRUMENT MODE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "021204": {
+    "bit_width": 10,
+    "name": "MULTI/SINGLE VIEW DIFFERENCE",
+    "reference_value": -512,
+    "scale": 2,
+    "units": "K"
+  },
+  "021205": {
+    "bit_width": 8,
+    "name": "SPECTRAL INTENSITY",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "021206": {
+    "bit_width": 3,
+    "name": "REPRESENTATION OF INTENSITY",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "021207": {
+    "bit_width": 14,
+    "name": "ALTITUDE CORRECTION (IONOSPHERE)",
+    "reference_value": 0,
+    "scale": 3,
+    "units": "m"
+  },
+  "021208": {
+    "bit_width": 9,
+    "name": "ALTITUDE CORRECTION (DRY TROPOSPHERE)",
+    "reference_value": 0,
+    "scale": 3,
+    "units": "m"
+  },
+  "021209": {
+    "bit_width": 10,
+    "name": "LTITUDE CORRECTION (WET TROPOSPHERE)",
+    "reference_value": 2000,
+    "scale": 3,
+    "units": "m"
+  },
+  "021210": {
+    "bit_width": 11,
+    "name": "ALTITUDE CORRECTION (CALIBRATION CONSTANT)",
+    "reference_value": 0,
+    "scale": 3,
+    "units": "m"
+  },
+  "021211": {
+    "bit_width": 10,
+    "name": "OPEN LOOP CORRECTION (HTL)",
+    "reference_value": 0,
+    "scale": 3,
+    "units": "m"
+  },
+  "021212": {
+    "bit_width": 14,
+    "name": "OPEN LOOP CORRECTION (AGC)",
+    "reference_value": -3000,
+    "scale": 3,
+    "units": "dB"
+  },
+  "021213": {
+    "bit_width": 7,
+    "name": "AMBIGUITY REMOVAL CONFIDENCE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "%"
+  },
+  "021214": {
+    "bit_width": 3,
+    "name": "UAT QUALITY SUMMARY",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "021215": {
+    "bit_width": 4,
+    "name": "UAT ACROSS-TRACK BAND NO.",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "021222": {
+    "bit_width": 7,
+    "name": "DOPPLER SPECTRUM 0 TH MOMENT (AMPLITUDE)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "dB"
+  },
+  "021225": {
+    "bit_width": 6,
+    "name": "PRESCAT PRODUCT CONFIDENCE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "021226": {
+    "bit_width": 13,
+    "name": "BACKSCATER DISTANCE",
+    "reference_value": -4096,
+    "scale": 1,
+    "units": "Numeric"
+  },
+  "021230": {
+    "bit_width": 3,
+    "name": "NUMBER OF VECTOR AMBIGUITIES",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "021231": {
+    "bit_width": 3,
+    "name": "INDEX OF SELECTED WIND VECTOR",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "021232": {
+    "bit_width": 5,
+    "name": "TOTAL NMBER OF SIGMA-0 MEASUREMENTS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "021233": {
+    "bit_width": 5,
+    "name": "NUMBER OF SIGMA-0 USABLE FOR WIND",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "021234": {
+    "bit_width": 14,
+    "name": "LIKELIHOOD COMPUTED FOR SOLUTION",
+    "reference_value": -10000,
+    "scale": 1,
+    "units": "Numeric"
+  },
+  "021235": {
+    "bit_width": 3,
+    "name": "WIND VECTOR CELL QUALITY FLAG",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "021236": {
+    "bit_width": 6,
+    "name": "NUMBER OF FORE-BEAM SIGMA-0",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "Numeric"
+  },
+  "021237": {
+    "bit_width": 6,
+    "name": "NUMBER OF MID-BEAM V-POL SIGMA-0",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "Numeric"
+  },
+  "021238": {
+    "bit_width": 6,
+    "name": "NUMBER OF MID-BEAM H-POL SIGMA-0",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "Numeric"
+  },
+  "021239": {
+    "bit_width": 6,
+    "name": "NUMBER OF AFT-BEAM SIGMA-0",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "Numeric"
+  },
+  "021240": {
+    "bit_width": 14,
+    "name": "NORMALIZED RADAR CROSS SECTION",
+    "reference_value": -10000,
+    "scale": 2,
+    "units": "Numeric"
+  },
+  "021241": {
+    "bit_width": 14,
+    "name": "Kp VARIANCE COEFFICIENT (ALPHA)",
+    "reference_value": 0,
+    "scale": 5,
+    "units": "Numeric"
+  },
+  "021242": {
+    "bit_width": 16,
+    "name": "Kp VARIANCE COEFFICIENT (BETHA)",
+    "reference_value": 0,
+    "scale": 6,
+    "units": "Numeric"
+  },
+  "021243": {
+    "bit_width": 16,
+    "name": "Kp VARIANCE COEFFICIENT (GAMMA)",
+    "reference_value": 0,
+    "scale": 6,
+    "units": "Numeric"
+  },
+  "021244": {
+    "bit_width": 15,
+    "name": "SIGMA-0 QUALITY FLAG",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "022192": {
+    "bit_width": 13,
+    "name": "SPECTRAL PERIOD",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "s"
+  },
+  "022193": {
+    "bit_width": 15,
+    "name": "MEAN WAVENUMBER",
+    "reference_value": 0,
+    "scale": 5,
+    "units": "/m"
+  },
+  "022194": {
+    "bit_width": 15,
+    "name": "PEAK WAVENUMBER",
+    "reference_value": 0,
+    "scale": 5,
+    "units": "/m"
+  },
+  "022195": {
+    "bit_width": 13,
+    "name": "MEAN WAVE PROPAGATION DIRECTION",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "deg"
+  },
+  "022196": {
+    "bit_width": 13,
+    "name": "PEAK WAVE PROPAGATION DIRECTION",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "deg"
+  },
+  "022197": {
+    "bit_width": 13,
+    "name": "DIRECTION SPREAD",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "deg"
+  },
+  "022198": {
+    "bit_width": 18,
+    "name": "VARIANCE SPECTRAL DENSITY",
+    "reference_value": 0,
+    "scale": 4,
+    "units": "m2 rad-1 s"
+  },
+  "022199": {
+    "bit_width": 15,
+    "name": "CORRELATION COEFF OF SIMULATED FG AND OBSERVED SAR SPECTRUM",
+    "reference_value": -10000,
+    "scale": 4,
+    "units": "Numeric"
+  },
+  "022200": {
+    "bit_width": 15,
+    "name": "CORRELATION COEFF OF SIMULATED BF AND OBSERVED SAR SPECTRUM",
+    "reference_value": -10000,
+    "scale": 4,
+    "units": "Numeric"
+  },
+  "022201": {
+    "bit_width": 15,
+    "name": "CORRELATION COEFF OF OCEAN WAVE FG AND EXTRACTED WAVE SPECTRUM",
+    "reference_value": -10000,
+    "scale": 4,
+    "units": "Numeric"
+  },
+  "022202": {
+    "bit_width": 21,
+    "name": "ERROR BETWEEN FIRST GUESS AND OBSERVED SAR",
+    "reference_value": 0,
+    "scale": 5,
+    "units": "Numeric"
+  },
+  "022203": {
+    "bit_width": 21,
+    "name": "ERROR BETWEEN SIMULATED AND OBSERVED SAR",
+    "reference_value": 0,
+    "scale": 5,
+    "units": "Numeric"
+  },
+  "022204": {
+    "bit_width": 13,
+    "name": "MEAN PERIOD OF WAVES",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "s"
+  },
+  "022205": {
+    "bit_width": 25,
+    "name": "SPECTRAL DENSITY",
+    "reference_value": 0,
+    "scale": 4,
+    "units": "m2 rad-1 s"
+  },
+  "022206": {
+    "bit_width": 13,
+    "name": "PEAK PERIOD OF WAVES",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "s"
+  },
+  "022207": {
+    "bit_width": 10,
+    "name": "MEAN WAVE PERIOD",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "s"
+  },
+  "022208": {
+    "bit_width": 10,
+    "name": "PEAK PERIOD OF 1D SPECTRA",
+    "reference_value": 0,
+    "scale": 1,
+    "units": "s"
+  },
+  "022209": {
+    "bit_width": 13,
+    "name": "COEFICIENT OF DRAG WITH WAVES",
+    "reference_value": 0,
+    "scale": 6,
+    "units": "Numeric"
+  },
+  "022210": {
+    "bit_width": 14,
+    "name": "MEAN SQUARE SLOPE OF WAVES",
+    "reference_value": -10000,
+    "scale": 4,
+    "units": "Numeric"
+  },
+  "022211": {
+    "bit_width": 17,
+    "name": "COEFICIENT OF DRAG WITH WAVES",
+    "reference_value": 0,
+    "scale": 6,
+    "units": "Numeric"
+  },
+  "022243": {
+    "bit_width": 10,
+    "name": "STANDARD DEVIATION SIGNIFICANT WAVE HEIGHT",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "m"
+  },
+  "025193": {
+    "bit_width": 14,
+    "name": "ATTENUATION CORRECTION ON SIGMA0",
+    "reference_value": 0,
+    "scale": 3,
+    "units": "dB"
+  },
+  "025194": {
+    "bit_width": 4,
+    "name": "MAJOR FRAME COUNT",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "025197": {
+    "bit_width": 5,
+    "name": "ANTENNA CORRECTIONS VERSION NUMBER",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "025198": {
+    "bit_width": 30,
+    "name": "LOG (TEMP-RAD CENTRAL WAVE NUMBER)",
+    "reference_value": 0,
+    "scale": 8,
+    "units": "/m"
+  },
+  "025199": {
+    "bit_width": 15,
+    "name": "BANDWIDTH CORRECTION COEFFICIENT 1",
+    "reference_value": -10000,
+    "scale": 4,
+    "units": "Numeric"
+  },
+  "025200": {
+    "bit_width": 17,
+    "name": "BANDWIDTH CORRECTION COEFFICIENT 2",
+    "reference_value": 0,
+    "scale": 5,
+    "units": "Numeric"
+  },
+  "025201": {
+    "bit_width": 24,
+    "name": "ALBEDO-RAD SOLAR FILTERED IRRADIANCE",
+    "reference_value": 0,
+    "scale": 4,
+    "units": "Numeric"
+  },
+  "025202": {
+    "bit_width": 14,
+    "name": "ALBEDO-RAD EQUIVALENT FILTER WIDTH",
+    "reference_value": 0,
+    "scale": 10,
+    "units": "Numeric"
+  },
+  "025203": {
+    "bit_width": 31,
+    "name": "SCAN LINE STATUS FLAGS FOR ATOVS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "025204": {
+    "bit_width": 31,
+    "name": "SCAN LINE QUALITY FLAGS FOR ATOVS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "025205": {
+    "bit_width": 31,
+    "name": "CHANNEL QUALITY FLAGS FOR ATOVS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "025206": {
+    "bit_width": 31,
+    "name": "FOV QUALITY FLAGS FOR ATOVS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "026193": {
+    "bit_width": 12,
+    "name": "YEAR",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "a"
+  },
+  "026194": {
+    "bit_width": 4,
+    "name": "MONTH",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "mon"
+  },
+  "026195": {
+    "bit_width": 6,
+    "name": "DAY",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "d"
+  },
+  "026196": {
+    "bit_width": 5,
+    "name": "HOUR",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "h"
+  },
+  "026197": {
+    "bit_width": 6,
+    "name": "MINUTE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "min"
+  },
+  "026198": {
+    "bit_width": 6,
+    "name": "SECOND",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "s"
+  },
+  "026200": {
+    "bit_width": 20,
+    "name": "LOCATION WITHIN ASSIMILATION WINDOW IN TIME",
+    "reference_value": 0,
+    "scale": 6,
+    "units": "Numeric"
+  },
+  "026201": {
+    "bit_width": 26,
+    "name": "HOURS INCLUDED",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "027193": {
+    "bit_width": 16,
+    "name": "SOLAR AZIMUTH",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "deg"
+  },
+  "030193": {
+    "bit_width": 8,
+    "name": "POSITION NUMBER ALONG SCAN",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "031192": {
+    "bit_width": 1,
+    "name": "DATA PRESENT INDICATOR",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "033192": {
+    "bit_width": 7,
+    "name": "TEM1 CONFIDENCE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "%"
+  },
+  "033193": {
+    "bit_width": 3,
+    "name": "DATA QUALITY 3 BIT CODE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "033194": {
+    "bit_width": 2,
+    "name": "DATA QUALITY 2 BIT CODE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "033195": {
+    "bit_width": 5,
+    "name": "ECMWF SAR QC INDICATOR",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "033196": {
+    "bit_width": 2,
+    "name": "ECMWF WAM QC INDICATOR",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "033197": {
+    "bit_width": 3,
+    "name": "ECMWF SAR INVERSION QC INDICATOR",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "033198": {
+    "bit_width": 14,
+    "name": "MINIMUM COST",
+    "reference_value": 0,
+    "scale": 4,
+    "units": "Numeric"
+  },
+  "033199": {
+    "bit_width": 11,
+    "name": "1D VAR TOTAL PRECIPITABLE WATER RETRIEVED ERROR(S)",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "kg m-2"
+  },
+  "033200": {
+    "bit_width": 31,
+    "name": "ANALYSIS REPORT EVENTS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033201": {
+    "bit_width": 13,
+    "name": "ANALYSIS REPORT STATUS EVENT",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033202": {
+    "bit_width": 31,
+    "name": "ANALYSIS DATUM EVENT FLAGS (1)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033203": {
+    "bit_width": 11,
+    "name": "ANALYSIS DATUM EVENT FLAGS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033204": {
+    "bit_width": 21,
+    "name": "ANALYSIS DATUM STATUS FLAGS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033205": {
+    "bit_width": 4,
+    "name": "VARIATIONAL ANALYSIS BLACK LIST FLAG",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "033206": {
+    "bit_width": 4,
+    "name": "VARIATIONAL ANALYSIS QUALITY CONTROL FLAG",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "033207": {
+    "bit_width": 4,
+    "name": "VARIATIONAL ANALYSIS DEPARTURE FLAG",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "033208": {
+    "bit_width": 4,
+    "name": "VARIATIONAL ANALYSIS FIRST QUESS CHECK FLAG",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "033209": {
+    "bit_width": 4,
+    "name": "VARIATIONAL ANALYSIS FINAL FLAG",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "033210": {
+    "bit_width": 7,
+    "name": "INCREMENTAL VARIATIONAL ANALYSIS UPDATE NUMBER",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "033211": {
+    "bit_width": 10,
+    "name": "MINIMISATION SIMULATION NUMBER",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "033212": {
+    "bit_width": 10,
+    "name": "1D VAR ITERATION NUMBER",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "Numeric"
+  },
+  "033213": {
+    "bit_width": 11,
+    "name": "1D VAR RADIANCE COST",
+    "reference_value": -1000,
+    "scale": 1,
+    "units": "Numeric"
+  },
+  "033214": {
+    "bit_width": 11,
+    "name": "1D VAR ERROR(S)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033215": {
+    "bit_width": 13,
+    "name": "DIRECTIONAL SKILL",
+    "reference_value": -4096,
+    "scale": 1,
+    "units": "Numeric"
+  },
+  "033216": {
+    "bit_width": 3,
+    "name": "1D VAR SURFACE TYPE QUALITY CONTROL",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "033217": {
+    "bit_width": 2,
+    "name": "1D VAR FAILURE INDICATOR",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "033218": {
+    "bit_width": 12,
+    "name": "1D VAR ESTIMATE OF SCATTERING",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "Numeric"
+  },
+  "033219": {
+    "bit_width": 16,
+    "name": "SSMI INDIPENDENT SCATTERING INDEX",
+    "reference_value": -50000,
+    "scale": 2,
+    "units": "Numeric"
+  },
+  "033220": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS REPORT EVENTS (1)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033221": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS SYNOP EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033222": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS AIREP EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033223": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS SATOB EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033224": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS DRIBU EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033225": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS TEMP EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033226": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS PILOT EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033227": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS SATEM/TOVS EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033228": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS PAOB EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033229": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS SCATTEROMETER EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033230": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS RAW RADIANCES EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033231": {
+    "bit_width": 6,
+    "name": "PRESAT SUMMARY FLAGS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033232": {
+    "bit_width": 31,
+    "name": "REPORT BLACK LIST EVENTS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033233": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS REPORT STATUS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033234": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS DATUM STATUS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033236": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS DATUM EVENTS (1)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033237": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS SYNOP DATUM EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033238": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS AIREP DATUM EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033239": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS SATOB DATUM EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033240": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS DRIBU DATUM EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033241": {
+    "bit_width": 10,
+    "name": "GROSS ERROR PROBABILITY",
+    "reference_value": 0,
+    "scale": 3,
+    "units": "Numeric"
+  },
+  "033242": {
+    "bit_width": 2,
+    "name": "GROSS ERROR INDICATOR",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "033243": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS TEMP DATUM EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033244": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS PILOT DATUM EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033245": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS SATEM/TOVS DATUM EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033246": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS PAOB DATUM EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033247": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS SCATTEROMETER DATUM EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033248": {
+    "bit_width": 31,
+    "name": "VARIATIONAL ANALYSIS RAW RADIANCES DATUM EVENTS (2)",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033249": {
+    "bit_width": 31,
+    "name": "DATUM BLACK LIST EVENTS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "033250": {
+    "bit_width": 20,
+    "name": "PROBABILITY OF GROSS ERROR",
+    "reference_value": 0,
+    "scale": 6,
+    "units": "Numeric"
+  },
+  "033251": {
+    "bit_width": 14,
+    "name": "RANGE OF POSSIBLE VALUES",
+    "reference_value": 0,
+    "scale": 2,
+    "units": "Numeric"
+  },
+  "033253": {
+    "bit_width": 7,
+    "name": "NOMINAL CONFIDENCE THRESHOLD",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "%"
+  },
+  "033254": {
+    "bit_width": 20,
+    "name": "WIND CORRELATION METHOD",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "049193": {
+    "bit_width": 15,
+    "name": "SAR INVERSION QC FLAGS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "049194": {
+    "bit_width": 15,
+    "name": "ALTIMETER WAVE HEIGHT QC FLAFS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "FLAG TABLE"
+  },
+  "062190": {
+    "bit_width": 8,
+    "name": "STATISTICS APPLICATION",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "062191": {
+    "bit_width": 8,
+    "name": "TYPE OF STATISTICS",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  },
+  "063190": {
+    "bit_width": 8,
+    "name": "APPLICATION DERIVING SUBSTITUTE OR ALTERNATIVE VALUE",
+    "reference_value": 0,
+    "scale": 0,
+    "units": "CODE TABLE"
+  }
+}

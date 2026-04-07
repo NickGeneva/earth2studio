@@ -62,14 +62,22 @@ XFAIL_FIXTURES = [
     pytest.param(
         "g2nd_208.bufr",
         marks=pytest.mark.xfail(
-            reason="Uses operators 224/236 (substituted values) not yet implemented",
+            reason=(
+                "eccodes unrolls bitmap-qualified data (operators 224/236) "
+                "into repeated descriptor instances; earth2bufrio emits "
+                "substituted values as separate descriptors"
+            ),
             strict=False,
         ),
     ),
     pytest.param(
         "b005_89.bufr",
         marks=pytest.mark.xfail(
-            reason="Uses operators 222/224/236/237 (QC/substitution) not yet implemented",
+            reason=(
+                "eccodes unrolls bitmap-qualified data (operators 222/224/236/237) "
+                "into repeated descriptor instances; earth2bufrio emits "
+                "QC/substitution values as separate descriptors"
+            ),
             strict=False,
         ),
     ),
