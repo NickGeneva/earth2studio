@@ -10,7 +10,15 @@ list to produce :class:`~earth2bufrio._types.DecodedSubset` objects.
 
 from __future__ import annotations
 
-from earth2bufrio._types import DecodedSubset, ExpandedDescriptor, TableBEntry
+from earth2bufrio._types import (
+    DecodedSubset,
+    DelayedReplicationMarker,
+    ExpandedDescriptor,
+    TableBEntry,
+)
+
+# Union type matching _descriptors.ExpandedItem
+ExpandedItem = ExpandedDescriptor | DelayedReplicationMarker
 
 
 def _read_bits(data: bytes, bit_offset: int, num_bits: int) -> int:
@@ -108,7 +116,7 @@ def _decode_string(data: bytes, bit_offset: int, num_bytes: int) -> str | None:
 
 
 def decode(
-    expanded: list[ExpandedDescriptor],
+    expanded: list[ExpandedItem],
     data_bytes: bytes,
     num_subsets: int,
     compressed: bool,
@@ -117,8 +125,9 @@ def decode(
 
     Parameters
     ----------
-    expanded : list[ExpandedDescriptor]
-        The fully expanded descriptor sequence from Section 3.
+    expanded : list[ExpandedItem]
+        The expanded descriptor sequence from Section 3, which may
+        include :class:`DelayedReplicationMarker` items.
     data_bytes : bytes
         Raw bytes of the data section payload.
     num_subsets : int
@@ -136,8 +145,72 @@ def decode(
     return _decode_uncompressed(expanded, data_bytes, num_subsets)
 
 
+# ---------------------------------------------------------------------------
+# Uncompressed decoding
+# ---------------------------------------------------------------------------
+def _decode_items_uncompressed(
+    items: list[ExpandedItem] | tuple[ExpandedItem, ...],
+    data_bytes: bytes,
+    bit_offset: int,
+    values: list[tuple[ExpandedDescriptor, float | str | None]],
+) -> int:
+    """Decode a sequence of expanded items (uncompressed mode).
+
+    Handles both plain descriptors and delayed-replication markers.
+
+    Returns the updated bit_offset.
+    """
+    for item in items:
+        if isinstance(item, DelayedReplicationMarker):
+            bit_offset = _decode_delayed_replication_uncompressed(
+                item, data_bytes, bit_offset, values
+            )
+        else:
+            entry = item.entry
+            if entry.bit_width == 0:
+                continue
+            if entry.units == "CCITT IA5":
+                num_bytes = entry.bit_width // 8
+                string_val = _decode_string(data_bytes, bit_offset, num_bytes)
+                values.append((item, string_val))
+                bit_offset += entry.bit_width
+            else:
+                raw = _read_bits(data_bytes, bit_offset, entry.bit_width)
+                bit_offset += entry.bit_width
+                val = _decode_value(raw, entry)
+                values.append((item, val))
+    return bit_offset
+
+
+def _decode_delayed_replication_uncompressed(
+    marker: DelayedReplicationMarker,
+    data_bytes: bytes,
+    bit_offset: int,
+    values: list[tuple[ExpandedDescriptor, float | str | None]],
+) -> int:
+    """Handle a delayed-replication marker in uncompressed mode.
+
+    Reads the replication factor, emits it as a value, then
+    decodes the group that many times.
+    """
+    factor_desc = marker.factor_desc
+    entry = factor_desc.entry
+    raw = _read_bits(data_bytes, bit_offset, entry.bit_width)
+    bit_offset += entry.bit_width
+    factor_val = _decode_value(raw, entry)
+    values.append((factor_desc, factor_val))
+
+    # The replication count is the raw integer value (not scaled)
+    replication_count = raw + entry.reference_value
+    group = list(marker.group)
+
+    for _ in range(replication_count):
+        bit_offset = _decode_items_uncompressed(group, data_bytes, bit_offset, values)
+    return bit_offset
+
+
 def _decode_uncompressed(
-    expanded: list[ExpandedDescriptor],
+    expanded: list[ExpandedItem],
     data_bytes: bytes,
     num_subsets: int,
 ) -> list[DecodedSubset]:
@@ -145,8 +218,8 @@ def _decode_uncompressed(
 
     Parameters
     ----------
-    expanded : list[ExpandedDescriptor]
-        The expanded descriptor list.
+    expanded : list[ExpandedItem]
+        The expanded descriptor list (may include markers).
     data_bytes : bytes
         Raw data section bytes.
     num_subsets : int
@@ -162,27 +235,131 @@ def _decode_uncompressed(
 
     for _ in range(num_subsets):
         values: list[tuple[ExpandedDescriptor, float | str | None]] = []
-        for desc in expanded:
-            entry = desc.entry
-            if entry.bit_width == 0:
-                continue
-            if entry.units == "CCITT IA5":
-                num_bytes = entry.bit_width // 8
-                string_val = _decode_string(data_bytes, bit_offset, num_bytes)
-                values.append((desc, string_val))
-                bit_offset += entry.bit_width
-            else:
-                raw = _read_bits(data_bytes, bit_offset, entry.bit_width)
-                bit_offset += entry.bit_width
-                val = _decode_value(raw, entry)
-                values.append((desc, val))
+        bit_offset = _decode_items_uncompressed(
+            expanded, data_bytes, bit_offset, values
+        )
         subsets.append(DecodedSubset(values=tuple(values)))
 
     return subsets
 
 
+# ---------------------------------------------------------------------------
+# Compressed decoding
+# ---------------------------------------------------------------------------
+def _decode_items_compressed(
+    items: list[ExpandedItem] | tuple[ExpandedItem, ...],
+    data_bytes: bytes,
+    bit_offset: int,
+    num_subsets: int,
+    subset_values: list[list[tuple[ExpandedDescriptor, float | str | None]]],
+) -> int:
+    """Decode a sequence of expanded items (compressed mode).
+
+    Returns the updated bit_offset.
+    """
+    for item in items:
+        if isinstance(item, DelayedReplicationMarker):
+            bit_offset = _decode_delayed_replication_compressed(
+                item, data_bytes, bit_offset, num_subsets, subset_values
+            )
+        else:
+            entry = item.entry
+            if entry.bit_width == 0:
+                continue
+
+            if entry.units == "CCITT IA5":
+                # String field: R0 is the common character bytes
+                num_bytes = entry.bit_width // 8
+                r0_string = _decode_string(data_bytes, bit_offset, num_bytes)
+                bit_offset += entry.bit_width
+
+                # Read NBINC (6 bits)
+                nbinc = _read_bits(data_bytes, bit_offset, 6)
+                bit_offset += 6
+
+                if nbinc == 0:
+                    for s in range(num_subsets):
+                        subset_values[s].append((item, r0_string))
+                else:
+                    for s in range(num_subsets):
+                        sub_string = _decode_string(data_bytes, bit_offset, nbinc)
+                        bit_offset += nbinc * 8
+                        subset_values[s].append((item, sub_string))
+            else:
+                # Numeric field: read R0 (bit_width bits)
+                r0 = _read_bits(data_bytes, bit_offset, entry.bit_width)
+                bit_offset += entry.bit_width
+
+                # Read NBINC (6 bits)
+                nbinc = _read_bits(data_bytes, bit_offset, 6)
+                bit_offset += 6
+
+                if nbinc == 0:
+                    val = _decode_value(r0, entry)
+                    for s in range(num_subsets):
+                        subset_values[s].append((item, val))
+                else:
+                    for s in range(num_subsets):
+                        increment = _read_bits(data_bytes, bit_offset, nbinc)
+                        bit_offset += nbinc
+                        combined = r0 + increment
+                        val = _decode_value(combined, entry)
+                        subset_values[s].append((item, val))
+    return bit_offset
+
+
+def _decode_delayed_replication_compressed(
+    marker: DelayedReplicationMarker,
+    data_bytes: bytes,
+    bit_offset: int,
+    num_subsets: int,
+    subset_values: list[list[tuple[ExpandedDescriptor, float | str | None]]],
+) -> int:
+    """Handle a delayed-replication marker in compressed mode.
+
+    In compressed mode the replication factor is encoded the same way
+    as any other compressed numeric: R0 + NBINC + per-subset increments.
+    All subsets must have the same replication count (NBINC should be 0).
+    """
+    factor_desc = marker.factor_desc
+    entry = factor_desc.entry
+
+    # Read R0
+    r0 = _read_bits(data_bytes, bit_offset, entry.bit_width)
+    bit_offset += entry.bit_width
+
+    # Read NBINC
+    nbinc = _read_bits(data_bytes, bit_offset, 6)
+    bit_offset += 6
+
+    factor_val = _decode_value(r0, entry)
+    replication_count = r0 + entry.reference_value
+
+    if nbinc == 0:
+        # All subsets same count
+        for s in range(num_subsets):
+            subset_values[s].append((factor_desc, factor_val))
+    else:
+        # Per-subset counts (rare but possible)
+        for s in range(num_subsets):
+            increment = _read_bits(data_bytes, bit_offset, nbinc)
+            bit_offset += nbinc
+            combined = r0 + increment
+            val = _decode_value(combined, entry)
+            subset_values[s].append((factor_desc, val))
+        # Use first subset's count for the group
+        replication_count = r0 + entry.reference_value
+
+    group = list(marker.group)
+    for _ in range(replication_count):
+        bit_offset = _decode_items_compressed(
+            group, data_bytes, bit_offset, num_subsets, subset_values
+        )
+    return bit_offset
+
+
 def _decode_compressed(
-    expanded: list[ExpandedDescriptor],
+    expanded: list[ExpandedItem],
     data_bytes: bytes,
     num_subsets: int,
 ) -> list[DecodedSubset]:
@@ -190,8 +367,8 @@ def _decode_compressed(
 
     Parameters
     ----------
-    expanded : list[ExpandedDescriptor]
-        The expanded descriptor list.
+    expanded : list[ExpandedItem]
+        The expanded descriptor list (may include markers).
     data_bytes : bytes
         Raw data section bytes.
     num_subsets : int
@@ -202,58 +379,10 @@ def _decode_compressed(
     list[DecodedSubset]
         Decoded subsets.
     """
-    # Accumulate per-subset value lists
     subset_values: list[list[tuple[ExpandedDescriptor, float | str | None]]] = [
         [] for _ in range(num_subsets)
     ]
-    bit_offset = 0
 
-    for desc in expanded:
-        entry = desc.entry
-        if entry.bit_width == 0:
-            continue
-
-        if entry.units == "CCITT IA5":
-            # String field: R0 is the common character bytes
-            num_bytes = entry.bit_width // 8
-            r0_string = _decode_string(data_bytes, bit_offset, num_bytes)
-            bit_offset += entry.bit_width
-
-            # Read NBINC (6 bits)
-            nbinc = _read_bits(data_bytes, bit_offset, 6)
-            bit_offset += 6
-
-            if nbinc == 0:
-                # All subsets share the same string
-                for s in range(num_subsets):
-                    subset_values[s].append((desc, r0_string))
-            else:
-                # Per-subset strings: read nbinc bytes each
-                for s in range(num_subsets):
-                    sub_string = _decode_string(data_bytes, bit_offset, nbinc)
-                    bit_offset += nbinc * 8
-                    subset_values[s].append((desc, sub_string))
-        else:
-            # Numeric field: read R0 (bit_width bits)
-            r0 = _read_bits(data_bytes, bit_offset, entry.bit_width)
-            bit_offset += entry.bit_width
-
-            # Read NBINC (6 bits)
-            nbinc = _read_bits(data_bytes, bit_offset, 6)
-            bit_offset += 6
-
-            if nbinc == 0:
-                # All subsets share the same value
-                val = _decode_value(r0, entry)
-                for s in range(num_subsets):
-                    subset_values[s].append((desc, val))
-            else:
-                # Per-subset increments
-                for s in range(num_subsets):
-                    increment = _read_bits(data_bytes, bit_offset, nbinc)
-                    bit_offset += nbinc
-                    combined = r0 + increment
-                    val = _decode_value(combined, entry)
-                    subset_values[s].append((desc, val))
+    _decode_items_compressed(expanded, data_bytes, 0, num_subsets, subset_values)
 
     return [DecodedSubset(values=tuple(sv)) for sv in subset_values]

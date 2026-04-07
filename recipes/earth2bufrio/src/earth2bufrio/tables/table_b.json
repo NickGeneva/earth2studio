@@ -1483,6 +1483,13 @@
     "reference_value": 0,
     "bit_width": 3
   },
+  "002165": {
+    "name": "RADIANCE TYPE FLAG",
+    "units": "FLAG TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 15
+  },
   "002166": {
     "name": "RADIANCE TYPE",
     "units": "CODE TABLE",
@@ -2015,6 +2022,13 @@
     "reference_value": 0,
     "bit_width": 11
   },
+  "005045": {
+    "name": "FIELD OF REGARD NUMBER",
+    "units": "Numeric",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 8
+  },
   "005052": {
     "name": "CHANNEL NUMBER INCREMENT",
     "units": "Numeric",
@@ -2091,6 +2105,13 @@
     "scale": -1,
     "reference_value": 0,
     "bit_width": 13
+  },
+  "006029": {
+    "name": "WAVE NUMBER",
+    "units": "/m",
+    "scale": 1,
+    "reference_value": 0,
+    "bit_width": 22
   },
   "006030": {
     "name": "WAVE NUMBER (SPECTRAL)",
@@ -4646,6 +4667,13 @@
     "scale": 0,
     "reference_value": 0,
     "bit_width": 7
+  },
+  "014044": {
+    "name": "CHANNEL RADIANCE",
+    "units": "W m-2 sr-1 cm",
+    "scale": 7,
+    "reference_value": -100000,
+    "bit_width": 22
   },
   "014045": {
     "name": "CHANNEL RADIANCE",
@@ -8842,6 +8870,34 @@
   },
   "033071": {
     "name": "PROFILE OZONE QUALITY",
+    "units": "CODE TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 4
+  },
+  "033075": {
+    "name": "SCAN LEVEL QUALITY FLAG",
+    "units": "FLAG TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 13
+  },
+  "033076": {
+    "name": "CALIBRATION QUALITY FLAG",
+    "units": "FLAG TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 9
+  },
+  "033077": {
+    "name": "FIELD OF VIEW QUALITY FLAG",
+    "units": "FLAG TABLE",
+    "scale": 0,
+    "reference_value": 0,
+    "bit_width": 19
+  },
+  "033078": {
+    "name": "GEOLOCATION QUALITY",
     "units": "CODE TABLE",
     "scale": 0,
     "reference_value": 0,

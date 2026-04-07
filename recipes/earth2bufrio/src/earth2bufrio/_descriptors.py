@@ -16,7 +16,12 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from earth2bufrio._types import BufrDecodeError, ExpandedDescriptor, TableBEntry
+from earth2bufrio._types import (
+    BufrDecodeError,
+    DelayedReplicationMarker,
+    ExpandedDescriptor,
+    TableBEntry,
+)
 
 if TYPE_CHECKING:
     from earth2bufrio._tables import TableSet
@@ -25,6 +30,9 @@ logger = logging.getLogger(__name__)
 
 _MAX_DEPTH = 50
 
+# Union type for expanded items (element descriptors or delayed-replication groups)
+ExpandedItem = ExpandedDescriptor | DelayedReplicationMarker
+
 
 @dataclass
 class _OperatorState:
@@ -32,12 +40,13 @@ class _OperatorState:
 
     width_delta: int = 0
     scale_delta: int = 0
+    assoc_field_width: int = 0
 
 
 def expand_descriptors(
     raw_ids: tuple[int, ...] | list[int],
     tables: TableSet,
-) -> list[ExpandedDescriptor]:
+) -> list[ExpandedItem]:
     """Expand a raw FXY descriptor sequence into resolved Table B elements.
 
     Parameters
@@ -49,8 +58,8 @@ def expand_descriptors(
 
     Returns
     -------
-    list[ExpandedDescriptor]
-        Flat list of expanded descriptors with their Table B entries.
+    list[ExpandedItem]
+        List of expanded descriptors and delayed replication markers.
 
     Raises
     ------
@@ -67,7 +76,7 @@ def _expand(
     tables: TableSet,
     state: _OperatorState,
     depth: int,
-) -> list[ExpandedDescriptor]:
+) -> list[ExpandedItem]:
     """Recursively expand descriptors with depth tracking.
 
     Parameters
@@ -83,8 +92,8 @@ def _expand(
 
     Returns
     -------
-    list[ExpandedDescriptor]
-        Expanded descriptors.
+    list[ExpandedItem]
+        Expanded descriptors and markers.
 
     Raises
     ------
@@ -96,7 +105,7 @@ def _expand(
             f"Descriptor expansion exceeded maximum recursion depth ({_MAX_DEPTH})"
         )
 
-    result: list[ExpandedDescriptor] = []
+    result: list[ExpandedItem] = []
     idx = 0
     while idx < len(ids):
         fxy = ids[idx]
@@ -111,7 +120,7 @@ def _expand(
             except KeyError as err:
                 raise BufrDecodeError(f"Unknown Table B descriptor: {fxy:06d}") from err
 
-            # Apply active operator modifications
+            # Apply active operator modifications (201/202 only, not 204)
             if state.width_delta != 0 or state.scale_delta != 0:
                 entry = TableBEntry(
                     name=entry.name,
@@ -120,6 +129,20 @@ def _expand(
                     reference_value=entry.reference_value,
                     bit_width=entry.bit_width + state.width_delta,
                 )
+
+            # If associated field width is active and this is not an
+            # associated-field significance descriptor (031021) or other
+            # class-31 control descriptor, emit a synthetic associated-field
+            # descriptor before the real one.
+            if state.assoc_field_width > 0 and x != 31:
+                assoc_entry = TableBEntry(
+                    name="ASSOCIATED FIELD",
+                    units="CODE TABLE",
+                    scale=0,
+                    reference_value=0,
+                    bit_width=state.assoc_field_width,
+                )
+                result.append(ExpandedDescriptor(fxy=999999, entry=assoc_entry))
 
             result.append(ExpandedDescriptor(fxy=fxy, entry=entry))
             idx += 1
@@ -139,8 +162,14 @@ def _expand(
                     )
                 factor_fxy = ids[idx]
                 # Expand the factor descriptor (it's a Table B element)
-                factor_expanded = _expand([factor_fxy], tables, state, depth + 1)
-                result.extend(factor_expanded)
+                factor_list = _expand([factor_fxy], tables, state, depth + 1)
+                if not factor_list or not isinstance(
+                    factor_list[0], ExpandedDescriptor
+                ):
+                    raise BufrDecodeError(
+                        "Delayed replication factor did not expand to a descriptor"
+                    )
+                factor_desc = factor_list[0]
 
                 # Collect the next num_descriptors descriptors
                 idx += 1
@@ -148,9 +177,16 @@ def _expand(
                 if len(replicated_ids) < num_descriptors:
                     raise BufrDecodeError("Delayed replication: not enough descriptors")
 
-                # Expand them once (decoder handles actual count at runtime)
+                # Expand the group once
                 expanded_group = _expand(replicated_ids, tables, state, depth + 1)
-                result.extend(expanded_group)
+
+                # Emit a delayed-replication marker
+                result.append(
+                    DelayedReplicationMarker(
+                        factor_desc=factor_desc,
+                        group=tuple(expanded_group),
+                    )
+                )
                 idx += num_descriptors
             else:
                 # Regular replication: repeat the next X descriptors Y times
@@ -179,6 +215,20 @@ def _expand(
                     state.scale_delta = 0
                 else:
                     state.scale_delta = y - 128
+            elif operator == 4:
+                # 204YYY: associated field
+                if y == 0:
+                    state.assoc_field_width = 0
+                else:
+                    state.assoc_field_width = y
+            elif operator == 7:
+                # 207YYY: increase scale, reference value, and data width
+                if y == 0:
+                    state.width_delta = 0
+                    state.scale_delta = 0
+                else:
+                    state.scale_delta = y
+                    state.width_delta = ((10 * y) + 2) // 3
             else:
                 logger.warning(
                     "Unsupported F=2 operator %03d%03d — ignoring", operator, y

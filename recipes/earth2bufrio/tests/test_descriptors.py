@@ -144,15 +144,18 @@ class TestReplicationDelayed:
 
     def test_delayed_replication_includes_factor_descriptor(self, tables):
         from earth2bufrio._descriptors import expand_descriptors
+        from earth2bufrio._types import DelayedReplicationMarker
 
         # 101000 = delayed replication of 1 descriptor; next is 31001 (factor), then 12001
         result = expand_descriptors((101000, 31001, 12001), tables)
-        # Should include the delayed replication factor descriptor (31001)
-        # and then the descriptors to replicate (12001) once
-        assert len(result) == 2
-        assert result[0].fxy == 31001
-        assert result[0].entry.name == "DELAYED DESCRIPTOR REPLICATION FACTOR"
-        assert result[1].fxy == 12001
+        # Should produce a single DelayedReplicationMarker
+        assert len(result) == 1
+        marker = result[0]
+        assert isinstance(marker, DelayedReplicationMarker)
+        assert marker.factor_desc.fxy == 31001
+        assert marker.factor_desc.entry.name == "DELAYED DESCRIPTOR REPLICATION FACTOR"
+        assert len(marker.group) == 1
+        assert marker.group[0].fxy == 12001
 
 
 @pytest.mark.unit

@@ -202,6 +202,27 @@ class ExpandedDescriptor:
 
 
 @dataclass(frozen=True, slots=True)
+class DelayedReplicationMarker:
+    """Marker for a delayed-replication group in the expanded descriptor list.
+
+    When the decoder encounters this marker it must read the replication
+    factor from the data stream (using ``factor_desc``) and then decode
+    the ``group`` sequence that many times.
+
+    Parameters
+    ----------
+    factor_desc : ExpandedDescriptor
+        The Table B descriptor whose value gives the replication count
+        (typically 031001 or 031002).
+    group : tuple[ExpandedDescriptor | DelayedReplicationMarker, ...]
+        The expanded descriptors to repeat.
+    """
+
+    factor_desc: ExpandedDescriptor
+    group: tuple[ExpandedDescriptor | DelayedReplicationMarker, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class DecodedSubset:
     """One decoded BUFR data subset.
 
