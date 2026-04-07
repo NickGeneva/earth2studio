@@ -6,7 +6,7 @@
 
 Usage::
 
-    .venv/bin/python3 recipes/earth2bufrio/tests/generate_eccodes_references.py
+    .venv/bin/python3 recipes/bufr/tests/generate_eccodes_references.py
 
 This script decodes each ``.bufr`` fixture in ``tests/data/`` using
 eccodes and writes a companion ``.eccodes.ref.json`` file with the

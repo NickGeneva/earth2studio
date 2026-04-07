@@ -53,7 +53,7 @@ The Fortran backend wraps NOAA's
 The Fortran backend requires a compiled shared library.  Build it with:
 
 ```bash
-cd recipes/earth2bufrio
+cd recipes/bufr
 make fortran
 ```
 
@@ -124,7 +124,7 @@ PyArrow via [pyo3-arrow](https://docs.rs/pyo3-arrow/).
 ### Building the Rust module
 
 ```bash
-cd recipes/earth2bufrio
+cd recipes/bufr
 make rust
 ```
 
