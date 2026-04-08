@@ -24,6 +24,7 @@ dev = [
     "pytest-cov>=7.0",
     "interrogate>=1.7",
     "pre-commit>=4.0",
+    "s3fs>=2024.2",
 ]
 docs = [
     "sphinx>=9.0,<10",
@@ -49,7 +50,7 @@ target-version = "py311"
 select = ["E", "F", "W", "I", "D", "UP", "N", "B", "A", "C4", "SIM", "TCH", "PTH", "ERA"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "D"]
+"test/**" = ["S101", "D"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
@@ -59,7 +60,7 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["test"]
 addopts = "-v --tb=short"
 markers = [
     "unit: fast isolated unit tests",
@@ -68,6 +69,7 @@ markers = [
     "fortran: tests requiring the Fortran backend (make fortran)",
     "rust: tests requiring the Rust backend (maturin develop)",
     "slow: long-running tests",
+    "e2e: end-to-end tests that download real BUFR data from remote stores",
 ]
 
 [tool.coverage.run]
@@ -92,6 +94,6 @@ ignore-module = true
 ignore-private = true
 ignore-semiprivate = true
 ignore-magic = true
-exclude = ["tests", "docs"]
+exclude = ["test", "docs"]
 color = true
 verbose = 2

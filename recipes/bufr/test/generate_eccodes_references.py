@@ -6,9 +6,9 @@
 
 Usage::
 
-    .venv/bin/python3 recipes/bufr/tests/generate_eccodes_references.py
+    .venv/bin/python3 recipes/bufr/test/generate_eccodes_references.py
 
-This script decodes each ``.bufr`` fixture in ``tests/data/`` using
+This script decodes each ``.bufr`` fixture in ``test/data/`` using
 eccodes and writes a companion ``.eccodes.ref.json`` file with the
 structure::
 

@@ -1,16 +1,16 @@
 .PHONY: lint format test test-cov docs fortran rust
 
 lint:
-	ruff check src/ tests/
+	ruff check src/ test/
 
 format:
-	ruff format src/ tests/
+	ruff format src/ test/
 
 test:
-	pytest tests/ -v
+	pytest test/ -v
 
 test-cov:
-	pytest tests/ -v --cov=earth2bufr --cov-report=term-missing --cov-fail-under=80
+	pytest test/ -v --cov=earth2bufr --cov-report=term-missing --cov-fail-under=80
 
 docs:
 	sphinx-build -b html docs/ docs/_build/html

@@ -6,9 +6,9 @@
 
 Usage::
 
-    python tests/generate_references.py
+    python test/generate_references.py
 
-This script decodes each ``.bufr`` fixture in ``tests/data/`` using
+This script decodes each ``.bufr`` fixture in ``test/data/`` using
 pybufrkit and writes a companion ``.ref.json`` file with the structure::
 
     [

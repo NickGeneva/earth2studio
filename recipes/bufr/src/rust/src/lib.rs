@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use arrow::array::{ArrayRef, Float64Builder, Int32Builder, ListBuilder, ArrayBuilder, StringBuilder};
+use arrow::array::{ArrayRef, Float64Builder, Int32Builder, ListBuilder, StringBuilder};
 use arrow::datatypes::{DataType, Field, Schema};
-use arrow::ffi::FFI_ArrowArray;
 use arrow::record_batch::RecordBatch;
 use pyo3::prelude::*;
-use pyo3_arrow::PyArrowType;
+use pyo3_arrow::PyRecordBatch;
 use rayon::prelude::*;
 use serde::Deserialize;
 
@@ -49,20 +48,32 @@ impl TableSet {
 
         let mut table_b = HashMap::with_capacity(raw_b.len());
         for (key, entry) in raw_b {
-            let fxy: u32 = key.parse().map_err(|e| format!("Bad Table B key {key}: {e}"))?;
-            table_b.insert(fxy, TableBEntry {
-                name: entry.name,
-                units: entry.units,
-                scale: entry.scale,
-                reference_value: entry.reference_value,
-                bit_width: entry.bit_width,
-            });
+            let fxy: u32 = key
+                .parse()
+                .map_err(|e| format!("Bad Table B key {key}: {e}"))?;
+            table_b.insert(
+                fxy,
+                TableBEntry {
+                    name: entry.name,
+                    units: entry.units,
+                    scale: entry.scale,
+                    reference_value: entry.reference_value,
+                    bit_width: entry.bit_width,
+                },
+            );
         }
 
         let mut table_d = HashMap::with_capacity(raw_d.len());
         for (key, members) in raw_d {
-            let fxy: u32 = key.parse().map_err(|e| format!("Bad Table D key {key}: {e}"))?;
-            table_d.insert(fxy, TableDEntry { descriptors: members });
+            let fxy: u32 = key
+                .parse()
+                .map_err(|e| format!("Bad Table D key {key}: {e}"))?;
+            table_d.insert(
+                fxy,
+                TableDEntry {
+                    descriptors: members,
+                },
+            );
         }
 
         Ok(TableSet { table_b, table_d })
@@ -70,17 +81,22 @@ impl TableSet {
 
     /// Merge local table overrides into the base Table B.
     fn merge_local_b(&mut self, local_json: &str) -> Result<(), String> {
-        let raw_local: HashMap<String, TableBEntryJson> =
-            serde_json::from_str(local_json).map_err(|e| format!("Local Table B parse error: {e}"))?;
+        let raw_local: HashMap<String, TableBEntryJson> = serde_json::from_str(local_json)
+            .map_err(|e| format!("Local Table B parse error: {e}"))?;
         for (key, entry) in raw_local {
-            let fxy: u32 = key.parse().map_err(|e| format!("Bad local Table B key {key}: {e}"))?;
-            self.table_b.insert(fxy, TableBEntry {
-                name: entry.name,
-                units: entry.units,
-                scale: entry.scale,
-                reference_value: entry.reference_value,
-                bit_width: entry.bit_width,
-            });
+            let fxy: u32 = key
+                .parse()
+                .map_err(|e| format!("Bad local Table B key {key}: {e}"))?;
+            self.table_b.insert(
+                fxy,
+                TableBEntry {
+                    name: entry.name,
+                    units: entry.units,
+                    scale: entry.scale,
+                    reference_value: entry.reference_value,
+                    bit_width: entry.bit_width,
+                },
+            );
         }
         Ok(())
     }
@@ -227,7 +243,10 @@ fn read_messages(data: &[u8]) -> Result<Vec<BufrMessage>, String> {
 }
 
 fn find_marker(data: &[u8], from: usize) -> Option<usize> {
-    data[from..].windows(4).position(|w| w == BUFR_MARKER).map(|p| from + p)
+    data[from..]
+        .windows(4)
+        .position(|w| w == BUFR_MARKER)
+        .map(|p| from + p)
 }
 
 // ── Section parsing ──────────────────────────────────────────────────
@@ -252,7 +271,8 @@ fn parse_message(msg: &BufrMessage) -> Result<ParsedMessage, String> {
 
     let has_optional = has_optional_section(data, edition);
     if has_optional {
-        let sec2_len = u32::from_be_bytes([0, data[offset], data[offset + 1], data[offset + 2]]) as usize;
+        let sec2_len =
+            u32::from_be_bytes([0, data[offset], data[offset + 1], data[offset + 2]]) as usize;
         offset += sec2_len;
     }
 
@@ -260,7 +280,8 @@ fn parse_message(msg: &BufrMessage) -> Result<ParsedMessage, String> {
         parse_data_description(data, offset)?;
     offset = sec3_end;
 
-    let sec4_len = u32::from_be_bytes([0, data[offset], data[offset + 1], data[offset + 2]]) as usize;
+    let sec4_len =
+        u32::from_be_bytes([0, data[offset], data[offset + 1], data[offset + 2]]) as usize;
     let data_bytes = data[offset + 4..offset + sec4_len].to_vec();
 
     let ident = IdentificationSection {
@@ -278,8 +299,12 @@ fn parse_message(msg: &BufrMessage) -> Result<ParsedMessage, String> {
     })
 }
 
-fn parse_identification_ed4(data: &[u8], offset: &mut usize) -> Result<IdentificationSection, String> {
-    let sec_len = u32::from_be_bytes([0, data[*offset], data[*offset + 1], data[*offset + 2]]) as usize;
+fn parse_identification_ed4(
+    data: &[u8],
+    offset: &mut usize,
+) -> Result<IdentificationSection, String> {
+    let sec_len =
+        u32::from_be_bytes([0, data[*offset], data[*offset + 1], data[*offset + 2]]) as usize;
     let base = *offset + 3;
 
     let center = u16::from_be_bytes([data[base + 1], data[base + 2]]);
@@ -299,13 +324,24 @@ fn parse_identification_ed4(data: &[u8], offset: &mut usize) -> Result<Identific
         data_category: data_cat,
         master_table_version,
         local_table_version,
-        year, month, day, hour, minute, second,
-        num_subsets: 0, observed: false, compressed: false,
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        num_subsets: 0,
+        observed: false,
+        compressed: false,
     })
 }
 
-fn parse_identification_ed3(data: &[u8], offset: &mut usize) -> Result<IdentificationSection, String> {
-    let sec_len = u32::from_be_bytes([0, data[*offset], data[*offset + 1], data[*offset + 2]]) as usize;
+fn parse_identification_ed3(
+    data: &[u8],
+    offset: &mut usize,
+) -> Result<IdentificationSection, String> {
+    let sec_len =
+        u32::from_be_bytes([0, data[*offset], data[*offset + 1], data[*offset + 2]]) as usize;
     let base = *offset + 3;
 
     let center = data[base + 2] as u16;
@@ -313,7 +349,11 @@ fn parse_identification_ed3(data: &[u8], offset: &mut usize) -> Result<Identific
     let master_table_version = data[base + 7];
     let local_table_version = data[base + 8];
     let yoc = data[base + 9];
-    let year = if yoc >= 70 { 1900 + yoc as u16 } else { 2000 + yoc as u16 };
+    let year = if yoc >= 70 {
+        1900 + yoc as u16
+    } else {
+        2000 + yoc as u16
+    };
     let month = data[base + 10];
     let day = data[base + 11];
     let hour = data[base + 12];
@@ -325,13 +365,24 @@ fn parse_identification_ed3(data: &[u8], offset: &mut usize) -> Result<Identific
         data_category: data_cat,
         master_table_version,
         local_table_version,
-        year, month, day, hour, minute, second: 0,
-        num_subsets: 0, observed: false, compressed: false,
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second: 0,
+        num_subsets: 0,
+        observed: false,
+        compressed: false,
     })
 }
 
-fn parse_data_description(data: &[u8], offset: usize) -> Result<(Vec<u32>, u16, bool, bool, usize), String> {
-    let sec_len = u32::from_be_bytes([0, data[offset], data[offset + 1], data[offset + 2]]) as usize;
+fn parse_data_description(
+    data: &[u8],
+    offset: usize,
+) -> Result<(Vec<u32>, u16, bool, bool, usize), String> {
+    let sec_len =
+        u32::from_be_bytes([0, data[offset], data[offset + 1], data[offset + 2]]) as usize;
     let base = offset + 3;
 
     let num_subsets = u16::from_be_bytes([data[base + 1], data[base + 2]]);
@@ -349,7 +400,13 @@ fn parse_data_description(data: &[u8], offset: usize) -> Result<(Vec<u32>, u16, 
         desc_offset += 2;
     }
 
-    Ok((descriptors, num_subsets, observed, compressed, offset + sec_len))
+    Ok((
+        descriptors,
+        num_subsets,
+        observed,
+        compressed,
+        offset + sec_len,
+    ))
 }
 
 fn packed_to_fxy(packed: u16) -> u32 {
@@ -380,7 +437,12 @@ struct OperatorState {
 
 impl Default for OperatorState {
     fn default() -> Self {
-        Self { width_delta: 0, scale_delta: 0, assoc_field_width: 0, bitmap_context: false }
+        Self {
+            width_delta: 0,
+            scale_delta: 0,
+            assoc_field_width: 0,
+            bitmap_context: false,
+        }
     }
 }
 
@@ -411,7 +473,9 @@ fn expand_inner(
     depth: usize,
 ) -> Result<Vec<ExpandedItem>, String> {
     if depth > MAX_DEPTH {
-        return Err(format!("Descriptor expansion exceeded max depth ({MAX_DEPTH})"));
+        return Err(format!(
+            "Descriptor expansion exceeded max depth ({MAX_DEPTH})"
+        ));
     }
 
     let mut result = Vec::new();
@@ -425,7 +489,8 @@ fn expand_inner(
 
         match f {
             0 => {
-                let entry = tables.lookup_b(fxy)
+                let entry = tables
+                    .lookup_b(fxy)
                     .ok_or_else(|| format!("Unknown Table B descriptor: {fxy:06}"))?;
 
                 let mut entry = entry.clone();
@@ -464,7 +529,9 @@ fn expand_inner(
                     let factor_list = expand_inner(&[factor_fxy], tables, state, depth + 1)?;
                     let factor = match factor_list.into_iter().next() {
                         Some(ExpandedItem::Descriptor(d)) => d,
-                        _ => return Err("Delayed replication factor must be Table B element".into()),
+                        _ => {
+                            return Err("Delayed replication factor must be Table B element".into())
+                        }
                     };
                     idx += 1;
 
@@ -487,12 +554,18 @@ fn expand_inner(
             2 => {
                 match x {
                     1 => {
-                        if y == 0 { state.width_delta = 0; }
-                        else { state.width_delta = y as i32 - 128; }
+                        if y == 0 {
+                            state.width_delta = 0;
+                        } else {
+                            state.width_delta = y as i32 - 128;
+                        }
                     }
                     2 => {
-                        if y == 0 { state.scale_delta = 0; }
-                        else { state.scale_delta = y as i32 - 128; }
+                        if y == 0 {
+                            state.scale_delta = 0;
+                        } else {
+                            state.scale_delta = y as i32 - 128;
+                        }
                     }
                     4 => {
                         state.assoc_field_width = y;
@@ -520,7 +593,8 @@ fn expand_inner(
                 idx += 1;
             }
             3 => {
-                let d_entry = tables.lookup_d(fxy)
+                let d_entry = tables
+                    .lookup_d(fxy)
                     .ok_or_else(|| format!("Unknown Table D descriptor: {fxy:06}"))?;
                 let members = d_entry.descriptors.clone();
                 let expanded = expand_inner(&members, tables, state, depth + 1)?;
@@ -568,11 +642,18 @@ fn decode_string(data: &[u8], bit_offset: usize, num_bytes: usize) -> Option<Str
     for i in 0..num_bytes {
         let b = read_bits(data, bit_offset + i * 8, 8) as u8;
         bytes[i] = b;
-        if b != 0xFF { all_ones = false; }
+        if b != 0xFF {
+            all_ones = false;
+        }
     }
-    if all_ones { return None; }
+    if all_ones {
+        return None;
+    }
     let s = String::from_utf8_lossy(&bytes);
-    Some(s.trim_end_matches(|c: char| c == ' ' || c == '\0').to_string())
+    Some(
+        s.trim_end_matches(|c: char| c == ' ' || c == '\0')
+            .to_string(),
+    )
 }
 
 type SubsetValues = Vec<(ExpandedDescriptor, DecodedValue)>;
@@ -617,7 +698,9 @@ fn decode_items_uncompressed(
         match item {
             ExpandedItem::Descriptor(desc) => {
                 let entry = &desc.entry;
-                if entry.bit_width == 0 { continue; }
+                if entry.bit_width == 0 {
+                    continue;
+                }
 
                 if entry.units == "CCITT IA5" {
                     let num_bytes = entry.bit_width as usize / 8;
@@ -680,7 +763,9 @@ fn decode_items_compressed(
         match item {
             ExpandedItem::Descriptor(desc) => {
                 let entry = &desc.entry;
-                if entry.bit_width == 0 { continue; }
+                if entry.bit_width == 0 {
+                    continue;
+                }
 
                 if entry.units == "CCITT IA5" {
                     let num_bytes = entry.bit_width as usize / 8;
@@ -775,7 +860,13 @@ fn decode_items_compressed(
                 }
 
                 for _ in 0..rep_count {
-                    bit_offset = decode_items_compressed(group, data, bit_offset, subset_values.len(), subset_values)?;
+                    bit_offset = decode_items_compressed(
+                        group,
+                        data,
+                        bit_offset,
+                        subset_values.len(),
+                        subset_values,
+                    )?;
                 }
             }
         }
@@ -786,8 +877,15 @@ fn decode_items_compressed(
 // ── Arrow table construction ─────────────────────────────────────────
 
 const FIXED_KEYS: &[&str] = &[
-    "message_type", "message_index", "subset_index",
-    "YEAR", "MNTH", "DAYS", "HOUR", "MINU", "SECO",
+    "message_type",
+    "message_index",
+    "subset_index",
+    "YEAR",
+    "MNTH",
+    "DAYS",
+    "HOUR",
+    "MINU",
+    "SECO",
 ];
 
 fn subsets_to_rows(
@@ -798,7 +896,10 @@ fn subsets_to_rows(
     let mut rows = Vec::with_capacity(subsets.len());
     for (subset_idx, values) in subsets.iter().enumerate() {
         let mut row = DecodedRow::new();
-        row.insert("message_type".into(), RowValue::Str(ident.data_category.to_string()));
+        row.insert(
+            "message_type".into(),
+            RowValue::Str(ident.data_category.to_string()),
+        );
         row.insert("message_index".into(), RowValue::Int(msg_index as i32));
         row.insert("subset_index".into(), RowValue::Int(subset_idx as i32));
         row.insert("YEAR".into(), RowValue::Int(ident.year as i32));
@@ -819,7 +920,9 @@ fn subsets_to_rows(
                                 let prev_v = *prev;
                                 *existing = RowValue::FloatList(vec![prev_v, *v]);
                             }
-                            _ => { row.insert(name.clone(), RowValue::Float(*v)); }
+                            _ => {
+                                row.insert(name.clone(), RowValue::Float(*v));
+                            }
                         }
                     } else {
                         row.insert(name.clone(), RowValue::Float(*v));
@@ -846,21 +949,31 @@ fn rows_to_record_batch(
 ) -> Result<RecordBatch, String> {
     if rows.is_empty() {
         let schema = Arc::new(Schema::new(
-            FIXED_KEYS.iter().map(|k| {
-                if *k == "message_type" {
-                    Field::new(*k, DataType::Utf8, true)
-                } else {
-                    Field::new(*k, DataType::Int32, true)
-                }
-            }).collect::<Vec<_>>()
+            FIXED_KEYS
+                .iter()
+                .map(|k| {
+                    if *k == "message_type" {
+                        Field::new(*k, DataType::Utf8, true)
+                    } else {
+                        Field::new(*k, DataType::Int32, true)
+                    }
+                })
+                .collect::<Vec<_>>(),
         ));
-        return RecordBatch::try_new(schema, FIXED_KEYS.iter().map(|k| -> ArrayRef {
-            if *k == "message_type" {
-                Arc::new(arrow::array::StringArray::from(Vec::<Option<&str>>::new()))
-            } else {
-                Arc::new(arrow::array::Int32Array::from(Vec::<Option<i32>>::new()))
-            }
-        }).collect()).map_err(|e| format!("Arrow error: {e}"));
+        return RecordBatch::try_new(
+            schema,
+            FIXED_KEYS
+                .iter()
+                .map(|k| -> ArrayRef {
+                    if *k == "message_type" {
+                        Arc::new(arrow::array::StringArray::from(Vec::<Option<&str>>::new()))
+                    } else {
+                        Arc::new(arrow::array::Int32Array::from(Vec::<Option<i32>>::new()))
+                    }
+                })
+                .collect(),
+        )
+        .map_err(|e| format!("Arrow error: {e}"));
     }
 
     let mut mnemonic_keys: Vec<String> = Vec::new();
@@ -883,9 +996,18 @@ fn rows_to_record_batch(
         for row in rows {
             if let Some(val) = row.get(key) {
                 match val {
-                    RowValue::Float(_) => { col_types.insert(key.clone(), "float64"); break; }
-                    RowValue::Str(_) => { col_types.insert(key.clone(), "string"); break; }
-                    RowValue::FloatList(_) => { col_types.insert(key.clone(), "list_float64"); break; }
+                    RowValue::Float(_) => {
+                        col_types.insert(key.clone(), "float64");
+                        break;
+                    }
+                    RowValue::Str(_) => {
+                        col_types.insert(key.clone(), "string");
+                        break;
+                    }
+                    RowValue::FloatList(_) => {
+                        col_types.insert(key.clone(), "list_float64");
+                        break;
+                    }
                     RowValue::Null | RowValue::Int(_) => {}
                 }
             }
@@ -920,26 +1042,32 @@ fn rows_to_record_batch(
         }
         match row.get("YEAR") {
             Some(RowValue::Int(v)) => year_builder.append_value(*v),
+            Some(RowValue::Float(v)) => year_builder.append_value(*v as i32),
             _ => year_builder.append_null(),
         }
         match row.get("MNTH") {
             Some(RowValue::Int(v)) => mnth_builder.append_value(*v),
+            Some(RowValue::Float(v)) => mnth_builder.append_value(*v as i32),
             _ => mnth_builder.append_null(),
         }
         match row.get("DAYS") {
             Some(RowValue::Int(v)) => days_builder.append_value(*v),
+            Some(RowValue::Float(v)) => days_builder.append_value(*v as i32),
             _ => days_builder.append_null(),
         }
         match row.get("HOUR") {
             Some(RowValue::Int(v)) => hour_builder.append_value(*v),
+            Some(RowValue::Float(v)) => hour_builder.append_value(*v as i32),
             _ => hour_builder.append_null(),
         }
         match row.get("MINU") {
             Some(RowValue::Int(v)) => minu_builder.append_value(*v),
+            Some(RowValue::Float(v)) => minu_builder.append_value(*v as i32),
             _ => minu_builder.append_null(),
         }
         match row.get("SECO") {
             Some(RowValue::Int(v)) => seco_builder.append_value(*v),
+            Some(RowValue::Float(v)) => seco_builder.append_value(*v as i32),
             _ => seco_builder.append_null(),
         }
     }
@@ -998,7 +1126,9 @@ fn rows_to_record_batch(
                     match row.get(key) {
                         Some(RowValue::FloatList(list)) => {
                             let vals = builder.values();
-                            for v in list { vals.append_value(*v); }
+                            for v in list {
+                                vals.append_value(*v);
+                            }
                             builder.append(true);
                         }
                         Some(RowValue::Float(v)) => {
@@ -1008,7 +1138,11 @@ fn rows_to_record_batch(
                         _ => builder.append_null(),
                     }
                 }
-                fields.push(Field::new(key, DataType::List(Arc::new(Field::new("item", DataType::Float64, true))), true));
+                fields.push(Field::new(
+                    key,
+                    DataType::List(Arc::new(Field::new("item", DataType::Float64, true))),
+                    true,
+                ));
                 arrays.push(Arc::new(builder.finish()));
             }
             _ => {}
@@ -1031,77 +1165,78 @@ fn read_bufr_rust(
     mnemonics: Option<Vec<String>>,
     data_category_filter: Option<i32>,
     local_tables_json: Option<HashMap<String, String>>,
-) -> PyResult<PyArrowType<RecordBatch>> {
+) -> PyResult<PyObject> {
     let base_tables = TableSet::from_json(table_b_json, table_d_json)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
 
-    let raw_data = std::fs::read(file_path)
-        .map_err(|e| pyo3::exceptions::PyIOError::new_err(format!("Cannot read {file_path}: {e}")))?;
+    let raw_data = std::fs::read(file_path).map_err(|e| {
+        pyo3::exceptions::PyIOError::new_err(format!("Cannot read {file_path}: {e}"))
+    })?;
 
     if raw_data.is_empty() {
         let batch = rows_to_record_batch(&[], &mnemonics)
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
-        return Ok(PyArrowType(batch));
+        return PyRecordBatch::new(batch).to_pyarrow(py);
     }
 
-    let messages = read_messages(&raw_data)
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
+    let messages =
+        read_messages(&raw_data).map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
 
-    let result = py.allow_threads(|| {
-        let parsed: Vec<(usize, ParsedMessage)> = messages.iter()
-            .filter_map(|msg| {
-                parse_message(msg).ok().map(|p| (msg.index, p))
-            })
-            .collect();
+    let result = py
+        .allow_threads(|| {
+            let parsed: Vec<(usize, ParsedMessage)> = messages
+                .iter()
+                .filter_map(|msg| parse_message(msg).ok().map(|p| (msg.index, p)))
+                .collect();
 
-        let filtered: Vec<&(usize, ParsedMessage)> = parsed.iter()
-            .filter(|(_, p)| p.identification.data_category != 11)
-            .filter(|(_, p)| {
-                match data_category_filter {
+            let filtered: Vec<&(usize, ParsedMessage)> = parsed
+                .iter()
+                .filter(|(_, p)| p.identification.data_category != 11)
+                .filter(|(_, p)| match data_category_filter {
                     Some(cat) => p.identification.data_category as i32 == cat,
                     None => true,
-                }
-            })
-            .collect();
+                })
+                .collect();
 
-        let all_rows: Vec<DecodedRow> = filtered
-            .par_iter()
-            .flat_map(|(msg_idx, parsed)| {
-                // Build per-message table set with local overrides
-                let mut tables = TableSet {
-                    table_b: base_tables.table_b.clone(),
-                    table_d: base_tables.table_d.clone(),
-                };
-                let centre = parsed.identification.originating_center;
-                let local_ver = parsed.identification.local_table_version;
-                let local_key = format!("{centre}_{local_ver}");
-                if let Some(ref locals) = local_tables_json {
-                    if let Some(local_json) = locals.get(&local_key) {
-                        let _ = tables.merge_local_b(local_json);
+            let all_rows: Vec<DecodedRow> = filtered
+                .par_iter()
+                .flat_map(|(msg_idx, parsed)| {
+                    // Build per-message table set with local overrides
+                    let mut tables = TableSet {
+                        table_b: base_tables.table_b.clone(),
+                        table_d: base_tables.table_d.clone(),
+                    };
+                    let centre = parsed.identification.originating_center;
+                    let local_ver = parsed.identification.local_table_version;
+                    let local_key = format!("{centre}_{local_ver}");
+                    if let Some(ref locals) = local_tables_json {
+                        if let Some(local_json) = locals.get(&local_key) {
+                            let _ = tables.merge_local_b(local_json);
+                        }
                     }
-                }
 
-                let expanded = match expand_descriptors(&parsed.descriptors, &tables) {
-                    Ok(e) => e,
-                    Err(_) => return Vec::new(),
-                };
-                let subsets = match decode(
-                    &expanded,
-                    &parsed.data_bytes,
-                    parsed.identification.num_subsets,
-                    parsed.identification.compressed,
-                ) {
-                    Ok(s) => s,
-                    Err(_) => return Vec::new(),
-                };
-                subsets_to_rows(*msg_idx, &parsed.identification, &subsets)
-            })
-            .collect();
+                    let expanded = match expand_descriptors(&parsed.descriptors, &tables) {
+                        Ok(e) => e,
+                        Err(_) => return Vec::new(),
+                    };
+                    let subsets = match decode(
+                        &expanded,
+                        &parsed.data_bytes,
+                        parsed.identification.num_subsets,
+                        parsed.identification.compressed,
+                    ) {
+                        Ok(s) => s,
+                        Err(_) => return Vec::new(),
+                    };
+                    subsets_to_rows(*msg_idx, &parsed.identification, &subsets)
+                })
+                .collect();
 
-        rows_to_record_batch(&all_rows, &mnemonics)
-    }).map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
+            rows_to_record_batch(&all_rows, &mnemonics)
+        })
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
 
-    Ok(PyArrowType(result))
+    PyRecordBatch::new(result).to_pyarrow(py)
 }
 
 #[pymodule]
