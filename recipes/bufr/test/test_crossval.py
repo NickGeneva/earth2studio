@@ -11,6 +11,7 @@ file with earth2bufr and compare the output value-by-value.
 
 from __future__ import annotations
 
+import gzip
 import json
 from pathlib import Path
 
@@ -53,7 +54,7 @@ def _fixture_ids() -> list[str]:
 
 
 def _load_reference(fname: str) -> list[dict]:
-    """Load the .ref.json for a fixture.
+    """Load the .ref.json (or .ref.json.gz) for a fixture.
 
     Raises
     ------
@@ -62,9 +63,13 @@ def _load_reference(fname: str) -> list[dict]:
         excluded from version control).
     """
     ref_path = DATA_DIR / Path(fname).with_suffix(".ref.json")
-    if not ref_path.exists():
-        pytest.skip(f"Reference file not found: {ref_path.name}")
-    return json.loads(ref_path.read_text(encoding="utf-8"))
+    gz_path = ref_path.with_suffix(".json.gz")
+    if ref_path.exists():
+        return json.loads(ref_path.read_text(encoding="utf-8"))
+    if gz_path.exists():
+        with gzip.open(gz_path, "rt", encoding="utf-8") as f:
+            return json.load(f)
+    pytest.skip(f"Reference file not found: {ref_path.name}")
 
 
 def _decode_with_earth2bufr(

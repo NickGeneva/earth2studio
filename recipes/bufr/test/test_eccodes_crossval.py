@@ -13,6 +13,7 @@ codes as the bridge between the two naming schemes.
 
 from __future__ import annotations
 
+import gzip
 import json
 import math
 from pathlib import Path
@@ -37,8 +38,12 @@ DATA_DIR = Path(__file__).parent / "data"
 _ECCODES_MISSING_THRESHOLD = -1e30
 
 # Known decoder differences tracked but not failing the test.
-# Maps filename -> {(msg_idx, subset_idx, fxy): "reason"}
-_KNOWN_DIFFS: dict[str, dict[tuple[int, int, int], str]] = {
+#
+# Maps filename -> {(msg_idx, subset_idx, fxy): "reason"}.
+# Use ``subset_idx = None`` as a wildcard to match *all* subsets in the
+# message (avoids enumerating hundreds of identical per-subset entries
+# when bitmap operators cause the same list-length mismatch everywhere).
+_KNOWN_DIFFS: dict[str, dict[tuple[int, int | None, int], str]] = {
     "207003.bufr": {
         # earth2bufr compressed-data decoder does not yet differentiate
         # per-subset values for some descriptors; eccodes correctly returns
@@ -49,6 +54,58 @@ _KNOWN_DIFFS: dict[str, dict[tuple[int, int, int], str]] = {
         (0, 0, 14044): "replicated descriptor count differs in compressed data",
         (0, 1, 14044): "replicated descriptor count differs in compressed data",
     },
+    # ── bitmap operator differences ──────────────────────────────────
+    #
+    # g2nd_208 and b005_89 use BUFR data-present bitmap operators
+    # (222/224/236/237).  eccodes "unrolls" bitmap-qualified values back
+    # into the original descriptor's replicated array, inflating its
+    # length.  earth2bufr keeps substituted/QC values as separate
+    # descriptors and does not inflate the original array.
+    #
+    # Both decoders produce correct data; only the list lengths differ
+    # for the descriptors that are targets of bitmap substitution.
+    "g2nd_208.bufr": {
+        # Operators 224 (substituted values) + 236 (define data-present
+        # bitmap).  eccodes inflates these four descriptors' arrays with
+        # bitmap-qualified substituted copies.
+        (0, None, 1033): (
+            "bitmap op 224/236: eccodes unrolls substituted values into "
+            "original array (earth2bufr len=2, eccodes len=3)"
+        ),
+        (0, None, 27001): (
+            "bitmap op 224/236: eccodes unrolls substituted values into "
+            "original array (earth2bufr len=5, eccodes len=72)"
+        ),
+        (0, None, 28001): (
+            "bitmap op 224/236: eccodes unrolls substituted values into "
+            "original array (earth2bufr len=5, eccodes len=72)"
+        ),
+        (0, None, 8090): (
+            "bitmap op 224/236: eccodes unrolls substituted values into "
+            "original array (earth2bufr len=2, eccodes len=19)"
+        ),
+    },
+    "b005_89.bufr": {
+        # Operators 222 (quality info) + 224 (substituted values) +
+        # 236 (define bitmap) + 237 (reuse bitmap).  Same structural
+        # divergence as g2nd_208 but with more bitmap operator types.
+        (0, None, 1031): (
+            "bitmap op 222/224/236/237: eccodes unrolls substituted values "
+            "into original array (earth2bufr len=4, eccodes len=5)"
+        ),
+        (0, None, 12063): (
+            "bitmap op 222/224/236/237: eccodes unrolls substituted values "
+            "into original array (earth2bufr len=6, eccodes len=260)"
+        ),
+        (0, None, 12196): (
+            "bitmap op 222/224/236/237: eccodes unrolls substituted values "
+            "into original array (earth2bufr len=6, eccodes len=260)"
+        ),
+        (0, None, 20193): (
+            "bitmap op 222/224/236/237: eccodes unrolls substituted values "
+            "into original array (earth2bufr len=6, eccodes len=260)"
+        ),
+    },
 }
 
 # Fixtures with known status
@@ -56,36 +113,13 @@ WORKING_FIXTURES = [
     "profiler_european.bufr",
     "207003.bufr",
     "uegabe.bufr",
-]
-
-XFAIL_FIXTURES = [
-    pytest.param(
-        "g2nd_208.bufr",
-        marks=pytest.mark.xfail(
-            reason=(
-                "eccodes unrolls bitmap-qualified data (operators 224/236) "
-                "into repeated descriptor instances; earth2bufr emits "
-                "substituted values as separate descriptors"
-            ),
-            strict=False,
-        ),
-    ),
-    pytest.param(
-        "b005_89.bufr",
-        marks=pytest.mark.xfail(
-            reason=(
-                "eccodes unrolls bitmap-qualified data (operators 222/224/236/237) "
-                "into repeated descriptor instances; earth2bufr emits "
-                "QC/substitution values as separate descriptors"
-            ),
-            strict=False,
-        ),
-    ),
+    "g2nd_208.bufr",
+    "b005_89.bufr",
 ]
 
 
 def _load_eccodes_ref(fname: str) -> dict:
-    """Load the .eccodes.ref.json for a fixture.
+    """Load the .eccodes.ref.json (or .eccodes.ref.json.gz) for a fixture.
 
     Raises
     ------
@@ -95,9 +129,13 @@ def _load_eccodes_ref(fname: str) -> dict:
     """
     stem = Path(fname).stem
     ref_path = DATA_DIR / f"{stem}.eccodes.ref.json"
-    if not ref_path.exists():
-        pytest.skip(f"eccodes reference file not found: {ref_path.name}")
-    return json.loads(ref_path.read_text(encoding="utf-8"))
+    gz_path = DATA_DIR / f"{stem}.eccodes.ref.json.gz"
+    if ref_path.exists():
+        return json.loads(ref_path.read_text(encoding="utf-8"))
+    if gz_path.exists():
+        with gzip.open(gz_path, "rt", encoding="utf-8") as f:
+            return json.load(f)
+    pytest.skip(f"eccodes reference file not found: {ref_path.name}")
 
 
 def _normalize_missing(val: object) -> object:
@@ -230,7 +268,7 @@ def _compare_datetime_fields(
 class TestEccodesCrossval:
     """Cross-validate earth2bufr Python backend output against eccodes."""
 
-    @pytest.mark.parametrize("fname", WORKING_FIXTURES + XFAIL_FIXTURES)
+    @pytest.mark.parametrize("fname", WORKING_FIXTURES)
     def test_crossval_eccodes(self, fname: str) -> None:
         """Compare earth2bufr output against eccodes reference for a fixture."""
         from earth2bufr import read_bufr
@@ -359,7 +397,9 @@ class TestEccodesCrossval:
                     match, detail = _compare_values(e2b_compare_val, ecc_val)
                     if not match:
                         diff_key = (msg_idx, subset_idx, fxy)
-                        known = _KNOWN_DIFFS.get(fname, {}).get(diff_key)
+                        wildcard_key = (msg_idx, None, fxy)
+                        file_diffs = _KNOWN_DIFFS.get(fname, {})
+                        known = file_diffs.get(diff_key) or file_diffs.get(wildcard_key)
                         if known is None:
                             mismatches.append(
                                 f"msg {msg_idx}, subset {subset_idx}, "

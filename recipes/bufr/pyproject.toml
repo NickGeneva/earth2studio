@@ -22,9 +22,17 @@ dev = [
     "ruff>=0.15",
     "pytest>=8.0",
     "pytest-cov>=7.0",
+    "pytest-timeout>=2.3",
     "interrogate>=1.7",
     "pre-commit>=4.0",
+]
+test = [
+    "earth2bufr[dev]",
+    "eccodes>=2.39",
+    "pybufrkit>=0.2",
     "s3fs>=2024.2",
+    "numpy>=1.24",
+    "maturin>=1.5",
 ]
 docs = [
     "sphinx>=9.0,<10",
