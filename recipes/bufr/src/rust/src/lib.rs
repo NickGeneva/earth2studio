@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use arrow::array::{ArrayRef, Float64Builder, Int32Builder, ListBuilder, StringBuilder};
 use arrow::datatypes::{DataType, Field, Schema};
@@ -35,7 +35,7 @@ struct TableDEntry {
 }
 
 struct TableSet {
-    table_b: HashMap<u32, TableBEntry>,
+    table_b: HashMap<u32, Arc<TableBEntry>>,
     table_d: HashMap<u32, TableDEntry>,
 }
 
@@ -53,13 +53,13 @@ impl TableSet {
                 .map_err(|e| format!("Bad Table B key {key}: {e}"))?;
             table_b.insert(
                 fxy,
-                TableBEntry {
+                Arc::new(TableBEntry {
                     name: entry.name,
                     units: entry.units,
                     scale: entry.scale,
                     reference_value: entry.reference_value,
                     bit_width: entry.bit_width,
-                },
+                }),
             );
         }
 
@@ -89,19 +89,19 @@ impl TableSet {
                 .map_err(|e| format!("Bad local Table B key {key}: {e}"))?;
             self.table_b.insert(
                 fxy,
-                TableBEntry {
+                Arc::new(TableBEntry {
                     name: entry.name,
                     units: entry.units,
                     scale: entry.scale,
                     reference_value: entry.reference_value,
                     bit_width: entry.bit_width,
-                },
+                }),
             );
         }
         Ok(())
     }
 
-    fn lookup_b(&self, fxy: u32) -> Option<&TableBEntry> {
+    fn lookup_b(&self, fxy: u32) -> Option<&Arc<TableBEntry>> {
         self.table_b.get(&fxy)
     }
 
@@ -111,11 +111,21 @@ impl TableSet {
 }
 
 // ── BUFR message types ───────────────────────────────────────────────
+// Optimization 2: Zero-copy message slicing — store Arc<[u8]> shared
+// buffer with offset/length instead of copying per message.
 
 struct BufrMessage {
-    data: Vec<u8>,
-    offset: usize,
+    buffer: Arc<[u8]>,
+    start: usize,
+    len: usize,
     index: usize,
+}
+
+impl BufrMessage {
+    #[inline]
+    fn data(&self) -> &[u8] {
+        &self.buffer[self.start..self.start + self.len]
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -141,19 +151,33 @@ struct IdentificationSection {
     compressed: bool,
 }
 
+// Optimization 2 continued: ParsedMessage holds a slice view into the
+// shared buffer for data_bytes instead of owning a Vec<u8>.
 struct ParsedMessage {
     indicator: IndicatorSection,
     identification: IdentificationSection,
     descriptors: Vec<u32>,
-    data_bytes: Vec<u8>,
+    /// Shared reference to the original file buffer.
+    data_buffer: Arc<[u8]>,
+    /// Byte range within `data_buffer` that contains Section 4 data.
+    data_start: usize,
+    data_end: usize,
+}
+
+impl ParsedMessage {
+    #[inline]
+    fn data_bytes(&self) -> &[u8] {
+        &self.data_buffer[self.data_start..self.data_end]
+    }
 }
 
 // ── Expanded descriptor types ────────────────────────────────────────
+// Optimization 3: Arc<TableBEntry> — clone a pointer, not two Strings.
 
 #[derive(Debug, Clone)]
 struct ExpandedDescriptor {
     fxy: u32,
-    entry: TableBEntry,
+    entry: Arc<TableBEntry>,
 }
 
 #[derive(Debug, Clone)]
@@ -186,18 +210,19 @@ enum RowValue {
 }
 
 // ── Message reader ───────────────────────────────────────────────────
+// Optimization 2: Messages share a single Arc<[u8]> buffer.
 
 const BUFR_MARKER: &[u8] = b"BUFR";
 const END_MARKER: &[u8] = b"7777";
 
-fn read_messages(data: &[u8]) -> Result<Vec<BufrMessage>, String> {
+fn read_messages(data: Arc<[u8]>) -> Result<Vec<BufrMessage>, String> {
     let mut messages = Vec::new();
     let mut pos = 0;
     let mut counter = 0usize;
     let len = data.len();
 
     while pos < len {
-        let start = match find_marker(data, pos) {
+        let start = match find_marker(&data, pos) {
             Some(s) => s,
             None => break,
         };
@@ -230,8 +255,9 @@ fn read_messages(data: &[u8]) -> Result<Vec<BufrMessage>, String> {
         }
 
         messages.push(BufrMessage {
-            data: data[start..start + msg_len].to_vec(),
-            offset: start,
+            buffer: Arc::clone(&data),
+            start,
+            len: msg_len,
             index: counter,
         });
 
@@ -252,7 +278,7 @@ fn find_marker(data: &[u8], from: usize) -> Option<usize> {
 // ── Section parsing ──────────────────────────────────────────────────
 
 fn parse_message(msg: &BufrMessage) -> Result<ParsedMessage, String> {
-    let data = &msg.data;
+    let data = msg.data();
 
     if data.len() < 8 || &data[0..4] != BUFR_MARKER {
         return Err("Missing BUFR magic bytes".into());
@@ -282,7 +308,10 @@ fn parse_message(msg: &BufrMessage) -> Result<ParsedMessage, String> {
 
     let sec4_len =
         u32::from_be_bytes([0, data[offset], data[offset + 1], data[offset + 2]]) as usize;
-    let data_bytes = data[offset + 4..offset + sec4_len].to_vec();
+
+    // Optimization 2: store a slice view instead of copying data_bytes
+    let abs_data_start = msg.start + offset + 4;
+    let abs_data_end = msg.start + offset + sec4_len;
 
     let ident = IdentificationSection {
         num_subsets,
@@ -295,7 +324,9 @@ fn parse_message(msg: &BufrMessage) -> Result<ParsedMessage, String> {
         indicator,
         identification: ident,
         descriptors,
-        data_bytes,
+        data_buffer: Arc::clone(&msg.buffer),
+        data_start: abs_data_start,
+        data_end: abs_data_end,
     })
 }
 
@@ -449,16 +480,20 @@ impl Default for OperatorState {
 /// Synthetic zero-bit-width Table B entry used for F=2 operator markers
 /// (operators 222-237).  The decoder sees these in the expanded list but
 /// skips them because `bit_width == 0`.
-const OPERATOR_MARKER_NAME: &str = "OPERATOR MARKER";
+static OPERATOR_MARKER_ENTRY: OnceLock<Arc<TableBEntry>> = OnceLock::new();
 
-fn make_operator_marker_entry() -> TableBEntry {
-    TableBEntry {
-        name: OPERATOR_MARKER_NAME.into(),
-        units: "NUMERIC".into(),
-        scale: 0,
-        reference_value: 0,
-        bit_width: 0,
-    }
+fn get_operator_marker_entry() -> Arc<TableBEntry> {
+    OPERATOR_MARKER_ENTRY
+        .get_or_init(|| {
+            Arc::new(TableBEntry {
+                name: "OPERATOR MARKER".into(),
+                units: "NUMERIC".into(),
+                scale: 0,
+                reference_value: 0,
+                bit_width: 0,
+            })
+        })
+        .clone()
 }
 
 fn expand_descriptors(raw_ids: &[u32], tables: &TableSet) -> Result<Vec<ExpandedItem>, String> {
@@ -489,24 +524,29 @@ fn expand_inner(
 
         match f {
             0 => {
+                // Optimization 3: Arc<TableBEntry> — cheap clone
                 let entry = tables
                     .lookup_b(fxy)
                     .ok_or_else(|| format!("Unknown Table B descriptor: {fxy:06}"))?;
 
-                let mut entry = entry.clone();
-                if state.width_delta != 0 || state.scale_delta != 0 {
-                    entry.scale += state.scale_delta;
-                    entry.bit_width = (entry.bit_width as i32 + state.width_delta) as u32;
-                }
+                let entry = if state.width_delta != 0 || state.scale_delta != 0 {
+                    // Must create a modified copy (rare path)
+                    let mut modified = (**entry).clone();
+                    modified.scale += state.scale_delta;
+                    modified.bit_width = (modified.bit_width as i32 + state.width_delta) as u32;
+                    Arc::new(modified)
+                } else {
+                    Arc::clone(entry)
+                };
 
                 if state.assoc_field_width > 0 && x != 31 {
-                    let assoc = TableBEntry {
+                    let assoc = Arc::new(TableBEntry {
                         name: "ASSOCIATED FIELD".into(),
                         units: "CODE TABLE".into(),
                         scale: 0,
                         reference_value: 0,
                         bit_width: state.assoc_field_width,
-                    };
+                    });
                     result.push(ExpandedItem::Descriptor(ExpandedDescriptor {
                         fxy: 999999,
                         entry: assoc,
@@ -585,7 +625,7 @@ fn expand_inner(
                         // Emit a zero-width synthetic descriptor as a passthrough marker.
                         result.push(ExpandedItem::Descriptor(ExpandedDescriptor {
                             fxy,
-                            entry: make_operator_marker_entry(),
+                            entry: get_operator_marker_entry(),
                         }));
                     }
                     _ => {}
@@ -611,15 +651,66 @@ fn expand_inner(
 }
 
 // ── Bit-level decoder ────────────────────────────────────────────────
+// Optimization 1: Fast read_bits — constant-time byte-aligned u64
+// extraction instead of bit-at-a-time loop.
 
+/// Read `num_bits` (1..=64) from `data` starting at `bit_offset`.
+/// Uses a wide read from the aligned byte position and shift/mask.
+#[inline]
 fn read_bits(data: &[u8], bit_offset: usize, num_bits: u32) -> u64 {
-    let mut result: u64 = 0;
-    for i in 0..num_bits as usize {
-        let byte_idx = (bit_offset + i) / 8;
-        let bit_idx = (bit_offset + i) % 8;
-        result = (result << 1) | ((data[byte_idx] >> (7 - bit_idx)) & 1) as u64;
+    debug_assert!(num_bits > 0 && num_bits <= 64);
+
+    let byte_idx = bit_offset / 8;
+    let bit_idx = bit_offset % 8; // 0..7 bits into the first byte
+    let total_bits_needed = bit_idx + num_bits as usize;
+    let bytes_needed = (total_bits_needed + 7) / 8; // 1..9
+
+    // Accumulate bytes into a u64/u128, MSB-first.
+    // For up to 8 bytes we can fit in u64; when bit_idx > 0 and
+    // num_bits is large we may need up to 9 bytes — use u128.
+    let mut acc: u128 = 0;
+    let available = data.len() - byte_idx;
+    let safe_bytes = bytes_needed.min(available);
+    for i in 0..safe_bytes {
+        acc = (acc << 8) | data[byte_idx + i] as u128;
     }
-    result
+    // If data is short (shouldn't happen in valid BUFR), pad with zeros
+    for _ in safe_bytes..bytes_needed {
+        acc <<= 8;
+    }
+
+    // The value sits in the top portion; shift right to align and mask.
+    let shift = bytes_needed * 8 - total_bits_needed;
+    let mask = if num_bits == 64 {
+        u64::MAX
+    } else {
+        (1u64 << num_bits) - 1
+    };
+    ((acc >> shift) as u64) & mask
+}
+
+/// Read bits from a pre-padded buffer using pure u64 operations.
+/// The caller guarantees `padded` has 8 extra zero bytes appended so
+/// we can always read 8 bytes safely.
+#[inline]
+fn read_bits_fast(padded: &[u8], bit_offset: usize, num_bits: u32) -> u64 {
+    debug_assert!(num_bits > 0 && num_bits <= 57);
+    let byte_idx = bit_offset / 8;
+    let bit_idx = bit_offset & 7;
+    // Safe because padded has 8 trailing zero bytes
+    let raw = u64::from_be_bytes([
+        padded[byte_idx],
+        padded[byte_idx + 1],
+        padded[byte_idx + 2],
+        padded[byte_idx + 3],
+        padded[byte_idx + 4],
+        padded[byte_idx + 5],
+        padded[byte_idx + 6],
+        padded[byte_idx + 7],
+    ]);
+    let shift = 64 - bit_idx - num_bits as usize;
+    let mask = (1u64 << num_bits) - 1;
+    (raw >> shift) & mask
 }
 
 fn is_missing(raw: u64, num_bits: u32) -> bool {
@@ -636,11 +727,12 @@ fn decode_value(raw: u64, entry: &TableBEntry) -> Option<f64> {
     Some((raw as f64 + entry.reference_value as f64) / 10f64.powi(entry.scale))
 }
 
-fn decode_string(data: &[u8], bit_offset: usize, num_bytes: usize) -> Option<String> {
+/// Decode a CCITT IA5 string from the padded bit buffer.
+fn decode_string(padded: &[u8], bit_offset: usize, num_bytes: usize) -> Option<String> {
     let mut bytes = vec![0u8; num_bytes];
     let mut all_ones = true;
     for i in 0..num_bytes {
-        let b = read_bits(data, bit_offset + i * 8, 8) as u8;
+        let b = read_bits_fast(padded, bit_offset + i * 8, 8) as u8;
         bytes[i] = b;
         if b != 0xFF {
             all_ones = false;
@@ -658,22 +750,32 @@ fn decode_string(data: &[u8], bit_offset: usize, num_bytes: usize) -> Option<Str
 
 type SubsetValues = Vec<(ExpandedDescriptor, DecodedValue)>;
 
+/// Create a padded buffer: original data + 8 zero bytes for safe u64 reads.
+#[inline]
+fn make_padded(data: &[u8]) -> Vec<u8> {
+    let mut padded = Vec::with_capacity(data.len() + 8);
+    padded.extend_from_slice(data);
+    padded.extend_from_slice(&[0u8; 8]);
+    padded
+}
+
 fn decode(
     expanded: &[ExpandedItem],
     data_bytes: &[u8],
     num_subsets: u16,
     compressed: bool,
 ) -> Result<Vec<SubsetValues>, String> {
+    let padded = make_padded(data_bytes);
     if compressed {
-        decode_compressed(expanded, data_bytes, num_subsets)
+        decode_compressed(expanded, &padded, num_subsets)
     } else {
-        decode_uncompressed(expanded, data_bytes, num_subsets)
+        decode_uncompressed(expanded, &padded, num_subsets)
     }
 }
 
 fn decode_uncompressed(
     expanded: &[ExpandedItem],
-    data_bytes: &[u8],
+    padded: &[u8],
     num_subsets: u16,
 ) -> Result<Vec<SubsetValues>, String> {
     let mut subsets = Vec::with_capacity(num_subsets as usize);
@@ -681,7 +783,7 @@ fn decode_uncompressed(
 
     for _ in 0..num_subsets {
         let mut values = Vec::new();
-        bit_offset = decode_items_uncompressed(expanded, data_bytes, bit_offset, &mut values)?;
+        bit_offset = decode_items_uncompressed(expanded, padded, bit_offset, &mut values)?;
         subsets.push(values);
     }
 
@@ -690,7 +792,7 @@ fn decode_uncompressed(
 
 fn decode_items_uncompressed(
     items: &[ExpandedItem],
-    data: &[u8],
+    padded: &[u8],
     mut bit_offset: usize,
     values: &mut SubsetValues,
 ) -> Result<usize, String> {
@@ -704,7 +806,7 @@ fn decode_items_uncompressed(
 
                 if entry.units == "CCITT IA5" {
                     let num_bytes = entry.bit_width as usize / 8;
-                    let val = decode_string(data, bit_offset, num_bytes);
+                    let val = decode_string(padded, bit_offset, num_bytes);
                     let dv = match val {
                         Some(s) => DecodedValue::Str(s),
                         None => DecodedValue::Missing,
@@ -712,7 +814,11 @@ fn decode_items_uncompressed(
                     values.push((desc.clone(), dv));
                     bit_offset += entry.bit_width as usize;
                 } else {
-                    let raw = read_bits(data, bit_offset, entry.bit_width);
+                    let raw = if entry.bit_width <= 57 {
+                        read_bits_fast(padded, bit_offset, entry.bit_width)
+                    } else {
+                        read_bits(padded, bit_offset, entry.bit_width)
+                    };
                     bit_offset += entry.bit_width as usize;
                     let dv = match decode_value(raw, entry) {
                         Some(v) => DecodedValue::Float(v),
@@ -723,7 +829,11 @@ fn decode_items_uncompressed(
             }
             ExpandedItem::DelayedReplication { factor, group } => {
                 let entry = &factor.entry;
-                let raw = read_bits(data, bit_offset, entry.bit_width);
+                let raw = if entry.bit_width <= 57 {
+                    read_bits_fast(padded, bit_offset, entry.bit_width)
+                } else {
+                    read_bits(padded, bit_offset, entry.bit_width)
+                };
                 bit_offset += entry.bit_width as usize;
                 let factor_val = match decode_value(raw, entry) {
                     Some(v) => DecodedValue::Float(v),
@@ -733,7 +843,7 @@ fn decode_items_uncompressed(
 
                 let rep_count = (raw as i64 + entry.reference_value) as usize;
                 for _ in 0..rep_count {
-                    bit_offset = decode_items_uncompressed(group, data, bit_offset, values)?;
+                    bit_offset = decode_items_uncompressed(group, padded, bit_offset, values)?;
                 }
             }
         }
@@ -743,18 +853,18 @@ fn decode_items_uncompressed(
 
 fn decode_compressed(
     expanded: &[ExpandedItem],
-    data_bytes: &[u8],
+    padded: &[u8],
     num_subsets: u16,
 ) -> Result<Vec<SubsetValues>, String> {
     let ns = num_subsets as usize;
     let mut subset_values: Vec<SubsetValues> = (0..ns).map(|_| Vec::new()).collect();
-    decode_items_compressed(expanded, data_bytes, 0, ns, &mut subset_values)?;
+    decode_items_compressed(expanded, padded, 0, ns, &mut subset_values)?;
     Ok(subset_values)
 }
 
 fn decode_items_compressed(
     items: &[ExpandedItem],
-    data: &[u8],
+    padded: &[u8],
     mut bit_offset: usize,
     num_subsets: usize,
     subset_values: &mut [SubsetValues],
@@ -769,12 +879,14 @@ fn decode_items_compressed(
 
                 if entry.units == "CCITT IA5" {
                     let num_bytes = entry.bit_width as usize / 8;
-                    let r0 = decode_string(data, bit_offset, num_bytes);
+                    let r0 = decode_string(padded, bit_offset, num_bytes);
                     bit_offset += entry.bit_width as usize;
 
-                    let nbinc = read_bits(data, bit_offset, 6) as usize;
+                    let nbinc = read_bits_fast(padded, bit_offset, 6) as usize;
                     bit_offset += 6;
 
+                    // Optimization 6: for nbinc==0, build the DecodedValue once
+                    // and push clones.
                     if nbinc == 0 {
                         let dv = match &r0 {
                             Some(s) => DecodedValue::Str(s.clone()),
@@ -785,7 +897,7 @@ fn decode_items_compressed(
                         }
                     } else {
                         for sv in subset_values.iter_mut() {
-                            let val = decode_string(data, bit_offset, nbinc);
+                            let val = decode_string(padded, bit_offset, nbinc);
                             bit_offset += nbinc * 8;
                             let dv = match val {
                                 Some(s) => DecodedValue::Str(s),
@@ -795,12 +907,18 @@ fn decode_items_compressed(
                         }
                     }
                 } else {
-                    let r0 = read_bits(data, bit_offset, entry.bit_width);
-                    bit_offset += entry.bit_width as usize;
+                    let bw = entry.bit_width;
+                    let r0 = if bw <= 57 {
+                        read_bits_fast(padded, bit_offset, bw)
+                    } else {
+                        read_bits(padded, bit_offset, bw)
+                    };
+                    bit_offset += bw as usize;
 
-                    let nbinc = read_bits(data, bit_offset, 6) as u32;
+                    let nbinc = read_bits_fast(padded, bit_offset, 6) as u32;
                     bit_offset += 6;
 
+                    // Optimization 6: for nbinc==0 build value once
                     if nbinc == 0 {
                         let dv = match decode_value(r0, entry) {
                             Some(v) => DecodedValue::Float(v),
@@ -811,7 +929,11 @@ fn decode_items_compressed(
                         }
                     } else {
                         for sv in subset_values.iter_mut() {
-                            let increment = read_bits(data, bit_offset, nbinc);
+                            let increment = if nbinc <= 57 {
+                                read_bits_fast(padded, bit_offset, nbinc)
+                            } else {
+                                read_bits(padded, bit_offset, nbinc)
+                            };
                             bit_offset += nbinc as usize;
                             if is_missing(increment, nbinc) {
                                 sv.push((desc.clone(), DecodedValue::Missing));
@@ -829,10 +951,15 @@ fn decode_items_compressed(
             }
             ExpandedItem::DelayedReplication { factor, group } => {
                 let entry = &factor.entry;
-                let r0 = read_bits(data, bit_offset, entry.bit_width);
-                bit_offset += entry.bit_width as usize;
+                let bw = entry.bit_width;
+                let r0 = if bw <= 57 {
+                    read_bits_fast(padded, bit_offset, bw)
+                } else {
+                    read_bits(padded, bit_offset, bw)
+                };
+                bit_offset += bw as usize;
 
-                let nbinc = read_bits(data, bit_offset, 6) as u32;
+                let nbinc = read_bits_fast(padded, bit_offset, 6) as u32;
                 bit_offset += 6;
 
                 let factor_val = match decode_value(r0, entry) {
@@ -848,7 +975,11 @@ fn decode_items_compressed(
                     }
                 } else {
                     for sv in subset_values.iter_mut() {
-                        let inc = read_bits(data, bit_offset, nbinc);
+                        let inc = if nbinc <= 57 {
+                            read_bits_fast(padded, bit_offset, nbinc)
+                        } else {
+                            read_bits(padded, bit_offset, nbinc)
+                        };
                         bit_offset += nbinc as usize;
                         let combined = r0 + inc;
                         let dv = match decode_value(combined, entry) {
@@ -862,7 +993,7 @@ fn decode_items_compressed(
                 for _ in 0..rep_count {
                     bit_offset = decode_items_compressed(
                         group,
-                        data,
+                        padded,
                         bit_offset,
                         subset_values.len(),
                         subset_values,
@@ -1096,7 +1227,7 @@ fn rows_to_record_batch(
     ];
 
     for key in &mnemonic_keys {
-        let col_type = col_types.get(key).map(|s| *s).unwrap_or("float64");
+        let col_type = col_types.get(key).copied().unwrap_or("float64");
         match col_type {
             "float64" => {
                 let mut builder = Float64Builder::with_capacity(n);
@@ -1154,6 +1285,37 @@ fn rows_to_record_batch(
 }
 
 // ── PyO3 entry point ─────────────────────────────────────────────────
+// Optimization 7: Cache parsed TableSet in a global OnceLock keyed by
+// (table_b_json hash, table_d_json hash) so repeated calls skip serde.
+
+/// FNV-1a 64-bit hash — fast, no-alloc.
+fn fnv1a(data: &[u8]) -> u64 {
+    let mut h: u64 = 0xcbf29ce484222325;
+    for &b in data {
+        h ^= b as u64;
+        h = h.wrapping_mul(0x100000001b3);
+    }
+    h
+}
+
+static CACHED_TABLES: OnceLock<(u64, u64, Arc<TableSet>)> = OnceLock::new();
+
+fn get_or_parse_tables(table_b_json: &str, table_d_json: &str) -> Result<Arc<TableSet>, String> {
+    let b_hash = fnv1a(table_b_json.as_bytes());
+    let d_hash = fnv1a(table_d_json.as_bytes());
+
+    if let Some((cb, cd, cached)) = CACHED_TABLES.get() {
+        if *cb == b_hash && *cd == d_hash {
+            return Ok(Arc::clone(cached));
+        }
+    }
+
+    let ts = TableSet::from_json(table_b_json, table_d_json)?;
+    let arc = Arc::new(ts);
+    // Best-effort cache; first call wins with OnceLock
+    let _ = CACHED_TABLES.set((b_hash, d_hash, Arc::clone(&arc)));
+    Ok(arc)
+}
 
 #[pyfunction]
 #[pyo3(signature = (file_path, table_b_json, table_d_json, mnemonics=None, data_category_filter=None, local_tables_json=None))]
@@ -1166,7 +1328,8 @@ fn read_bufr_rust(
     data_category_filter: Option<i32>,
     local_tables_json: Option<HashMap<String, String>>,
 ) -> PyResult<PyObject> {
-    let base_tables = TableSet::from_json(table_b_json, table_d_json)
+    // Optimization 7: cache parsed tables
+    let base_tables = get_or_parse_tables(table_b_json, table_d_json)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
 
     let raw_data = std::fs::read(file_path).map_err(|e| {
@@ -1179,8 +1342,11 @@ fn read_bufr_rust(
         return PyRecordBatch::new(batch).to_pyarrow(py);
     }
 
-    let messages =
-        read_messages(&raw_data).map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
+    // Optimization 2: wrap raw_data in Arc<[u8]> for zero-copy sharing
+    let shared_data: Arc<[u8]> = raw_data.into();
+
+    let messages = read_messages(Arc::clone(&shared_data))
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
 
     let result = py
         .allow_threads(|| {
@@ -1198,30 +1364,48 @@ fn read_bufr_rust(
                 })
                 .collect();
 
+            // Optimization 4: share base_tables via Arc, only clone
+            // HashMap when local table overrides are needed.
             let all_rows: Vec<DecodedRow> = filtered
                 .par_iter()
                 .flat_map(|(msg_idx, parsed)| {
-                    // Build per-message table set with local overrides
-                    let mut tables = TableSet {
-                        table_b: base_tables.table_b.clone(),
-                        table_d: base_tables.table_d.clone(),
-                    };
                     let centre = parsed.identification.originating_center;
                     let local_ver = parsed.identification.local_table_version;
                     let local_key = format!("{centre}_{local_ver}");
-                    if let Some(ref locals) = local_tables_json {
-                        if let Some(local_json) = locals.get(&local_key) {
-                            let _ = tables.merge_local_b(local_json);
+
+                    let needs_local = local_tables_json
+                        .as_ref()
+                        .map(|locals| locals.contains_key(&local_key))
+                        .unwrap_or(false);
+
+                    // Only clone tables when local overrides are needed
+                    let local_ts: Option<TableSet>;
+                    let tables: &TableSet;
+                    if needs_local {
+                        let mut ts = TableSet {
+                            table_b: base_tables.table_b.clone(),
+                            table_d: base_tables.table_d.clone(),
+                        };
+                        if let Some(ref locals) = local_tables_json {
+                            if let Some(local_json) = locals.get(&local_key) {
+                                let _ = ts.merge_local_b(local_json);
+                            }
                         }
+                        local_ts = Some(ts);
+                        tables = local_ts.as_ref().unwrap();
+                    } else {
+                        local_ts = None;
+                        let _ = &local_ts; // suppress unused warning
+                        tables = base_tables.as_ref();
                     }
 
-                    let expanded = match expand_descriptors(&parsed.descriptors, &tables) {
+                    let expanded = match expand_descriptors(&parsed.descriptors, tables) {
                         Ok(e) => e,
                         Err(_) => return Vec::new(),
                     };
                     let subsets = match decode(
                         &expanded,
-                        &parsed.data_bytes,
+                        parsed.data_bytes(),
                         parsed.identification.num_subsets,
                         parsed.identification.compressed,
                     ) {
