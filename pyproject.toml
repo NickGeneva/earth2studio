@@ -73,7 +73,7 @@ data = [
     "rioxarray>=0.15.5",
     "pyproj>=3.7.1", # TODO: pygrib imports this, so technically in core, to check
     "scipy>=1.15.2",
-    "multi-storage-client[boto3,google-cloud-storage,fsspec]>=0.33.0",
+    "multi-storage-client[boto3,google-cloud-storage,fsspec]>=0.33.0 ; python_version < '3.14'",
     "eumdac>=3.1.0",
 ]
 perturbation = [
@@ -109,7 +109,7 @@ serve = [
     "urllib3>=1.26.0",
     # Object storage related
     "cryptography>=41.0.0",
-    "multi-storage-client>=0.44.0",
+    "multi-storage-client>=0.44.0 ; python_version < '3.14'",
     "azure-storage-blob>=12.19.0",
     "azure-identity>=1.15.0",
 ]
