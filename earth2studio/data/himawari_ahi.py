@@ -37,7 +37,7 @@ from earth2studio.data.utils import (
     managed_session,
     prep_data_inputs,
 )
-from earth2studio.lexicon import HimawariLexicon
+from earth2studio.lexicon import HimawariAHILexicon
 from earth2studio.utils.type import TimeArray, VariableArray
 
 # ISatSS L2 Full Disk tile layout:
@@ -47,28 +47,6 @@ from earth2studio.utils.type import TimeArray, VariableArray
 # ``tile_row_offset`` and ``tile_column_offset`` attributes.
 FULL_DISK_PIXELS = 5500
 TILE_SIZE = 550
-
-# Channel resolution mapping (ISatSS filename prefix)
-# C01: 1km (010), C02: 1km (010), C03: 0.5km (005), C04: 1km (010)
-# C05-C16: 2km (020)
-CHANNEL_RESOLUTION: dict[str, str] = {
-    "M1C01": "010",
-    "M1C02": "010",
-    "M1C03": "005",
-    "M1C04": "010",
-    "M1C05": "020",
-    "M1C06": "020",
-    "M1C07": "020",
-    "M1C08": "020",
-    "M1C09": "020",
-    "M1C10": "020",
-    "M1C11": "020",
-    "M1C12": "020",
-    "M1C13": "020",
-    "M1C14": "020",
-    "M1C15": "020",
-    "M1C16": "020",
-}
 
 # Downsample factor from native resolution to 2km output grid.
 # Higher-res channels need block averaging to produce 550x550 tiles.
@@ -184,26 +162,6 @@ TILE_OFFSETS_2KM: dict[int, tuple[int, int]] = {
     86: (4950, 2750),
     87: (4950, 3300),
     88: (4950, 3850),
-}
-
-# Bit depth per channel (ISatSS filename encoding)
-CHANNEL_BITS: dict[str, str] = {
-    "M1C01": "B11",
-    "M1C02": "B11",
-    "M1C03": "B11",
-    "M1C04": "B11",
-    "M1C05": "B14",
-    "M1C06": "B14",
-    "M1C07": "B14",
-    "M1C08": "B14",
-    "M1C09": "B14",
-    "M1C10": "B14",
-    "M1C11": "B14",
-    "M1C12": "B14",
-    "M1C13": "B14",
-    "M1C14": "B14",
-    "M1C15": "B14",
-    "M1C16": "B14",
 }
 
 
@@ -584,7 +542,7 @@ class HimawariAHI:
 
             for j, v in enumerate(variable):
                 try:
-                    channel_id, modifier = HimawariLexicon[v]  # type: ignore[misc]
+                    channel_id, modifier = HimawariAHILexicon[v]  # type: ignore[misc]
                 except KeyError:
                     logger.warning(
                         f"Variable {v} not found in Himawari lexicon, skipping"
@@ -856,6 +814,9 @@ class HimawariAHI:
     ) -> bool:
         """Check if given date time is available in the Himawari object store.
 
+        Performs a lightweight S3 listing to verify that data files actually
+        exist for the requested time, accounting for potential data gaps.
+
         Parameters
         ----------
         time : datetime | np.datetime64
@@ -892,7 +853,22 @@ class HimawariAHI:
         ):
             return False
 
-        return True
+        # Verify data actually exists in S3 (handles outages / data gaps)
+        fs = s3fs.S3FileSystem(anon=True)
+        base_dir = cls.BASE_URL.format(
+            satellite=satellite,
+            year=time.year,
+            month=time.month,
+            day=time.day,
+            hour=time.hour,
+            minute=time.minute,
+        )
+        try:
+            files = fs.ls(base_dir)
+        except FileNotFoundError:
+            return False
+
+        return len(files) > 0
 
     @classmethod
     def grid(cls) -> tuple[np.ndarray, np.ndarray]:

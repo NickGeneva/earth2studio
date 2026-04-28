@@ -143,7 +143,11 @@ def test_himawari_cache(time, variable, cache):
 )
 def test_himawari_available(satellite, time, expected):
     """Test Himawari availability checks."""
-    assert HimawariAHI.available(time, satellite=satellite) == expected
+    with patch("earth2studio.data.himawari_ahi.s3fs.S3FileSystem") as mock_fs_cls:
+        mock_fs = mock_fs_cls.return_value
+        # Valid times: simulate files present; invalid times won't reach S3
+        mock_fs.ls.return_value = ["some_file.nc"]
+        assert HimawariAHI.available(time, satellite=satellite) == expected
 
 
 @pytest.mark.timeout(15)
@@ -189,11 +193,34 @@ def test_himawari_grid():
 @pytest.mark.timeout(5)
 def test_himawari_numpy_datetime_available():
     """Test availability with numpy datetime64."""
-    time = np.datetime64("2024-06-15T00:00:00")
-    assert HimawariAHI.available(time, satellite="himawari9")
+    with patch("earth2studio.data.himawari_ahi.s3fs.S3FileSystem") as mock_fs_cls:
+        mock_fs = mock_fs_cls.return_value
+        mock_fs.ls.return_value = ["some_file.nc"]
+        time = np.datetime64("2024-06-15T00:00:00")
+        assert HimawariAHI.available(time, satellite="himawari9")
 
     time_invalid = np.datetime64("2014-01-01T00:00:00")
     assert not HimawariAHI.available(time_invalid, satellite="himawari8")
+
+
+@pytest.mark.timeout(5)
+def test_himawari_available_s3_gap():
+    """Test that available() returns False when S3 directory is empty (data gap)."""
+    with patch("earth2studio.data.himawari_ahi.s3fs.S3FileSystem") as mock_fs_cls:
+        mock_fs = mock_fs_cls.return_value
+        mock_fs.ls.return_value = []
+        time = datetime(2024, 6, 15, 0, 0, 0)
+        assert not HimawariAHI.available(time, satellite="himawari9")
+
+
+@pytest.mark.timeout(5)
+def test_himawari_available_s3_not_found():
+    """Test that available() returns False when S3 path doesn't exist."""
+    with patch("earth2studio.data.himawari_ahi.s3fs.S3FileSystem") as mock_fs_cls:
+        mock_fs = mock_fs_cls.return_value
+        mock_fs.ls.side_effect = FileNotFoundError
+        time = datetime(2024, 6, 15, 0, 0, 0)
+        assert not HimawariAHI.available(time, satellite="himawari9")
 
 
 @pytest.mark.timeout(5)

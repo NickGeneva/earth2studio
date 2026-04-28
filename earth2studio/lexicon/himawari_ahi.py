@@ -20,7 +20,7 @@ from typing import Any
 from earth2studio.lexicon.base import LexiconType
 
 
-class HimawariLexicon(metaclass=LexiconType):
+class HimawariAHILexicon(metaclass=LexiconType):
     """Himawari AHI lexicon for mapping standardized variable names to AHI channel
     identifiers used in the ISatSS L2 NetCDF files on AWS.
 
