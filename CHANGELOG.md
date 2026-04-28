@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added NClimGrid daily CONUS gridded climate data source (`NClimGridDaily`)
 - Added MTG-I FCI Level-1C Full Disk satellite radiance data source (`MeteosatFCI`)
 
+### Changed
+
+### Deprecated
+
+### Removed
+
 ### Fixed
 
 - Fixed source code links in documentation
