@@ -22,10 +22,10 @@ import pathlib
 import shutil
 from datetime import datetime, timezone
 
-import nest_asyncio
 import numpy as np
 import s3fs
 import xarray as xr
+from fsspec.asyn import get_loop, sync
 from loguru import logger
 from tqdm.asyncio import tqdm
 
@@ -208,12 +208,7 @@ class GOES:
         self._validate_satellite_scan_mode(self._satellite, self._scan_mode)
 
         # Set up S3 filesystem
-        try:
-            nest_asyncio.apply()
-            loop = asyncio.get_running_loop()
-            loop.run_until_complete(self._async_init())
-        except RuntimeError:
-            self.fs = None
+        self.fs = None  # Lazy init on first call/fetch
 
     async def _async_init(self) -> None:
         """Async initialization of S3 filesystem"""
@@ -241,20 +236,12 @@ class GOES:
         xr.DataArray
             Data array containing the requested GOES data
         """
-        nest_asyncio.apply()  # Patch asyncio to work in notebooks
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            # If no event loop exists, create one
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        loop = get_loop()
 
         if self.fs is None:
-            loop.run_until_complete(self._async_init())
+            sync(loop, self._async_init)
 
-        xr_array = loop.run_until_complete(
-            asyncio.wait_for(self.fetch(time, variable), timeout=self._async_timeout)
-        )
+        xr_array = sync(loop, self.fetch, time, variable, timeout=self._async_timeout)
 
         # Delete cache if needed
         if not self._cache:
@@ -282,11 +269,9 @@ class GOES:
             GOES data array
         """
         if self.fs is None:
-            raise ValueError(
-                "File store is not initialized! If you are calling this \
-            function directly make sure the data source is initialized inside the async \
-            loop!"
-            )
+            await self._async_init()
+        if self.fs is None:
+            raise RuntimeError("Failed to initialize filesystem")
 
         time, variable = prep_data_inputs(time, variable)
         # Make sure input time is valid

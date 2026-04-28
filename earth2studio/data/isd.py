@@ -21,14 +21,16 @@ import os
 import pathlib
 import shutil
 import uuid
+from collections.abc import Coroutine
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
-import nest_asyncio
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import s3fs
+from fsspec.asyn import get_loop, sync
 from loguru import logger
 from tqdm.asyncio import tqdm
 
@@ -150,13 +152,7 @@ class ISD:
         self._tmp_cache_hash: str | None = None
         self._verbose = verbose
 
-        # Check to see if there is a running loop (initialized in async)
-        try:
-            nest_asyncio.apply()  # Monkey patch asyncio to work in notebooks
-            loop = asyncio.get_running_loop()
-            loop.run_until_complete(self._async_init())
-        except RuntimeError:
-            self.fs = None
+        self.fs = None  # Lazy init on first call/fetch
 
         self.async_timeout = async_timeout
 
@@ -193,20 +189,19 @@ class ISD:
             ISD data frame
         """
         # Run async path synchronously
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        loop = get_loop()
 
         if self.fs is None:
-            loop.run_until_complete(self._async_init())
+            sync(loop, self._async_init)
 
-        df = loop.run_until_complete(self.fetch(time, variable, fields))
-
-        # Delete cache if needed
-        if not self._cache:
-            shutil.rmtree(self.cache, ignore_errors=True)
+        try:
+            df = sync(
+                loop, self.fetch, time, variable, fields, timeout=self.async_timeout
+            )
+        finally:
+            # Delete cache if needed
+            if not self._cache:
+                shutil.rmtree(self.cache, ignore_errors=True)
 
         return df
 
@@ -234,11 +229,9 @@ class ISD:
             ISD data frame
         """
         if self.fs is None:
-            raise ValueError(
-                "File store is not initialized! If you are calling this "
-                "function directly make sure the data source is initialized inside the "
-                "async loop!"
-            )
+            await self._async_init()
+        if self.fs is None:
+            raise RuntimeError("Failed to initialize filesystem")
 
         # https://filesystem-spec.readthedocs.io/en/latest/async.html#using-from-async
         session = await self.fs.set_session(refresh=True)
@@ -257,7 +250,7 @@ class ISD:
                 raise e
 
         # Load dataframes for each station-year (cached parquet if available)
-        func_map: list[asyncio.Task[_StationData]] = []
+        func_map: list[Coroutine[Any, Any, pd.DataFrame]] = []
         for station in self.stations:
             for dt in time:
                 func_map.append(  # noqa: PERF401
