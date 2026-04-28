@@ -27,11 +27,11 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, TypeVar
 from urllib.parse import urlparse
 
-import nest_asyncio
 import netCDF4
 import numpy as np
 import pygrib
 import xarray as xr
+from fsspec.asyn import get_loop, sync
 from loguru import logger
 from tqdm import tqdm
 
@@ -214,16 +214,9 @@ class _PlanetaryComputerData:
         xr.DataArray
             Data array from planetary computer
         """
-        nest_asyncio.apply()
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        loop = get_loop()
 
-        result = loop.run_until_complete(
-            asyncio.wait_for(self.fetch(time, variable), timeout=self._async_timeout)
-        )
+        result = sync(loop, self.fetch, time, variable, timeout=self._async_timeout)
         if not self._cache:
             shutil.rmtree(self.cache, ignore_errors=True)
         return result

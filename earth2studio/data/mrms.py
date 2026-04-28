@@ -25,11 +25,11 @@ import shutil
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 
-import nest_asyncio
 import numpy as np
 import pygrib
 import s3fs
 import xarray as xr
+from fsspec.asyn import get_loop, sync
 from loguru import logger
 from tqdm.asyncio import tqdm
 
@@ -119,13 +119,7 @@ class MRMS:
         self._verbose = verbose
         self._max_workers = max_workers
         self.async_timeout = async_timeout
-        # Set up S3 filesystem
-        try:
-            nest_asyncio.apply()
-            loop = asyncio.get_running_loop()
-            loop.run_until_complete(self._async_init())
-        except RuntimeError:
-            self.fs = None
+        self.fs = None  # Lazy init on first call/fetch
 
     async def _async_init(self) -> None:
         """Async initialization of S3 filesystem"""
@@ -155,22 +149,16 @@ class MRMS:
             ``lat`` and ``lon`` on the same ``[y, x]`` grid when provided in the
             source file.
         """
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        loop = get_loop()
 
         loop.set_default_executor(
             concurrent.futures.ThreadPoolExecutor(max_workers=self._max_workers)
         )
 
         if self.fs is None:
-            loop.run_until_complete(self._async_init())
+            sync(loop, self._async_init)
 
-        xr_array = loop.run_until_complete(
-            asyncio.wait_for(self.fetch(time, variable), timeout=self.async_timeout)
-        )
+        xr_array = sync(loop, self.fetch, time, variable, timeout=self.async_timeout)
 
         # Delete cache if needed
         if not self._cache:
@@ -199,11 +187,9 @@ class MRMS:
             MRMS weather data array
         """
         if self.fs is None:
-            raise ValueError(
-                "File store is not initialized! If you are calling this \
-            function directly make sure the data source is initialized inside the async \
-            loop!"
-            )
+            await self._async_init()
+        if self.fs is None:
+            raise RuntimeError("Failed to initialize filesystem")
 
         time, variable = prep_data_inputs(time, variable)
         # Validate requested times are within MRMS availability window

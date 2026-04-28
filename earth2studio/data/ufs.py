@@ -16,8 +16,6 @@
 
 from __future__ import annotations
 
-import asyncio
-import concurrent.futures
 import hashlib
 import os
 import pathlib
@@ -28,11 +26,11 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 import h5netcdf
-import nest_asyncio
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import s3fs
+from fsspec.asyn import get_loop, sync
 from loguru import logger
 from tqdm.asyncio import tqdm
 
@@ -82,12 +80,7 @@ class _UFSObsBase:
         self.async_timeout = async_timeout
         self._tmp_cache_hash: str | None = None
 
-        try:
-            nest_asyncio.apply()
-            loop = asyncio.get_running_loop()
-            loop.run_until_complete(self._async_init())
-        except RuntimeError:
-            self.fs = None
+        self.fs = None  # Lazy init on first call/fetch
 
         lower, upper = normalize_time_tolerance(time_tolerance)
         self._tolerance_lower = pd.to_timedelta(lower).to_pytimedelta()
@@ -117,26 +110,17 @@ class _UFSObsBase:
             Fields to include in output, by default None (all fields).
         """
         try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            loop = get_loop()
 
-        loop.set_default_executor(
-            concurrent.futures.ThreadPoolExecutor(max_workers=self._max_workers)
-        )
+            if self.fs is None:
+                sync(loop, self._async_init)
 
-        if self.fs is None:
-            loop.run_until_complete(self._async_init())
-
-        df = loop.run_until_complete(
-            asyncio.wait_for(
-                self.fetch(time, variable, fields), timeout=self.async_timeout
+            df = sync(
+                loop, self.fetch, time, variable, fields, timeout=self.async_timeout
             )
-        )
-
-        if not self._cache:
-            shutil.rmtree(self.cache, ignore_errors=True)
+        finally:
+            if not self._cache:
+                shutil.rmtree(self.cache, ignore_errors=True)
 
         return df
 
@@ -148,10 +132,9 @@ class _UFSObsBase:
     ) -> pd.DataFrame:
         """Async function to get data."""
         if self.fs is None:
-            raise ValueError(
-                "File store is not initialized! If you are calling this "
-                "function directly make sure the data source is initialized inside the async loop!"
-            )
+            await self._async_init()
+        if self.fs is None:
+            raise RuntimeError("Failed to initialize filesystem")
 
         session = await self.fs.set_session(refresh=True)
 

@@ -260,7 +260,11 @@ class NGCModelFileSystem(HTTPFileSystem):
         # Get the direct download URL
         async with aiohttp.ClientSession() as session:
             # Use http filesystem encode URL
-            dl_url_resp = await session.get(self.encode_url(asset_url), headers=headers)
+            # Explicitly set Accept-Encoding to avoid zstd which aiohttp cannot decode
+            req_headers = {**headers, "Accept-Encoding": "gzip, deflate"}
+            dl_url_resp = await session.get(
+                self.encode_url(asset_url), headers=req_headers
+            )
             status = dl_url_resp.status
             if status == http.client.OK:
                 direct_url_dict = await dl_url_resp.json()

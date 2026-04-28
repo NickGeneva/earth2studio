@@ -14,7 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "0.14.0a0"
+__version__ = "0.14.0rc0"
+
+# Import netCDF4 early to ensure its bundled HDF5 library is loaded before h5py's.
+# Both packages bundle different builds of libhdf5; whichever loads first wins.
+# If h5py loads first (e.g., via torch/onnx), netCDF4 read/write operations fail
+# TODO: Remove when netCDF4 update is compatable with h5py....
+import netCDF4 as _netCDF4  # noqa: F401, E402
 
 # Deprecation warnings
 # import sys

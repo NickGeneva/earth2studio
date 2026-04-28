@@ -24,10 +24,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-import nest_asyncio
 import numpy as np
 import s3fs
 import xarray as xr
+from fsspec.asyn import get_loop, sync
 from loguru import logger
 from tqdm.asyncio import tqdm
 
@@ -98,12 +98,7 @@ class NClimGridDaily:
         self._tmp_cache_hash: str | None = None
         self.async_timeout = async_timeout
 
-        try:
-            nest_asyncio.apply()
-            loop = asyncio.get_running_loop()
-            loop.run_until_complete(self._async_init())
-        except RuntimeError:
-            self.fs = None
+        self.fs = None  # Lazy init on first call/fetch
 
     async def _async_init(self) -> None:
         """Async initialization of filesystem.
@@ -136,19 +131,14 @@ class NClimGridDaily:
         xr.DataArray
             NClimGrid weather data array with dimensions [time, variable, lat, lon].
         """
-        nest_asyncio.apply()
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        loop = get_loop()
 
         if self.fs is None:
-            loop.run_until_complete(self._async_init())
+            sync(loop, self._async_init)
 
         try:
-            xr_array = loop.run_until_complete(
-                asyncio.wait_for(self.fetch(time, variable), timeout=self.async_timeout)
+            xr_array = sync(
+                loop, self.fetch, time, variable, timeout=self.async_timeout
             )
         finally:
             if not self._cache:
@@ -310,10 +300,9 @@ class NClimGridDaily:
             ds = xr.open_dataarray(cache_path, engine="h5netcdf", cache=False)
         else:
             if self.fs is None:
-                raise ValueError(
-                    "File store is not initialized! If calling fetch directly "
-                    "make sure the data source is initialized inside the async loop."
-                )
+                await self._async_init()
+            if self.fs is None:
+                raise RuntimeError("Failed to initialize filesystem")
             with self.fs.open(task.nc_uri, "rb") as f:
                 dataset = await asyncio.to_thread(
                     xr.open_dataset, f, engine="h5netcdf", cache=False

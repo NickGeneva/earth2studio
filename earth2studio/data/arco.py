@@ -22,10 +22,10 @@ import re
 import shutil
 from datetime import datetime
 
-import nest_asyncio
 import numpy as np
 import xarray as xr
 import zarr
+from fsspec.asyn import get_loop, sync
 from gcsfs import GCSFileSystem
 from loguru import logger
 from tqdm.asyncio import tqdm
@@ -92,19 +92,13 @@ class ARCO:
         self._cache = cache
         self._verbose = verbose
 
-        # Check to see if there is a running loop (initialized in async)
-        try:
-            nest_asyncio.apply()  # Monkey patch asyncio to work in notebooks
-            loop = asyncio.get_running_loop()
-            loop.run_until_complete(self._async_init())
-        except RuntimeError:
-            # Else we assume that async calls will be used which in that case
-            # we will init the group in the call function when we have the loop
-            self.zarr_group: zarr.core.group.AsyncGroup | None = None
-            self.level_coords = None
-            # Model-level store
-            self.ml_zarr_group: zarr.core.group.AsyncGroup | None = None
-            self.ml_level_coords = None
+        self.zarr_group: zarr.core.group.AsyncGroup | None = (
+            None  # Lazy init on first call/fetch
+        )
+        self.level_coords = None
+        # Model-level store
+        self.ml_zarr_group: zarr.core.group.AsyncGroup | None = None
+        self.ml_level_coords = None
 
         self.async_timeout = async_timeout
 
@@ -192,19 +186,12 @@ class ARCO:
             ERA5 weather data array from ARCO
         """
 
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            # If no event loop exists, create one
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        loop = get_loop()
 
         if self.zarr_group is None:
-            loop.run_until_complete(self._async_init())
+            sync(loop, self._async_init)
 
-        xr_array = loop.run_until_complete(
-            asyncio.wait_for(self.fetch(time, variable), timeout=self.async_timeout)
-        )
+        xr_array = sync(loop, self.fetch, time, variable, timeout=self.async_timeout)
 
         # Delete cache if needed
         if not self._cache:
@@ -233,11 +220,7 @@ class ARCO:
             ERA5 weather data array from ARCO
         """
         if self.zarr_group is None:
-            raise ValueError(
-                "Zarr group is not initialized! If you are calling this \
-            function directly make sure the data source is initialized inside the async \
-            loop!"
-            )
+            await self._async_init()
 
         time, variable = prep_data_inputs(time, variable)
         # Create cache dir if doesnt exist
