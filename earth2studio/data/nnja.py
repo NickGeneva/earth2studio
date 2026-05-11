@@ -472,10 +472,6 @@ class _NNJAObsBase:
 
 
 # ── PrepBUFR mnemonic → variable mapping ─────────────────────────────
-# Mnemonics we request from bufr-hound for the PrepBUFR observation levels
-_PREPBUFR_HEADER_MNEMONICS = ["SID", "XOB", "YOB", "DHR", "ELV", "TYP"]
-_PREPBUFR_OBS_MNEMONICS = ["POB", "TOB", "QOB", "UOB", "VOB"]
-_PREPBUFR_ALL_MNEMONICS = _PREPBUFR_HEADER_MNEMONICS + _PREPBUFR_OBS_MNEMONICS
 
 # Lexicon key → bufr-hound mnemonic column name
 _LEXICON_KEY_TO_MNEMONIC: dict[str, str] = {
@@ -486,27 +482,35 @@ _LEXICON_KEY_TO_MNEMONIC: dict[str, str] = {
     "wind::v": "VOB",
 }
 
+# Multi-level categories have a DRF8BIT column with nested levels containing
+# a CAT field. These need row-expansion to expand the level replication.
+_MULTI_LEVEL_CATS: list[int] = [102, 104, 107, 113, 119]
+# Single-level categories have no outer replication; observation variables
+# live directly in per-group DRF columns at the top level.
+_SINGLE_LEVEL_CATS: list[int] = [105, 109, 110, 112, 121]
 
-def _arrow_table_to_nnja_schema(
-    table: pa.Table,
+
+def _flat_batch_to_nnja(
+    batch: pa.RecordBatch,
     cycle_time: datetime,
     dt_min: datetime,
     dt_max: datetime,
     var_plan: dict[str, tuple[str, Callable[[pd.DataFrame], pd.DataFrame]]],
 ) -> pa.Table | None:
-    """Transform a flattened bufr-hound PyArrow table to the NNJA long-format schema.
+    """Transform a recursively-flattened bufr-hound batch to NNJA long format.
 
-    The input ``table`` has columns from bufr-hound after flatten:
-    scalar header columns (SID, XOB, YOB, DHR, ELV, TYP) and per-level
-    observation columns (POB, TOB, QOB, UOB, VOB), plus ``_data_category``.
+    After ``flatten='recursive'``, every observation mnemonic (POB, TOB, etc.)
+    is a direct scalar (double) column. This function:
 
-    The output is a long-format table with one row per (observation, variable)
-    matching the ``_NNJA_CONV_SCHEMA``.
+    1. Filters rows by time window and valid lat/lon
+    2. Melts the wide-format (one row per level, all mnemonics as columns)
+       into long-format (one row per variable per level)
+    3. Maps to the NNJA schema
 
     Parameters
     ----------
-    table : pa.Table
-        Flattened bufr-hound output (wide format, one row per obs level).
+    batch : pa.RecordBatch
+        A single recursively-flattened bufr-hound batch (one data category).
     cycle_time : datetime
         The 6-hour cycle time for this file.
     dt_min : datetime
@@ -521,175 +525,136 @@ def _arrow_table_to_nnja_schema(
     pa.Table or None
         Long-format table matching _NNJA_CONV_SCHEMA, or None if empty.
     """
-    if table.num_rows == 0:
+    if batch.num_rows == 0:
         return None
 
-    # Compute observation time: cycle_time + DHR (hours offset)
-    # DHR is in hours as a float
-    cycle_ts = pa.scalar(np.datetime64(cycle_time, "us"), type=pa.timestamp("us"))
+    schema = batch.schema
 
-    if "DHR" in table.schema.names:
-        dhr_col = table.column("DHR")
-        # Convert DHR (hours) to microseconds integer, then to duration
-        dhr_us = pc.multiply(pc.cast(dhr_col, pa.float64()), 3_600_000_000.0)
-        dhr_us_int = pc.cast(pc.round(dhr_us), pa.int64())
-        dhr_duration = pc.cast(dhr_us_int, pa.duration("us"))
-        obs_time = pc.add(cycle_ts, dhr_duration)
-    else:
-        # No DHR column — all observations at cycle time
-        obs_time = pa.array(
-            [cycle_time] * table.num_rows, type=pa.timestamp("us")
-        )
+    # --- Compute observation times ---
+    # DHR is hours offset from cycle time (can be fractional, e.g. -0.5)
+    if "DHR" not in schema.names:
+        return None
+    dhr = batch.column("DHR")
+    cycle_us = int(np.datetime64(cycle_time, "us").astype(np.int64))
+    # time_us = cycle_us + round(DHR * 3_600_000_000)
+    # Multiply while still float64, then round and cast to int64
+    dhr_us_float = pc.multiply(dhr, 3_600_000_000.0)
+    dhr_us = pc.cast(pc.round(dhr_us_float), pa.int64())
+    time_us = pc.add(dhr_us, cycle_us)
 
-    # Filter by time window [dt_min, dt_max]
-    ts_min = pa.scalar(np.datetime64(dt_min, "us"), type=pa.timestamp("us"))
-    ts_max = pa.scalar(np.datetime64(dt_max, "us"), type=pa.timestamp("us"))
-    time_mask = pc.and_(
-        pc.greater_equal(obs_time, ts_min),
-        pc.less_equal(obs_time, ts_max),
+    # --- Time filter ---
+    dt_min_us = int(np.datetime64(dt_min, "us").astype(np.int64))
+    dt_max_us = int(np.datetime64(dt_max, "us").astype(np.int64))
+    time_valid = pc.and_(
+        pc.greater_equal(time_us, dt_min_us),
+        pc.less_equal(time_us, dt_max_us),
     )
-    table = table.filter(time_mask)
-    obs_time = pc.filter(obs_time, time_mask)
 
-    if table.num_rows == 0:
+    # --- Lat/lon validation ---
+    if "YOB" not in schema.names or "XOB" not in schema.names:
+        return None
+    lat = batch.column("YOB")
+    lon = batch.column("XOB")
+    lat_valid = pc.and_(
+        pc.greater_equal(lat, -90.0),
+        pc.less_equal(lat, 90.0),
+    )
+    geo_valid = pc.and_(lat_valid, pc.and_(pc.is_valid(lat), pc.is_valid(lon)))
+
+    # Combined mask
+    row_mask = pc.and_(time_valid, geo_valid)
+
+    # Filter all needed columns
+    n_valid = pc.sum(row_mask).as_py()
+    if not n_valid:
         return None
 
-    # Extract header columns
-    lat = (
-        pc.cast(table.column("YOB"), pa.float32())
-        if "YOB" in table.schema.names
-        else pa.array([None] * table.num_rows, type=pa.float32())
-    )
-    lon_raw = (
-        pc.cast(table.column("XOB"), pa.float64())
-        if "XOB" in table.schema.names
-        else pa.array([None] * table.num_rows, type=pa.float64())
-    )
+    # Apply filter
+    time_filt = pc.filter(time_us, row_mask)
+    lat_filt = pc.cast(pc.filter(lat, row_mask), pa.float32())
+    lon_raw = pc.filter(lon, row_mask)
     # Normalize longitude to [0, 360)
-    lon = pc.cast(
-        pc.if_else(
-            pc.is_null(lon_raw),
-            lon_raw,
-            pc.subtract(
-                lon_raw,
-                pc.multiply(pc.floor(pc.divide(lon_raw, pa.scalar(360.0))), pa.scalar(360.0)),
-            ),
-        ),
+    lon_filt = pc.cast(
+        pc.subtract(lon_raw, pc.multiply(pc.floor(pc.divide(lon_raw, 360.0)), 360.0)),
         pa.float32(),
     )
 
-    # Filter invalid lat/lon
-    valid_lat = pc.and_(
-        pc.greater_equal(lat, pa.scalar(-90.0, pa.float32())),
-        pc.less_equal(lat, pa.scalar(90.0, pa.float32())),
+    # Other header columns
+    sid_filt = (
+        pc.filter(batch.column("SID"), row_mask)
+        if "SID" in schema.names
+        else pa.nulls(n_valid, type=pa.utf8())
     )
-    valid_geo = pc.and_(valid_lat, pc.is_valid(lat))
-    table = table.filter(valid_geo)
-    obs_time = pc.filter(obs_time, valid_geo)
-    lat = pc.filter(lat, valid_geo)
-    lon = pc.filter(lon, valid_geo)
-
-    if table.num_rows == 0:
-        return None
-
-    # Station ID
-    if "SID" in table.schema.names:
-        sid_col = table.column("SID")
-        if pa.types.is_binary(sid_col.type) or pa.types.is_large_binary(sid_col.type):
-            station = pc.binary_join_element_wise(
-                pc.cast(sid_col, pa.utf8()), pa.scalar("")
-            )
-        elif pa.types.is_string(sid_col.type) or pa.types.is_large_string(
-            sid_col.type
-        ):
-            station = sid_col
-        else:
-            station = pc.cast(sid_col, pa.utf8())
-    else:
-        station = pa.array([None] * table.num_rows, type=pa.utf8())
-
-    # Station elevation
-    station_elev = (
-        pc.cast(table.column("ELV"), pa.float32())
-        if "ELV" in table.schema.names
-        else pa.array([None] * table.num_rows, type=pa.float32())
+    elv_filt = (
+        pc.cast(pc.filter(batch.column("ELV"), row_mask), pa.float32())
+        if "ELV" in schema.names
+        else pa.nulls(n_valid, type=pa.float32())
+    )
+    typ_filt = (
+        pc.cast(pc.filter(batch.column("TYP"), row_mask), pa.uint16())
+        if "TYP" in schema.names
+        else pa.nulls(n_valid, type=pa.uint16())
     )
 
-    # Report type
-    if "TYP" in table.schema.names:
-        typ_col = table.column("TYP")
-        report_type = pc.cast(typ_col, pa.uint16())
+    # Observation class from _data_category
+    if "_data_category" in schema.names:
+        cat_filt = pc.filter(batch.column("_data_category"), row_mask)
+        # Map to obs class string
+        cat_first = cat_filt[0].as_py() if len(cat_filt) > 0 else None
+        obs_class_str = _PREPBUFR_OBS_TYPES.get(
+            int(cat_first) if cat_first is not None else 0, ""
+        )
     else:
-        report_type = pa.array([None] * table.num_rows, type=pa.uint16())
+        obs_class_str = ""
 
-    # Obs class from _data_category
-    if "_data_category" in table.schema.names:
-        data_cat_col = table.column("_data_category")
-        # Map data category codes to class strings
-        obs_class_list = [
-            _PREPBUFR_OBS_TYPES.get(
-                cat.as_py() if cat.is_valid else 0, ""
-            )
-            for cat in data_cat_col
-        ]
-        obs_class = pa.array(obs_class_list, type=pa.utf8())
-    else:
-        obs_class = pa.array([""] * table.num_rows, type=pa.utf8())
-
-    # Pressure (POB) in MB — will be converted to Pa later
-    pres_mb = (
-        pc.cast(table.column("POB"), pa.float32())
-        if "POB" in table.schema.names
-        else pa.array([None] * table.num_rows, type=pa.float32())
+    # Pressure (POB) — always needed
+    pob_filt = (
+        pc.cast(pc.filter(batch.column("POB"), row_mask), pa.float32())
+        if "POB" in schema.names
+        else pa.nulls(n_valid, type=pa.float32())
     )
 
-    # Now melt from wide to long: for each requested variable, extract
-    # observation values from the corresponding mnemonic column.
-    var_tables: list[pa.Table] = []
-    for var_name, (lexicon_key, _modifier) in var_plan.items():
-        mnemonic = _LEXICON_KEY_TO_MNEMONIC.get(lexicon_key)
-        if mnemonic is None:
-            continue
-        if mnemonic not in table.schema.names:
-            continue
+    # --- Melt: emit one row per variable ---
+    # For each variable in var_plan, filter to rows where that mnemonic is non-null
+    all_tables: list[pa.Table] = []
+    time_arr = pc.cast(time_filt, pa.timestamp("us"))
 
-        obs_col = pc.cast(table.column(mnemonic), pa.float32())
-        # Filter to rows where observation is not null
-        valid_mask = pc.is_valid(obs_col)
-
-        if pc.sum(pc.cast(valid_mask, pa.int64())).as_py() == 0:
+    for var_name, (lexicon_key, _mod) in var_plan.items():
+        mnem = _LEXICON_KEY_TO_MNEMONIC.get(lexicon_key)
+        if mnem is None or mnem not in schema.names:
             continue
 
-        var_table = pa.table(
+        # Get observation values for this mnemonic (already filtered by row_mask)
+        obs_raw = pc.filter(batch.column(mnem), row_mask)
+        # Filter to non-null observations
+        obs_valid = pc.is_valid(obs_raw)
+        n_obs = pc.sum(obs_valid).as_py()
+        if not n_obs:
+            continue
+
+        # Apply obs_valid filter to all arrays
+        tbl = pa.table(
             {
-                "time": pc.filter(obs_time, valid_mask),
-                "pres": pc.filter(pres_mb, valid_mask),
-                "elev": pa.array(
-                    [None] * pc.sum(pc.cast(valid_mask, pa.int64())).as_py(),
-                    type=pa.float32(),
-                ),
-                "type": pc.filter(report_type, valid_mask),
-                "class": pc.filter(obs_class, valid_mask),
-                "lat": pc.filter(lat, valid_mask),
-                "lon": pc.filter(lon, valid_mask),
-                "station": pc.filter(station, valid_mask),
-                "station_elev": pc.filter(station_elev, valid_mask),
-                "observation": pc.filter(obs_col, valid_mask),
-                "variable": pa.array(
-                    [var_name]
-                    * pc.sum(pc.cast(valid_mask, pa.int64())).as_py(),
-                    type=pa.utf8(),
-                ),
+                "time": pc.filter(time_arr, obs_valid),
+                "pres": pc.filter(pob_filt, obs_valid),
+                "elev": pa.nulls(n_obs, type=pa.float32()),
+                "type": pc.filter(typ_filt, obs_valid),
+                "class": pa.array([obs_class_str] * n_obs, type=pa.utf8()),
+                "lat": pc.filter(lat_filt, obs_valid),
+                "lon": pc.filter(lon_filt, obs_valid),
+                "station": pc.filter(sid_filt, obs_valid),
+                "station_elev": pc.filter(elv_filt, obs_valid),
+                "observation": pc.cast(pc.filter(obs_raw, obs_valid), pa.float32()),
+                "variable": pa.array([var_name] * n_obs, type=pa.utf8()),
             },
             schema=_NNJA_CONV_SCHEMA,
         )
-        var_tables.append(var_table)
+        all_tables.append(tbl)
 
-    if not var_tables:
+    if not all_tables:
         return None
 
-    result = pa.concat_tables(var_tables)
-    return result
+    return pa.concat_tables(all_tables, promote_options="default")
 
 
 def _apply_modifiers_arrow(
@@ -988,80 +953,71 @@ class NNJAObsConv(_NNJAObsBase):
     ) -> pa.Table | None:
         """Decode a PrepBUFR cycle file into a PyArrow Table using bufr-hound.
 
-        Uses the Rust-based bufr-hound parser which handles DX-table
-        extraction and parallel message decoding internally.
+        Uses the Rust-based bufr-hound parser with ``flatten='recursive'``
+        which fully flattens the nested BUFR structure into scalar columns.
+        This produces one row per observation level with mnemonics like POB,
+        TOB, QOB, UOB, VOB as direct double columns.
         """
         import bufr_hound
 
-        # Determine which mnemonics we need based on the var_plan
-        needed_mnemonics: set[str] = set(_PREPBUFR_HEADER_MNEMONICS)
-        needed_mnemonics.add("POB")  # Always need pressure for the schema
-        for lexicon_key, _mod in task.var_plan.values():
-            mnemonic = _LEXICON_KEY_TO_MNEMONIC.get(lexicon_key)
-            if mnemonic:
-                needed_mnemonics.add(mnemonic)
-
         logger.info(
             f"[NNJAObsConv prepbufr] cycle={task.datetime_file:%Y-%m-%d %H:%MZ} "
-            f"mnemonics={sorted(needed_mnemonics)} "
-            f"categories={sorted(_PREPBUFR_OBS_TYPES.keys())}"
+            f"reading with flatten='recursive'"
         )
         decode_t0 = time.perf_counter()
 
-        # Call bufr-hound: returns list of RecordBatches, one per data category
-        batches = bufr_hound.read_prepbufr(
+        # Read all requested categories with recursive flatten
+        all_cats = _MULTI_LEVEL_CATS + _SINGLE_LEVEL_CATS
+        all_batches = bufr_hound.read_prepbufr(
             local_path,
-            mnemonics=sorted(needed_mnemonics),
-            data_category_filter=list(_PREPBUFR_OBS_TYPES.keys()),
-            flatten=True,
+            data_category_filter=all_cats,
+            flatten="recursive",
         )
 
-        if not batches:
+        if not all_batches:
             logger.info(
                 f"[NNJAObsConv prepbufr] cycle={task.datetime_file:%Y-%m-%d %H:%MZ} "
                 f"no data batches returned"
             )
             return None
 
-        # Convert RecordBatches to a single Table
-        # Each batch is already flattened (one row per obs level)
-        tables = [
-            pa.Table.from_batches([batch])
-            for batch in batches
-            if batch.num_rows > 0
-        ]
+        read_elapsed = time.perf_counter() - decode_t0
+        total_raw_rows = sum(b.num_rows for b in all_batches)
+        logger.info(
+            f"[NNJAObsConv prepbufr] cycle={task.datetime_file:%Y-%m-%d %H:%MZ} "
+            f"bufr-hound read {total_raw_rows:,} raw rows in "
+            f"{read_elapsed:.1f}s ({len(all_batches)} batches)"
+        )
+
+        # Process each batch (one per category) into NNJA schema
+        tables: list[pa.Table] = []
+        for batch in all_batches:
+            if batch.num_rows == 0:
+                continue
+            tbl = _flat_batch_to_nnja(
+                batch,
+                cycle_time=task.datetime_file,
+                dt_min=task.datetime_min,
+                dt_max=task.datetime_max,
+                var_plan=task.var_plan,
+            )
+            if tbl is not None and tbl.num_rows > 0:
+                tables.append(tbl)
 
         if not tables:
             return None
 
-        wide_table = pa.concat_tables(tables, promote_options="default")
-        decode_elapsed = time.perf_counter() - decode_t0
-        logger.info(
-            f"[NNJAObsConv prepbufr] cycle={task.datetime_file:%Y-%m-%d %H:%MZ} "
-            f"bufr-hound decoded {wide_table.num_rows:,} raw rows in "
-            f"{decode_elapsed:.1f}s"
-        )
-
-        # Transform wide format to NNJA long format
-        result = _arrow_table_to_nnja_schema(
-            wide_table,
-            cycle_time=task.datetime_file,
-            dt_min=task.datetime_min,
-            dt_max=task.datetime_max,
-            var_plan=task.var_plan,
-        )
-
-        if result is None:
-            return None
+        result = pa.concat_tables(tables, promote_options="default")
 
         # Apply unit conversions
         result = _apply_modifiers_arrow(
             result, task.var_plan, convert_pres_mb_to_pa=True
         )
 
+        total_elapsed = time.perf_counter() - decode_t0
         logger.info(
             f"[NNJAObsConv prepbufr] cycle={task.datetime_file:%Y-%m-%d %H:%MZ} "
-            f"final schema rows: {result.num_rows:,}"
+            f"final schema rows: {result.num_rows:,} in {total_elapsed:.1f}s"
         )
         return result
 

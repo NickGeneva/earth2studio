@@ -21,11 +21,12 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+import pyarrow.compute as pc
 import pytest
 
 from earth2studio.data import NNJAObsConv
 
-pytest.importorskip("pybufrkit", reason="pybufrkit not installed")
+pytest.importorskip("bufr_hound", reason="bufr_hound not installed")
 
 
 @pytest.mark.slow
@@ -43,7 +44,7 @@ pytest.importorskip("pybufrkit", reason="pybufrkit not installed")
     ],
 )
 def test_nnja_obs_conv_fetch(time, variable, tol):
-    ds = NNJAObsConv(time_tolerance=tol, cache=False, verbose=False, decode_workers=16)
+    ds = NNJAObsConv(time_tolerance=tol, cache=False, verbose=False)
     df = ds(time, variable)
 
     assert list(df.columns) == ds.SCHEMA.names
@@ -259,231 +260,6 @@ def test_nnja_obs_conv_available():
     assert NNJAObsConv.available(np.datetime64("1970-01-01T00:00:00")) is False
 
 
-# These are unit tests for BUFR decoding
-
-
-def test_nnja_safe_int():
-    """Test _safe_int helper function with various input types."""
-    from earth2studio.data.nnja import _safe_int
-
-    # int/float inputs
-    assert _safe_int(42) == 42
-    assert _safe_int(3.14) == 3
-    assert _safe_int(-7.9) == -7
-
-    # bytes input
-    assert _safe_int(b"123") == 123
-    assert _safe_int(b"  456  ") == 456
-    assert _safe_int(b"") == 0
-    assert _safe_int(b"abc") == 0  # non-numeric bytes
-
-    # None input
-    assert _safe_int(None) == 0
-
-    # string input
-    assert _safe_int("789") == 789
-    assert _safe_int("  012  ") == 12
-    assert _safe_int("") == 0
-    assert _safe_int("not_a_number") == 0
-
-
-def test_nnja_extract_dx_tables_empty():
-    """Test _extract_dx_tables with empty/minimal inputs."""
-    from earth2studio.data.nnja import _extract_dx_tables
-
-    table_b: dict = {}
-    table_d: dict = {}
-
-    # Empty flat list
-    _extract_dx_tables([], table_b, table_d)
-    assert table_b == {}
-    assert table_d == {}
-
-    # Only n_a (no entries)
-    _extract_dx_tables([0], table_b, table_d)
-    assert table_b == {}
-    assert table_d == {}
-
-    # n_a=0, n_b=0 (skip to table D)
-    _extract_dx_tables([0, 0], table_b, table_d)
-    assert table_b == {}
-    assert table_d == {}
-
-    # n_a=0, n_b=0, n_d=0 (all empty)
-    _extract_dx_tables([0, 0, 0], table_b, table_d)
-    assert table_b == {}
-    assert table_d == {}
-
-
-def test_nnja_extract_dx_tables_truncated():
-    """Test _extract_dx_tables with truncated/partial data."""
-    from earth2studio.data.nnja import _extract_dx_tables
-
-    table_b: dict = {}
-    table_d: dict = {}
-
-    # n_a entries truncated (should return early)
-    _extract_dx_tables([1], table_b, table_d)  # n_a=1 but no entries
-    assert table_b == {}
-    assert table_d == {}
-
-    # Table B entry truncated (less than 11 fields)
-    # n_a=0, n_b=1, then only partial entry
-    table_b.clear()
-    table_d.clear()
-    _extract_dx_tables([0, 1, 0, 1, 2], table_b, table_d)  # truncated B entry
-    assert table_b == {}
-
-    # Table D entry truncated
-    # n_a=0, n_b=0, n_d=1, then only partial entry
-    table_b.clear()
-    table_d.clear()
-    _extract_dx_tables([0, 0, 1, 0, 1], table_b, table_d)  # truncated D entry
-    assert table_d == {}
-
-
-def test_nnja_extract_dx_tables_valid_entries():
-    """Test _extract_dx_tables with valid Table B and D entries."""
-    from earth2studio.data.nnja import _extract_dx_tables
-
-    table_b: dict = {}
-    table_d: dict = {}
-
-    # Create a valid Table B entry
-    # Format: n_a, [a_entries...], n_b, [b_entries (11 fields each)...], n_d, [d_entries...]
-    # B entry: f, x, y, mnemonic, desc(skip), unit, sign_scale, scale, sign_ref, ref, width
-    flat = [
-        0,  # n_a = 0
-        1,  # n_b = 1
-        0,
-        1,
-        2,
-        b"TOB",
-        b"",
-        b"K",
-        b"+",
-        b"2",
-        b"+",
-        b"0",
-        b"16",  # 11 fields
-        0,  # n_d = 0
-    ]
-    _extract_dx_tables(flat, table_b, table_d)
-    # desc_id = 0*100000 + 1*1000 + 2 = 1002
-    assert 1002 in table_b
-    assert table_b[1002][0] == "TOB"  # mnemonic
-
-    # Test with zero descriptor (should be skipped)
-    table_b.clear()
-    table_d.clear()
-    flat_zero = [
-        0,  # n_a = 0
-        1,  # n_b = 1
-        0,
-        0,
-        0,
-        b"ZERO",
-        b"",
-        b"K",
-        b"+",
-        b"0",
-        b"+",
-        b"0",
-        b"8",  # desc_id = 0
-        0,  # n_d = 0
-    ]
-    _extract_dx_tables(flat_zero, table_b, table_d)
-    assert 0 not in table_b  # Zero descriptor skipped
-
-    # Test with negative scale/reference
-    table_b.clear()
-    table_d.clear()
-    flat_neg = [
-        0,  # n_a = 0
-        1,  # n_b = 1
-        0,
-        12,
-        1,
-        b"LAT",
-        b"",
-        b"DEG",
-        b"-",
-        b"5",
-        b"-",
-        b"9000000",
-        b"25",
-        0,  # n_d = 0
-    ]
-    _extract_dx_tables(flat_neg, table_b, table_d)
-    # desc_id = 0*100000 + 12*1000 + 1 = 12001
-    assert 12001 in table_b
-    assert table_b[12001][2] == -5  # scale is negative
-    assert table_b[12001][3] == -9000000  # reference is negative
-
-
-def test_nnja_extract_dx_tables_table_d():
-    """Test _extract_dx_tables Table D sequence entries."""
-    from earth2studio.data.nnja import _extract_dx_tables
-
-    table_b: dict = {}
-    table_d: dict = {}
-
-    # Table D entry: f, x, y, seq_mnemonic, n_members, [member_mnemonics...]
-    flat = [
-        0,  # n_a = 0
-        0,  # n_b = 0
-        1,  # n_d = 1
-        3,
-        1,
-        1,
-        b"HEADR",  # seq entry header (f=3, x=1, y=1)
-        2,  # n_members = 2
-        b"SID",
-        b"XOB",  # member mnemonics
-    ]
-    _extract_dx_tables(flat, table_b, table_d)
-    # seq_id = 3*100000 + 1*1000 + 1 = 301001
-    assert 301001 in table_d
-    assert table_d[301001][0] == "HEADR"
-    assert table_d[301001][1] == ["SID", "XOB"]
-
-    # Test zero seq_id (should be skipped)
-    table_b.clear()
-    table_d.clear()
-    flat_zero = [
-        0,  # n_a = 0
-        0,  # n_b = 0
-        1,  # n_d = 1
-        0,
-        0,
-        0,
-        b"ZERO",  # seq_id = 0
-        1,
-        b"X",
-    ]
-    _extract_dx_tables(flat_zero, table_b, table_d)
-    assert 0 not in table_d  # Zero seq_id skipped
-
-    # Test truncated member list
-    table_b.clear()
-    table_d.clear()
-    flat_trunc = [
-        0,  # n_a = 0
-        0,  # n_b = 0
-        1,  # n_d = 1
-        3,
-        1,
-        2,
-        b"SEQ",
-        3,  # n_members = 3 but only 1 provided
-        b"ONLY_ONE",
-    ]
-    _extract_dx_tables(flat_trunc, table_b, table_d)
-    # Should still create entry with partial members
-    assert 301002 in table_d
-    assert table_d[301002][1] == ["ONLY_ONE"]
-
-
 def test_nnja_obs_conv_build_uris():
     """Test URI building methods for prepbufr and gpsro."""
     ds = NNJAObsConv(cache=False, verbose=False)
@@ -537,103 +313,139 @@ def test_nnja_obs_conv_create_tasks():
     assert len(tasks_times) == 2  # Two different cycles
 
 
-def test_nnja_obs_conv_finalize_decoded_df():
-    """Test _finalize_decoded_df with various inputs."""
-    ds = NNJAObsConv(cache=False, verbose=False)
-
-    # Import modifier function for testing
+def test_nnja_flat_batch_to_nnja():
+    """Test the PyArrow-based wide-to-long transformation."""
+    from earth2studio.data.nnja import _flat_batch_to_nnja
     from earth2studio.lexicon import NNJAObsConvLexicon
 
-    _, modifier = NNJAObsConvLexicon["t"]
+    cycle_time = datetime(2024, 1, 1, 0)
+    dt_min = datetime(2024, 1, 1, 0)
+    dt_max = datetime(2024, 1, 1, 0)
 
-    # Empty rows
-    result = ds._finalize_decoded_df(
-        [], {"t": ("TOB", modifier)}, convert_pres_mb_to_pa=True
-    )
-    assert result.empty
+    # Get the modifier for temperature
+    _, modifier_t = NNJAObsConvLexicon["t"]
+    _, modifier_u = NNJAObsConvLexicon["u"]
 
-    # Rows with missing variable (should be filtered out)
-    rows = [
+    var_plan = {
+        "t": ("TOB", modifier_t),
+        "u": ("wind::u", modifier_u),
+    }
+
+    # Create a wide-format table similar to bufr-hound recursive-flattened output
+    wide_table = pa.table(
         {
-            "time": datetime(2024, 1, 1, 0),
-            "lat": 40.0,
-            "lon": 250.0,
-            "pres": 850.0,
-            "elev": None,
-            "type": 120,
-            "class": "ADPUPA",
-            "station": "72469",
-            "station_elev": 1000.0,
-            "observation": 273.15,
-            "variable": "other_var",  # Not in var_plan
+            "_data_category": pa.array([109, 109, 102], type=pa.int64()),
+            "SID": pa.array(["72469", "72469", "72451"], type=pa.utf8()),
+            "XOB": pa.array([250.0, 251.0, 260.0], type=pa.float64()),
+            "YOB": pa.array([40.0, 41.0, 35.0], type=pa.float64()),
+            "DHR": pa.array([0.0, 0.0, 0.0], type=pa.float64()),
+            "ELV": pa.array([1000.0, 500.0, 200.0], type=pa.float64()),
+            "TYP": pa.array([120, 120, 220], type=pa.float64()),
+            "POB": pa.array([850.0, 925.0, 700.0], type=pa.float64()),
+            "TOB": pa.array([15.0, 20.0, None], type=pa.float64()),
+            "UOB": pa.array([5.0, None, 10.0], type=pa.float64()),
+            "VOB": pa.array([3.0, None, -2.0], type=pa.float64()),
         }
-    ]
-    result = ds._finalize_decoded_df(
-        rows, {"t": ("TOB", modifier)}, convert_pres_mb_to_pa=True
     )
-    assert result.empty  # No rows match "t"
 
-    # Rows with matching variable
-    rows_match = [
-        {
-            "time": datetime(2024, 1, 1, 0),
-            "lat": 40.0,
-            "lon": 250.0,
-            "pres": 850.0,
-            "elev": None,
-            "type": 120,
-            "class": "ADPUPA",
-            "station": "72469",
-            "station_elev": 1000.0,
-            "observation": 273.15,
-            "variable": "t",
-        }
-    ]
-    result = ds._finalize_decoded_df(
-        rows_match, {"t": ("TOB", modifier)}, convert_pres_mb_to_pa=True
+    result = _flat_batch_to_nnja(
+        wide_table,
+        cycle_time=cycle_time,
+        dt_min=dt_min,
+        dt_max=dt_max,
+        var_plan=var_plan,
     )
-    assert len(result) == 1
-    # Check pressure conversion (850 mb -> 85000 Pa)
-    assert result["pres"].iloc[0] == pytest.approx(85000.0)
 
-    # Test without pressure conversion (gpsro path)
-    result_no_conv = ds._finalize_decoded_df(
-        rows_match, {"t": ("TOB", modifier)}, convert_pres_mb_to_pa=False
-    )
-    assert result_no_conv["pres"].iloc[0] == pytest.approx(850.0)
+    assert result is not None
+    assert result.num_rows > 0
+    # Should have rows for "t" (2 non-null TOB) and "u" (2 non-null UOB)
+    assert set(result.column("variable").to_pylist()) == {"t", "u"}
+
+    # Temperature rows
+    t_mask = pc.equal(result.column("variable"), pa.scalar("t"))
+    t_rows = result.filter(t_mask)
+    assert t_rows.num_rows == 2
+    # Observations should be raw (before modifier)
+    assert t_rows.column("observation")[0].as_py() == pytest.approx(15.0)
+
+    # Wind u rows
+    u_mask = pc.equal(result.column("variable"), pa.scalar("u"))
+    u_rows = result.filter(u_mask)
+    assert u_rows.num_rows == 2
 
 
-def test_nnja_obs_conv_finalize_adds_missing_columns():
-    """Test _finalize_decoded_df adds missing nullable columns."""
-    ds = NNJAObsConv(cache=False, verbose=False)
-
+def test_nnja_apply_modifiers_arrow():
+    """Test the PyArrow-based unit conversion."""
+    from earth2studio.data.nnja import _NNJA_CONV_SCHEMA, _apply_modifiers_arrow
     from earth2studio.lexicon import NNJAObsConvLexicon
 
-    _, modifier = NNJAObsConvLexicon["t"]
+    _, modifier_t = NNJAObsConvLexicon["t"]
+    _, modifier_q = NNJAObsConvLexicon["q"]
+    _, modifier_pres = NNJAObsConvLexicon["pres"]
 
-    # Rows missing some optional columns
-    rows = [
+    var_plan = {
+        "t": ("TOB", modifier_t),
+        "q": ("QOB", modifier_q),
+        "pres": ("POB", modifier_pres),
+    }
+
+    # Create a table with raw values
+    table = pa.table(
         {
-            "time": datetime(2024, 1, 1, 0),
-            "lat": 40.0,
-            "lon": 250.0,
-            "pres": 850.0,
-            # "elev" missing
-            "type": 120,
-            "class": "ADPUPA",
-            # "station" missing
-            # "station_elev" missing
-            "observation": 273.15,
-            "variable": "t",
-        }
-    ]
-    result = ds._finalize_decoded_df(
-        rows, {"t": ("TOB", modifier)}, convert_pres_mb_to_pa=True
+            "time": pa.array(
+                [np.datetime64("2024-01-01", "us")] * 3,
+                type=pa.timestamp("us"),
+            ),
+            "pres": pa.array([850.0, 925.0, 700.0], type=pa.float32()),
+            "elev": pa.array([None, None, None], type=pa.float32()),
+            "type": pa.array([120, 120, 120], type=pa.uint16()),
+            "class": pa.array(["ADPSFC", "ADPSFC", "ADPSFC"], type=pa.utf8()),
+            "lat": pa.array([40.0, 41.0, 42.0], type=pa.float32()),
+            "lon": pa.array([250.0, 251.0, 252.0], type=pa.float32()),
+            "station": pa.array(["72469", "72469", "72469"], type=pa.utf8()),
+            "station_elev": pa.array([1000.0, 500.0, 200.0], type=pa.float32()),
+            "observation": pa.array([15.0, 5000.0, 850.0], type=pa.float32()),
+            "variable": pa.array(["t", "q", "pres"], type=pa.utf8()),
+        },
+        schema=_NNJA_CONV_SCHEMA,
     )
 
-    # All schema columns should be present
-    assert list(result.columns) == list(ds.SCHEMA.names)
-    # Missing columns should be NaN/None
-    assert pd.isna(result["elev"].iloc[0])
-    assert result["station"].iloc[0] is None
-    assert pd.isna(result["station_elev"].iloc[0])
+    result = _apply_modifiers_arrow(table, var_plan, convert_pres_mb_to_pa=True)
+
+    obs = result.column("observation").to_pylist()
+    # t: 15°C → 288.15K
+    assert obs[0] == pytest.approx(288.15, rel=1e-4)
+    # q: 5000 mg/kg → 0.005 kg/kg
+    assert obs[1] == pytest.approx(0.005, rel=1e-4)
+    # pres (observation): 850 MB → 85000 Pa
+    assert obs[2] == pytest.approx(85000.0, rel=1e-4)
+
+    # pres column (level pressure): 850 MB → 85000 Pa
+    pres_vals = result.column("pres").to_pylist()
+    assert pres_vals[0] == pytest.approx(85000.0, rel=1e-4)
+    assert pres_vals[1] == pytest.approx(92500.0, rel=1e-4)
+    assert pres_vals[2] == pytest.approx(70000.0, rel=1e-4)
+
+
+def test_nnja_obs_conv_finalize_empty():
+    """Test that _decode_prepbufr_file handles empty data gracefully."""
+    from unittest.mock import patch as _patch
+
+    from earth2studio.data.nnja import _NNJAConvTask
+    from earth2studio.lexicon import NNJAObsConvLexicon
+
+    ds = NNJAObsConv(cache=False, verbose=False)
+    _, modifier_t = NNJAObsConvLexicon["t"]
+
+    task = _NNJAConvTask(
+        s3_uri="s3://test/file",
+        datetime_file=datetime(2024, 1, 1, 0),
+        datetime_min=datetime(2024, 1, 1, 0),
+        datetime_max=datetime(2024, 1, 1, 0),
+        var_plan={"t": ("TOB", modifier_t)},
+    )
+
+    # Mock bufr_hound to return empty batches
+    with _patch("bufr_hound.read_prepbufr", return_value=[]):
+        result = ds._decode_prepbufr_file("/fake/path", task)
+        assert result is None
