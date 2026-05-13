@@ -499,7 +499,7 @@ def _flat_batch_to_nnja(
 ) -> pa.Table | None:
     """Transform a recursively-flattened earth2bufr batch to NNJA long format.
 
-    After ``flatten='recursive'``, every observation mnemonic (POB, TOB, etc.)
+    After ``flatten=True``, every observation mnemonic (POB, TOB, etc.)
     is a direct scalar (double) column. This function:
 
     1. Filters rows by time window and valid lat/lon
@@ -953,7 +953,7 @@ class NNJAObsConv(_NNJAObsBase):
     ) -> pa.Table | None:
         """Decode a PrepBUFR cycle file into a PyArrow Table using earth2bufr.
 
-        Uses the Rust-based earth2bufr parser with ``flatten='recursive'``
+        Uses the Rust-based earth2bufr parser with ``flatten=True``
         which fully flattens the nested BUFR structure into scalar columns.
         This produces one row per observation level with mnemonics like POB,
         TOB, QOB, UOB, VOB as direct double columns.
@@ -962,16 +962,16 @@ class NNJAObsConv(_NNJAObsBase):
 
         logger.info(
             f"[NNJAObsConv prepbufr] cycle={task.datetime_file:%Y-%m-%d %H:%MZ} "
-            f"reading with flatten='recursive'"
+            f"reading with flatten=True"
         )
         decode_t0 = time.perf_counter()
 
-        # Read all requested categories with recursive flatten
+        # Read all requested categories with flatten enabled
         all_cats = _MULTI_LEVEL_CATS + _SINGLE_LEVEL_CATS
         all_batches = earth2bufr.read_prepbufr(
             local_path,
             data_category_filter=all_cats,
-            flatten="recursive",
+            flatten=True,
         )
 
         if not all_batches:

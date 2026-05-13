@@ -331,7 +331,7 @@ def test_nnja_flat_batch_to_nnja():
         "u": ("wind::u", modifier_u),
     }
 
-    # Create a wide-format table similar to earth2bufr recursive-flattened output
+    # Create a wide-format table similar to earth2bufr flattened output
     wide_table = pa.table(
         {
             "_data_category": pa.array([109, 109, 102], type=pa.int64()),
