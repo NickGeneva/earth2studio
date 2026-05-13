@@ -51,10 +51,10 @@ from earth2studio.utils.time import TimeTolerance, normalize_time_tolerance
 from earth2studio.utils.type import TimeArray, VariableArray
 
 try:
-    import eccodes
+    import earth2bufr
 except ImportError:
     OptionalDependencyFailure("data")
-    eccodes = None  # type: ignore[assignment]
+    earth2bufr = None  # type: ignore[assignment]
 
 
 # ---------------------------------------------------------------------------
@@ -662,153 +662,211 @@ class JPSS_ATMS:
         path: str,
         task: _ATMSAsyncTask,
     ) -> pd.DataFrame:
-        """Decode a single ATMS BUFR file into a DataFrame.
+        """Decode a single ATMS BUFR file into a DataFrame using earth2bufr.
 
         Each BUFR message contains *N* subsets (FOVs).  For each subset the
         brightness temperature array has *C* channel values, yielding
         ``N * C`` rows in the output.
         """
+        import pyarrow as pa_local
+
+        # Decode BUFR file using earth2bufr — returns list of RecordBatches
+        # (one per data category). ATMS files typically have a single category.
+        # We do NOT flatten since BT is replicated per-channel within each
+        # subset and we need to handle the channel dimension explicitly.
+        batches = earth2bufr.read_bufr(path)
+
+        if not batches:
+            return pd.DataFrame(columns=self.SCHEMA.names)
+
         rows: list[dict] = []
+        n_channels = JPSSATMSLexicon.ATMS_NUM_CHANNELS
 
-        with open(path, "rb") as fh:
-            while True:
-                msgid = eccodes.codes_bufr_new_from_file(fh)
-                if msgid is None:
-                    break
+        for batch in batches:
+            if batch.num_rows == 0:
+                continue
+
+            col_names = set(batch.schema.names)
+            n_fov = batch.num_rows
+
+            # Helper to extract a column as a numpy array, handling list types
+            # by taking the flattened values (for list<scalar> columns).
+            def _col_as_array(name: str, default_val: float = 0.0) -> np.ndarray:
+                if name not in col_names:
+                    return np.full(n_fov, default_val)
+                col = batch.column(name)
+                # If column is a list type, we'll handle it separately
+                if pa_local.types.is_list(col.type) or pa_local.types.is_large_list(
+                    col.type
+                ):
+                    return col.to_numpy(zero_copy_only=False)
+                arr = col.to_numpy(zero_copy_only=False)
+                if arr.size == 1:
+                    arr = np.full(n_fov, arr[0])
+                return arr
+
+            lat = _col_as_array("latitude")
+            lon = _col_as_array("longitude")
+            fov_arr = _col_as_array("fieldOfViewNumber", 1.0)
+            solza = _col_as_array("solarZenithAngle", np.nan)
+            solaza = _col_as_array("solarAzimuth", np.nan)
+            sat_za = _col_as_array("satelliteZenithAngle", np.nan)
+            sat_aza = _col_as_array("bearingOrAzimuth", np.nan)
+
+            # Brightness temperature — may be a list column (one list per
+            # subset with n_channels elements) or a flat column if the batch
+            # was pre-flattened.
+            bt_key = task.bufr_key
+            if bt_key not in col_names:
+                logger.warning(
+                    f"BT key '{bt_key}' not found in {path}, "
+                    f"available: {sorted(col_names)}"
+                )
+                continue
+
+            bt_col = batch.column(bt_key)
+            if pa_local.types.is_list(bt_col.type) or pa_local.types.is_large_list(
+                bt_col.type
+            ):
+                # List column: each row is one FOV with a list of n_channels BT values
+                bt_flat = bt_col.values.to_numpy(zero_copy_only=False)
+                if bt_flat.size == n_fov * n_channels:
+                    bt = bt_flat.reshape(n_fov, n_channels)
+                else:
+                    logger.warning(
+                        f"Unexpected BT list size {bt_flat.size} in {path}, "
+                        f"expected {n_fov}×{n_channels}. Skipping batch."
+                    )
+                    continue
+            else:
+                # Scalar column — flat array
+                bt_raw = bt_col.to_numpy(zero_copy_only=False)
+                if bt_raw.size == n_fov * n_channels:
+                    # Channel-major layout (matching eccodes behavior)
+                    bt = bt_raw.reshape(n_channels, n_fov).T
+                elif bt_raw.size == n_fov:
+                    # One BT per row (flatten already expanded channels)
+                    bt = bt_raw.reshape(-1, 1)
+                else:
+                    logger.warning(
+                        f"Unexpected BT array size {bt_raw.size} in {path}, "
+                        f"expected {n_fov}×{n_channels}. Skipping batch."
+                    )
+                    continue
+
+            actual_n_channels = bt.shape[1]
+
+            # Per-channel quality flags
+            if "channelDataQualityFlags" in col_names:
+                cqf_col = batch.column("channelDataQualityFlags")
+                if pa_local.types.is_list(cqf_col.type) or pa_local.types.is_large_list(
+                    cqf_col.type
+                ):
+                    cqf_flat = cqf_col.values.to_numpy(zero_copy_only=False)
+                    if cqf_flat.size == n_fov * n_channels:
+                        cqf = cqf_flat.reshape(n_fov, n_channels).astype(np.uint16)
+                    elif cqf_flat.size >= n_channels:
+                        cqf = cqf_flat[:n_channels].astype(np.uint16)
+                    else:
+                        cqf = np.zeros(n_channels, dtype=np.uint16)
+                else:
+                    cqf_raw = cqf_col.to_numpy(zero_copy_only=False)
+                    if cqf_raw.size == n_channels:
+                        cqf = cqf_raw.astype(np.uint16)
+                    elif cqf_raw.size == n_fov * n_channels:
+                        cqf = cqf_raw.reshape(n_channels, n_fov).T.astype(np.uint16)
+                    elif cqf_raw.size >= n_channels:
+                        cqf = cqf_raw[:n_channels].astype(np.uint16)
+                    else:
+                        cqf = np.zeros(n_channels, dtype=np.uint16)
+            else:
+                cqf = np.zeros(n_channels, dtype=np.uint16)
+
+            # Time fields
+            def _get_time_col(name: str) -> np.ndarray:
+                if name in col_names:
+                    col = batch.column(name)
+                    arr = col.to_numpy(zero_copy_only=False)
+                    if arr.size == 1:
+                        arr = np.full(n_fov, arr[0])
+                    return arr.astype(int)
+                return np.zeros(n_fov, dtype=int)
+
+            years = _get_time_col("year")
+            months = _get_time_col("month")
+            days = _get_time_col("day")
+            hours = _get_time_col("hour")
+            minutes = _get_time_col("minute")
+            seconds = _get_time_col("second")
+
+            # Satellite id
+            if "satelliteIdentifier" in col_names:
+                sat_ids = batch.column("satelliteIdentifier").to_numpy(
+                    zero_copy_only=False
+                )
+                if sat_ids.size == 1:
+                    sat_ids = np.full(n_fov, sat_ids[0])
+            else:
+                sat_ids = None
+
+            # Build rows: one per (FOV, channel)
+            for i in range(n_fov):
                 try:
-                    eccodes.codes_set(msgid, "unpack", 1)
+                    obs_time = datetime(
+                        int(years[i]),
+                        int(months[i]),
+                        int(days[i]),
+                        int(hours[i]),
+                        int(minutes[i]),
+                        int(seconds[i]),
+                    )
+                except (ValueError, OverflowError):
+                    continue  # skip FOVs with invalid timestamps
 
-                    n_subsets = eccodes.codes_get(msgid, "numberOfSubsets")
+                # Add sub-second offset based on FOV position in
+                # the scan line.  BUFR only carries integer-second
+                # timestamps; the offset recovers ~18 ms per-FOV
+                # timing from the ATMS scan geometry (ATBD §3).
+                fov_index = float(fov_arr[i])
+                obs_time = obs_time + _fov_to_time_offset(fov_index)
 
-                    # Extract per-FOV arrays (length = n_subsets)
-                    lat = eccodes.codes_get_array(msgid, "latitude")
-                    lon = eccodes.codes_get_array(msgid, "longitude")
-                    fov = eccodes.codes_get_array(msgid, "fieldOfViewNumber")
-                    solza = eccodes.codes_get_array(msgid, "solarZenithAngle")
-                    solaza = eccodes.codes_get_array(msgid, "solarAzimuth")
-                    sat_za = eccodes.codes_get_array(msgid, "satelliteZenithAngle")
-                    sat_aza = eccodes.codes_get_array(msgid, "bearingOrAzimuth")
+                sat_name = task.satellite
+                if sat_ids is not None:
+                    sat_name = _SAT_ID_MAP.get(int(sat_ids[i]), task.satellite)
 
-                    # Brightness temperature array is channel-major:
-                    # [ch1_fov0, ch1_fov1, ..., ch1_fovN, ch2_fov0, ...]
-                    # i.e. shape (n_channels, n_fov) when reshaped, then
-                    # transposed to (n_fov, n_channels) for row iteration.
-                    bt_flat = eccodes.codes_get_array(msgid, task.bufr_key)
-                    n_channels = JPSSATMSLexicon.ATMS_NUM_CHANNELS
-                    n_fov = n_subsets
-
-                    if bt_flat.size != n_fov * n_channels:
-                        logger.warning(
-                            f"Unexpected BT array size {bt_flat.size} in {path}, "
-                            f"expected {n_fov}×{n_channels}. Skipping message."
-                        )
+                for ch in range(actual_n_channels):
+                    raw_val = float(bt[i, ch])
+                    # Skip missing / fill values
+                    if raw_val > 1e6 or raw_val < 0:
                         continue
 
-                    bt = bt_flat.reshape(n_channels, n_fov).T
+                    val = float(task.modifier(raw_val))
 
-                    # Per-channel quality flags (shape n_channels, one per channel)
-                    try:
-                        cqf_raw = eccodes.codes_get_array(
-                            msgid, "channelDataQualityFlags"
-                        )
-                        if cqf_raw.size == n_channels:
-                            # One flag per channel (shared across all FOVs)
-                            cqf = cqf_raw.astype(np.uint16)
-                        elif cqf_raw.size == n_fov * n_channels:
-                            # Per-FOV per-channel: reshape to (n_channels, n_fov)
-                            # and transpose to (n_fov, n_channels) so we can
-                            # index cqf_per_fov[i, ch] later.
-                            cqf = cqf_raw.reshape(n_channels, n_fov).T.astype(np.uint16)
-                        elif cqf_raw.size >= n_channels:
-                            # Unexpected size — take first n_channels entries
-                            logger.debug(
-                                f"channelDataQualityFlags unexpected size "
-                                f"{cqf_raw.size}, using first {n_channels}"
-                            )
-                            cqf = cqf_raw[:n_channels].astype(np.uint16)
-                        else:
-                            cqf = np.zeros(n_channels, dtype=np.uint16)
-                    except Exception:
-                        cqf = np.zeros(n_channels, dtype=np.uint16)
-
-                    # Time fields — may be scalars or per-subset arrays
-                    # depending on the BUFR producer.  Use codes_get_array
-                    # for all of them and broadcast scalars to length n_fov.
-                    def _get_time_array(key: str) -> np.ndarray:
-                        try:
-                            arr = eccodes.codes_get_array(msgid, key)
-                        except Exception:
-                            arr = np.zeros(n_fov)
-                        if arr.size == 1:
-                            arr = np.full(n_fov, arr[0])
-                        return arr.astype(int)
-
-                    years = _get_time_array("year")
-                    months = _get_time_array("month")
-                    days = _get_time_array("day")
-                    hours = _get_time_array("hour")
-                    minutes = _get_time_array("minute")
-                    seconds = _get_time_array("second")
-
-                    # Satellite id
-                    try:
-                        sat_id = int(eccodes.codes_get(msgid, "satelliteIdentifier"))
-                        sat_name = _SAT_ID_MAP.get(sat_id, task.satellite)
-                    except Exception:
-                        sat_name = task.satellite
-
-                    # Build rows: one per (FOV, channel)
-                    for i in range(n_fov):
-                        try:
-                            obs_time = datetime(
-                                int(years[i]),
-                                int(months[i]),
-                                int(days[i]),
-                                int(hours[i]),
-                                int(minutes[i]),
-                                int(seconds[i]),
-                            )
-                        except (ValueError, OverflowError):
-                            continue  # skip FOVs with invalid timestamps
-
-                        # Add sub-second offset based on FOV position in
-                        # the scan line.  BUFR only carries integer-second
-                        # timestamps; the offset recovers ~18 ms per-FOV
-                        # timing from the ATMS scan geometry (ATBD §3).
-                        fov_index = float(fov[i])
-                        obs_time = obs_time + _fov_to_time_offset(fov_index)
-
-                        for ch in range(n_channels):
-                            raw_val = float(bt[i, ch])
-                            # Skip missing / fill values
-                            if raw_val > 1e6 or raw_val < 0:
-                                continue
-
-                            val = float(task.modifier(raw_val))
-
-                            rows.append(
-                                {
-                                    "time": obs_time,
-                                    "class": "rad",
-                                    "lat": float(lat[i]),
-                                    "lon": float(lon[i]) % 360.0,
-                                    "scan_angle": _fov_to_scan_angle(fov_index),
-                                    "sensor_index": ch + 1,
-                                    "wavenumber": float(_ATMS_CHANNEL_WAVENUMBER[ch]),
-                                    "solza": float(solza[i]),
-                                    "solaza": float(solaza[i]),
-                                    "satellite_za": float(sat_za[i]),
-                                    "satellite_aza": float(sat_aza[i]),
-                                    "quality": int(
-                                        cqf[i, ch] if cqf.ndim == 2 else cqf[ch]
-                                    ),
-                                    "satellite": sat_name,
-                                    "observation": val,
-                                    "variable": task.variable,
-                                }
-                            )
-                finally:
-                    eccodes.codes_release(msgid)
+                    rows.append(
+                        {
+                            "time": obs_time,
+                            "class": "rad",
+                            "lat": float(lat[i]),
+                            "lon": float(lon[i]) % 360.0,
+                            "scan_angle": _fov_to_scan_angle(fov_index),
+                            "sensor_index": ch + 1,
+                            "wavenumber": float(_ATMS_CHANNEL_WAVENUMBER[ch]),
+                            "solza": float(solza[i]),
+                            "solaza": float(solaza[i]),
+                            "satellite_za": float(sat_za[i]),
+                            "satellite_aza": float(sat_aza[i]),
+                            "quality": int(
+                                cqf[i, ch]
+                                if cqf.ndim == 2
+                                else cqf[ch]
+                                if ch < len(cqf)
+                                else 0
+                            ),
+                            "satellite": sat_name,
+                            "observation": val,
+                            "variable": task.variable,
+                        }
+                    )
 
         if not rows:
             return pd.DataFrame(columns=self.SCHEMA.names)

@@ -107,62 +107,53 @@ def test_jpss_atms_cache(cache):
 # ---------------------------------------------------------------------------
 # Mock / offline tests (no network required)
 # ---------------------------------------------------------------------------
-def _make_mock_bufr_decode(n_fov=4, n_channels=22):
-    """Return a side_effect function for eccodes calls in _decode_bufr."""
-    # bt shape (n_fov, n_channels) for assertion checking.
-    # The flat array passed to eccodes mock must be channel-major
-    # (all ch1 values, then all ch2, ...) matching real BUFR layout.
+def _make_mock_atms_batch(n_fov=4, n_channels=22):
+    """Create a mock PyArrow RecordBatch mimicking earth2bufr output for ATMS.
+
+    Without flatten, earth2bufr returns one row per subset (FOV) with replicated
+    fields (like brightnessTemperature) as list<double> columns.
+    """
+    # BT per FOV: (n_fov, n_channels) — each FOV has a list of n_channels values
     bt = np.random.uniform(200, 300, size=(n_fov, n_channels)).astype(np.float64)
-    bt_flat_channel_major = bt.T.ravel()  # (n_channels, n_fov) then ravel
 
-    def codes_get_side_effect(msgid, key):
-        mapping = {
-            "unpack": None,
-            "numberOfSubsets": n_fov,
-            "year": 2024,
-            "month": 6,
-            "day": 1,
-            "hour": 12,
-            "minute": 0,
-            "satelliteIdentifier": 225,
-            "satelliteInstruments": 621,
+    # Build list arrays for replicated columns
+    bt_list = pa.array([bt[i].tolist() for i in range(n_fov)], type=pa.list_(pa.float64()))
+    cqf_list = pa.array(
+        [np.zeros(n_channels, dtype=np.int64).tolist() for _ in range(n_fov)],
+        type=pa.list_(pa.int64()),
+    )
+
+    batch = pa.record_batch(
+        {
+            "latitude": pa.array(np.linspace(30, 40, n_fov)),
+            "longitude": pa.array(np.linspace(-100, -80, n_fov)),
+            "fieldOfViewNumber": pa.array(
+                np.arange(1, n_fov + 1, dtype=np.float64)
+            ),
+            "solarZenithAngle": pa.array(np.full(n_fov, 45.0)),
+            "solarAzimuth": pa.array(np.full(n_fov, 180.0)),
+            "satelliteZenithAngle": pa.array(np.full(n_fov, 30.0)),
+            "bearingOrAzimuth": pa.array(np.full(n_fov, 90.0)),
+            "brightnessTemperature": bt_list,
+            "channelDataQualityFlags": cqf_list,
+            "year": pa.array(np.full(n_fov, 2024, dtype=np.int64)),
+            "month": pa.array(np.full(n_fov, 6, dtype=np.int64)),
+            "day": pa.array(np.full(n_fov, 1, dtype=np.int64)),
+            "hour": pa.array(np.full(n_fov, 12, dtype=np.int64)),
+            "minute": pa.array(np.zeros(n_fov, dtype=np.int64)),
+            "second": pa.array(np.zeros(n_fov, dtype=np.int64)),
+            "satelliteIdentifier": pa.array(np.full(n_fov, 225, dtype=np.int64)),
         }
-        if key in mapping:
-            return mapping[key]
-        raise KeyError(key)
-
-    def codes_get_array_side_effect(msgid, key):
-        mapping = {
-            "latitude": np.linspace(30, 40, n_fov),
-            "longitude": np.linspace(-100, -80, n_fov),
-            "fieldOfViewNumber": np.arange(1, n_fov + 1, dtype=np.float64),
-            "solarZenithAngle": np.full(n_fov, 45.0),
-            "solarAzimuth": np.full(n_fov, 180.0),
-            "satelliteZenithAngle": np.full(n_fov, 30.0),
-            "bearingOrAzimuth": np.full(n_fov, 90.0),
-            "brightnessTemperature": bt_flat_channel_major,
-            "channelDataQualityFlags": np.zeros(n_channels, dtype=np.int64),
-            # Time fields (may be scalar-length or per-subset arrays)
-            "year": np.array([2024]),
-            "month": np.array([6]),
-            "day": np.array([1]),
-            "hour": np.array([12]),
-            "minute": np.array([0]),
-            "second": np.zeros(n_fov),
-        }
-        if key in mapping:
-            return mapping[key]
-        raise KeyError(key)
-
-    return codes_get_side_effect, codes_get_array_side_effect, bt
+    )
+    return batch, bt
 
 
 def test_jpss_atms_call_mock(tmp_path):
     """Exercise the full __call__ path without any network access."""
     n_fov, n_channels = 4, 22
-    get_se, get_array_se, bt = _make_mock_bufr_decode(n_fov, n_channels)
+    batch, bt = _make_mock_atms_batch(n_fov, n_channels)
 
-    # Create a fake cached BUFR file (content doesn't matter, eccodes is mocked)
+    # Create a fake cached BUFR file (content irrelevant, earth2bufr is mocked)
     fake_bufr = tmp_path / "fakefile.bufr"
     fake_bufr.write_bytes(b"\x00" * 32)
 
@@ -189,22 +180,10 @@ def test_jpss_atms_call_mock(tmp_path):
                 )
             ],
         ),
-        patch("earth2studio.data.jpss_atms.eccodes") as mock_eccodes,
+        patch("earth2studio.data.jpss_atms.earth2bufr") as mock_earth2bufr,
     ):
-        # eccodes mock setup
-        call_count = {"new": 0}
-
-        def new_from_file(fh):
-            if call_count["new"] == 0:
-                call_count["new"] += 1
-                return 1  # return a message id
-            return None  # signal end of file
-
-        mock_eccodes.codes_bufr_new_from_file = new_from_file
-        mock_eccodes.codes_set = MagicMock()
-        mock_eccodes.codes_get = MagicMock(side_effect=get_se)
-        mock_eccodes.codes_get_array = MagicMock(side_effect=get_array_se)
-        mock_eccodes.codes_release = MagicMock()
+        # earth2bufr.read_bufr returns a list of RecordBatches
+        mock_earth2bufr.read_bufr.return_value = [batch]
 
         ds = JPSS_ATMS(satellites=["n20"], cache=False, verbose=False)
         df = ds(datetime(2024, 6, 1, 12), ["atms"])

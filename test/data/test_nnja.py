@@ -26,7 +26,7 @@ import pytest
 
 from earth2studio.data import NNJAObsConv
 
-pytest.importorskip("bufr_hound", reason="bufr_hound not installed")
+pytest.importorskip("earth2bufr", reason="earth2bufr not installed")
 
 
 @pytest.mark.slow
@@ -331,7 +331,7 @@ def test_nnja_flat_batch_to_nnja():
         "u": ("wind::u", modifier_u),
     }
 
-    # Create a wide-format table similar to bufr-hound recursive-flattened output
+    # Create a wide-format table similar to earth2bufr recursive-flattened output
     wide_table = pa.table(
         {
             "_data_category": pa.array([109, 109, 102], type=pa.int64()),
@@ -445,7 +445,7 @@ def test_nnja_obs_conv_finalize_empty():
         var_plan={"t": ("TOB", modifier_t)},
     )
 
-    # Mock bufr_hound to return empty batches
-    with _patch("bufr_hound.read_prepbufr", return_value=[]):
+    # Mock earth2bufr to return empty batches
+    with _patch("earth2bufr.read_prepbufr", return_value=[]):
         result = ds._decode_prepbufr_file("/fake/path", task)
         assert result is None

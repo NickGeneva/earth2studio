@@ -19,10 +19,10 @@
 # Reference: https://psl.noaa.gov/data/nnja_obs/
 # Public S3 bucket: s3://noaa-reanalyses-pds/observations/reanalysis/
 #
-# BUFR decoding is handled by the ``bufr-hound`` Rust-based parser which
+# BUFR decoding is handled by the ``earth2bufr`` Rust-based parser which
 # natively extracts DX tables from PrepBUFR files and returns PyArrow
 # RecordBatches.  No multiprocessing is needed on the Python side as
-# bufr-hound uses Rayon internally for parallel message decoding.
+# earth2bufr uses Rayon internally for parallel message decoding.
 
 from __future__ import annotations
 
@@ -60,10 +60,10 @@ from earth2studio.utils.imports import (
 )
 
 try:
-    import bufr_hound  # noqa: F401
+    import earth2bufr  # noqa: F401
 except ImportError:
     OptionalDependencyFailure("data")
-    bufr_hound = None  # type: ignore[assignment]
+    earth2bufr = None  # type: ignore[assignment]
 from earth2studio.utils.time import normalize_time_tolerance
 from earth2studio.utils.type import TimeArray, TimeTolerance, VariableArray
 
@@ -473,7 +473,7 @@ class _NNJAObsBase:
 
 # ── PrepBUFR mnemonic → variable mapping ─────────────────────────────
 
-# Lexicon key → bufr-hound mnemonic column name
+# Lexicon key → earth2bufr mnemonic column name
 _LEXICON_KEY_TO_MNEMONIC: dict[str, str] = {
     "TOB": "TOB",
     "QOB": "QOB",
@@ -497,7 +497,7 @@ def _flat_batch_to_nnja(
     dt_max: datetime,
     var_plan: dict[str, tuple[str, Callable[[pd.DataFrame], pd.DataFrame]]],
 ) -> pa.Table | None:
-    """Transform a recursively-flattened bufr-hound batch to NNJA long format.
+    """Transform a recursively-flattened earth2bufr batch to NNJA long format.
 
     After ``flatten='recursive'``, every observation mnemonic (POB, TOB, etc.)
     is a direct scalar (double) column. This function:
@@ -510,7 +510,7 @@ def _flat_batch_to_nnja(
     Parameters
     ----------
     batch : pa.RecordBatch
-        A single recursively-flattened bufr-hound batch (one data category).
+        A single recursively-flattened earth2bufr batch (one data category).
     cycle_time : datetime
         The 6-hour cycle time for this file.
     dt_min : datetime
@@ -951,14 +951,14 @@ class NNJAObsConv(_NNJAObsBase):
     def _decode_prepbufr_file(
         self, local_path: str, task: _NNJAConvTask
     ) -> pa.Table | None:
-        """Decode a PrepBUFR cycle file into a PyArrow Table using bufr-hound.
+        """Decode a PrepBUFR cycle file into a PyArrow Table using earth2bufr.
 
-        Uses the Rust-based bufr-hound parser with ``flatten='recursive'``
+        Uses the Rust-based earth2bufr parser with ``flatten='recursive'``
         which fully flattens the nested BUFR structure into scalar columns.
         This produces one row per observation level with mnemonics like POB,
         TOB, QOB, UOB, VOB as direct double columns.
         """
-        import bufr_hound
+        import earth2bufr
 
         logger.info(
             f"[NNJAObsConv prepbufr] cycle={task.datetime_file:%Y-%m-%d %H:%MZ} "
@@ -968,7 +968,7 @@ class NNJAObsConv(_NNJAObsBase):
 
         # Read all requested categories with recursive flatten
         all_cats = _MULTI_LEVEL_CATS + _SINGLE_LEVEL_CATS
-        all_batches = bufr_hound.read_prepbufr(
+        all_batches = earth2bufr.read_prepbufr(
             local_path,
             data_category_filter=all_cats,
             flatten="recursive",
@@ -985,7 +985,7 @@ class NNJAObsConv(_NNJAObsBase):
         total_raw_rows = sum(b.num_rows for b in all_batches)
         logger.info(
             f"[NNJAObsConv prepbufr] cycle={task.datetime_file:%Y-%m-%d %H:%MZ} "
-            f"bufr-hound read {total_raw_rows:,} raw rows in "
+            f"earth2bufr read {total_raw_rows:,} raw rows in "
             f"{read_elapsed:.1f}s ({len(all_batches)} batches)"
         )
 
@@ -1030,7 +1030,7 @@ class NNJAObsConv(_NNJAObsBase):
         placeholder that will be implemented when GPS RO variables are
         added to `NNJAObsConvLexicon`.
         """
-        import bufr_hound
+        import earth2bufr
 
         logger.info(
             f"[NNJAObsConv gpsro]    cycle={task.datetime_file:%Y-%m-%d %H:%MZ} "
@@ -1039,7 +1039,7 @@ class NNJAObsConv(_NNJAObsBase):
         decode_t0 = time.perf_counter()
 
         # GPS RO files use standard BUFR (not PrepBUFR) encoding
-        batches = bufr_hound.read_bufr(
+        batches = earth2bufr.read_bufr(
             local_path,
             flatten=True,
         )
@@ -1051,7 +1051,7 @@ class NNJAObsConv(_NNJAObsBase):
         # are added. For now return None.
         logger.warning(
             f"[NNJAObsConv gpsro] GPS RO decoding not yet implemented with "
-            f"bufr-hound (decoded {sum(b.num_rows for b in batches)} rows in "
+            f"earth2bufr (decoded {sum(b.num_rows for b in batches)} rows in "
             f"{time.perf_counter() - decode_t0:.1f}s)"
         )
         return None

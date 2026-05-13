@@ -31,7 +31,7 @@ class NNJAObsConvLexicon(metaclass=LexiconType):
     the data source uses:
 
     - ``prepbufr::<mnemonic>`` -- read from ``conv/prepbufr/`` PrepBUFR
-      cycle files, decoded with bufr-hound using the NCEP-local DX tables
+      cycle files, decoded with earth2bufr using the NCEP-local DX tables
       embedded in the file. Mnemonic is one of ``TOB``/``QOB``/``POB`` for
       pressure/temperature/specific humidity, or ``wind::u``/``wind::v``
       for wind components decomposed from UOB/VOB.
