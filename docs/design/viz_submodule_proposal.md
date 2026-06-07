@@ -331,7 +331,7 @@ Initial layer types:
   `xr.Dataset`; supports regular `lat/lon`, `y/x` with 2D lat/lon coords,
   future curvilinear grids, and selected `time` or `lead_time` raster
   sequences. Extra non-spatial dimensions such as `ensemble` should be selected
-  with layer-level selectors or reduced before rendering.
+  or reduced with xarray before rendering.
 - `ContourLayer`: derived from raster data but rendered as isolines or filled
   contours.
 - `PointLayer`: pandas or cuDF points with lat/lon/time columns and scalar

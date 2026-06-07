@@ -132,7 +132,7 @@ def test_xarray_adapter_sequence_requires_non_time_selection() -> None:
     with pytest.raises(ValueError, match="ensemble"):
         XarrayAdapter(data).to_raster_layer_view()
 
-    view = XarrayAdapter(data).to_raster_layer_view(selectors={"ensemble": 0})
+    view = XarrayAdapter(data.sel(ensemble=0)).to_raster_layer_view()
 
     assert isinstance(view, RasterSequenceView)
     assert view.frame_count == 2

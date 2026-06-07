@@ -24,7 +24,7 @@ heatmap rasters when needed, preserve attributes, and return `RasterView` or
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from itertools import product
 from typing import Any
@@ -133,7 +133,6 @@ class XarrayAdapter:
         lead_time: Any | None = None,
         x: str | None = None,
         y: str | None = None,
-        selectors: Mapping[str, Any] | None = None,
     ) -> RasterView:
         """Convert xarray data into a renderable raster view."""
         view = self.to_raster_layer_view(
@@ -142,7 +141,6 @@ class XarrayAdapter:
             lead_time=lead_time,
             x=x,
             y=y,
-            selectors=selectors,
             allow_sequence=False,
         )
         if isinstance(view, RasterSequenceView):
@@ -157,7 +155,6 @@ class XarrayAdapter:
         lead_time: Any | None = None,
         x: str | None = None,
         y: str | None = None,
-        selectors: Mapping[str, Any] | None = None,
         frame_dims: Sequence[str] = _DEFAULT_FRAME_DIMS,
         allow_sequence: bool = True,
     ) -> RasterView | RasterSequenceView:
@@ -167,7 +164,6 @@ class XarrayAdapter:
             variable=variable,
             time=time,
             lead_time=lead_time,
-            selectors=selectors,
         )
         grid = infer_grid_spec_from_xarray(selected)
         if can_native_heatmap(selected, grid):

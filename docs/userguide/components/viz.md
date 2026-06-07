@@ -70,14 +70,14 @@ ds = xr.open_zarr("outputs/forecast.zarr")
 field = ds["tcwv"].isel(time=0, lead_time=[0, 2, 4, 6])
 
 scene = viz.Scene(title="tcwv ensemble")
-scene.add_raster(field, select={"ensemble": 0}, name="Member 0", colormap="Blues")
+scene.add_raster(field.sel(ensemble=0), name="Member 0", colormap="Blues")
 scene.add_raster(field.std(dim="ensemble"), name="Ensemble std", colormap="Blues")
 scene.save("outputs/tcwv_ensemble.jpg", backend="matplotlib")
 ```
 
 Any additional non-spatial dimensions must be explicitly selected or reduced in
-the layer call. This keeps the layer API simple while making hidden ambiguity
-fail loudly.
+xarray before the layer call. This keeps the layer API simple while making
+hidden ambiguity fail loudly.
 
 Quick helper functions remain available for small one-off artifacts where a
 scene would be unnecessary:

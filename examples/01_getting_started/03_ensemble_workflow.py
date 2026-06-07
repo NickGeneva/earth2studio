@@ -148,14 +148,12 @@ field = dataset[variable].isel(time=0, lead_time=lead_steps)
 
 scene = viz.Scene(title=f"{forecast} {variable} ensemble")
 scene.add_raster(
-    field,
-    select={"ensemble": 0},
+    field.sel(ensemble=0),
     name="Member 0",
     colormap="Blues",
 )
 scene.add_raster(
-    field,
-    select={"ensemble": 1},
+    field.sel(ensemble=1),
     name="Member 1",
     colormap="Blues",
 )

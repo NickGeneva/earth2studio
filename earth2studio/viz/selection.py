@@ -22,7 +22,6 @@ coordinate names for regular or 2D lat/lon grids.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any
 
 import xarray as xr
@@ -37,14 +36,11 @@ def select_xarray(
     variable: str | None = None,
     time: Any | None = None,
     lead_time: Any | None = None,
-    selectors: Mapping[str, Any] | None = None,
 ) -> xr.DataArray:
     """Select a renderable DataArray from an xarray object."""
     array = _select_variable(data, variable)
     array = _select_named_coordinate(array, "time", time)
     array = _select_named_coordinate(array, "lead_time", lead_time)
-    for coord, value in (selectors or {}).items():
-        array = _select_named_coordinate(array, coord, value)
     return array
 
 
