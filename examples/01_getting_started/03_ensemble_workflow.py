@@ -147,22 +147,26 @@ dataset = xr.open_zarr("outputs/03_ensemble_sg.zarr")
 field = dataset[variable].isel(time=0, lead_time=lead_steps)
 
 scene = viz.Scene(title=f"{forecast} {variable} ensemble")
+projection = viz.ProjectionSpec(kind="robinson")
 scene.add_raster(
     field.sel(ensemble=0),
     name="Member 0",
     colormap="Blues",
+    projection=projection,
 )
 scene.add_raster(
     field.sel(ensemble=1),
     name="Member 1",
     colormap="Blues",
+    projection=projection,
 )
 scene.add_raster(
     field.std(dim="ensemble"),
     name="Ensemble std",
     colormap="Blues",
+    projection=projection,
 )
 scene.save(
     f"outputs/03_{forecast}_{variable}_ensemble.jpg",
-    backend="matplotlib",
+    backend="cartopy",
 )

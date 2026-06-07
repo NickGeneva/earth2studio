@@ -462,32 +462,37 @@ ds_sync = xr.open_zarr("outputs/17_io_sync.zarr")
 ds_nc = xr.open_dataset("outputs/17_io_sync.nc")
 
 scene = viz.Scene(title="Comparison of mean t2m across IO Backends")
+projection = viz.ProjectionSpec(kind="robinson")
 scene.add_raster(
     ds_async.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
     name="Async Zarr",
     vmin=250,
     vmax=320,
+    projection=projection,
 )
 scene.add_raster(
     ds_nonblocking.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
     name="Non-blocking Async Zarr",
     vmin=250,
     vmax=320,
+    projection=projection,
 )
 scene.add_raster(
     ds_sync.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
     name="Sync Zarr",
     vmin=250,
     vmax=320,
+    projection=projection,
 )
 scene.add_raster(
     ds_nc.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
     name="NetCDF",
     vmin=250,
     vmax=320,
+    projection=projection,
 )
 scene.save(
     "outputs/17_io_performance.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(12, 8),
 )

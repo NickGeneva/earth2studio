@@ -235,18 +235,25 @@ scene = viz.Scene(
         f"Lead time: {lead_time.astype('timedelta64[h]')}"
     )
 )
+atmos_projection = viz.ProjectionSpec(kind="robinson")
+ocean_projection = viz.ProjectionSpec(
+    kind="robinson",
+    metadata={"land": True, "land_facecolor": "grey"},
+)
 scene.add_raster(
     ds[atmos_var].sel(time=ic_date, lead_time=lead_time),
     name=f"{atmos_var} [{atmos_units}]",
     colormap="cividis",
+    projection=atmos_projection,
 )
 scene.add_raster(
     ds[ocean_var].sel(time=ic_date, lead_time=lead_time),
     name=f"{ocean_var} [{ocean_units}]",
     colormap="Spectral_r",
+    projection=ocean_projection,
 )
 scene.save(
     "outputs/14_ws10m_sst_prediction.png",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(15, 6),
 )

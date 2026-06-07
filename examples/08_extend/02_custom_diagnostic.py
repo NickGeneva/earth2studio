@@ -247,9 +247,17 @@ field = xr.DataArray(
     attrs={"units": "C"},
 )
 scene = viz.Scene(title=f"{variable} - {forecast}")
-scene.add_raster(field, name=variable, colormap="coolwarm", vmin=-10, vmax=30)
+projection = viz.ProjectionSpec(kind="orthographic")
+scene.add_raster(
+    field,
+    name=variable,
+    colormap="coolwarm",
+    vmin=-10,
+    vmax=30,
+    projection=projection,
+)
 scene.save(
     "outputs/02_custom_diagnostic_dlwp_prediction.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(12, 4),
 )

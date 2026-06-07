@@ -176,19 +176,34 @@ dataset = xr.open_zarr("outputs/05_ensemble_avsg.zarr")
 step = 0  # lead time = 24 hrs
 initial = dataset.isel(time=0, lead_time=step)
 scene = viz.Scene(title=f"{forecast} - Lead time: {6*step}hrs")
+projection = viz.ProjectionSpec(kind="robinson")
 scene.add_raster(
-    initial["t2m"].mean(dim="ensemble"), name="t2m mean", colormap="coolwarm"
+    initial["t2m"].mean(dim="ensemble"),
+    name="t2m mean",
+    colormap="coolwarm",
+    projection=projection,
 )
 scene.add_raster(
-    initial["t2m"].std(dim="ensemble"), name="t2m std", colormap="coolwarm"
+    initial["t2m"].std(dim="ensemble"),
+    name="t2m std",
+    colormap="coolwarm",
+    projection=projection,
 )
 scene.add_raster(
-    initial["tcwv"].mean(dim="ensemble"), name="tcwv mean", colormap="Blues"
+    initial["tcwv"].mean(dim="ensemble"),
+    name="tcwv mean",
+    colormap="Blues",
+    projection=projection,
 )
-scene.add_raster(initial["tcwv"].std(dim="ensemble"), name="tcwv std", colormap="Blues")
+scene.add_raster(
+    initial["tcwv"].std(dim="ensemble"),
+    name="tcwv std",
+    colormap="Blues",
+    projection=projection,
+)
 scene.save(
     f"outputs/05_{forecast}_{step}_ensemble.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(10, 6),
 )
 
@@ -202,10 +217,20 @@ scene.save(
 step = 4  # lead time = 24 hrs
 tcwv = dataset["tcwv"].isel(time=0, lead_time=step)
 scene = viz.Scene(title=f"{forecast} - tcwv - Lead time: {6*step}hrs")
-scene.add_raster(tcwv.mean(dim="ensemble"), name="tcwv mean", colormap="Blues")
-scene.add_raster(tcwv.std(dim="ensemble"), name="tcwv std", colormap="Blues")
+scene.add_raster(
+    tcwv.mean(dim="ensemble"),
+    name="tcwv mean",
+    colormap="Blues",
+    projection=projection,
+)
+scene.add_raster(
+    tcwv.std(dim="ensemble"),
+    name="tcwv std",
+    colormap="Blues",
+    projection=projection,
+)
 scene.save(
     f"outputs/05_{forecast}_{step}_ensemble.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(10, 3),
 )

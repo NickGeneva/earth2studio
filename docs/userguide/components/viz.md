@@ -18,7 +18,8 @@ The initial implementation focuses on a small set of stable concepts:
   optional time columns.
 - Regional terrain layers preserve local CRS, vertical datum, and topography
   metadata through {class}`earth2studio.viz.RegionSpec`.
-- Backends are selected by name and imported lazily.
+- Backends are selected by name and imported lazily. Built-in backends include
+  `summary`, `matplotlib`, and `cartopy`.
 
 Visualization variable names should follow the Earth2 Studio lexicon vocabulary
 used elsewhere in the package. Common examples are `t2m`, `u10m`, `v10m`,
@@ -58,9 +59,10 @@ summary = viz.plot(
 
 Example scripts often start from model output stores. Open those stores with
 xarray, select the variable and timesteps you want to visualize, then add those
-arrays directly as scene layers. For regular global rasters, the Matplotlib
-backend renders each raster layer as a row and each `time` or `lead_time` frame
-as a column:
+arrays directly as scene layers. For geographic rasters, attach a
+{class}`earth2studio.viz.ProjectionSpec` and use the Cartopy backend; each
+raster layer becomes a row and each `time` or `lead_time` frame becomes a
+column:
 
 ```python
 import xarray as xr
@@ -70,9 +72,20 @@ ds = xr.open_zarr("outputs/forecast.zarr")
 field = ds["tcwv"].isel(time=0, lead_time=[0, 2, 4, 6])
 
 scene = viz.Scene(title="tcwv ensemble")
-scene.add_raster(field.sel(ensemble=0), name="Member 0", colormap="Blues")
-scene.add_raster(field.std(dim="ensemble"), name="Ensemble std", colormap="Blues")
-scene.save("outputs/tcwv_ensemble.jpg", backend="matplotlib")
+projection = viz.ProjectionSpec(kind="robinson")
+scene.add_raster(
+    field.sel(ensemble=0),
+    name="Member 0",
+    colormap="Blues",
+    projection=projection,
+)
+scene.add_raster(
+    field.std(dim="ensemble"),
+    name="Ensemble std",
+    colormap="Blues",
+    projection=projection,
+)
+scene.save("outputs/tcwv_ensemble.jpg", backend="cartopy")
 ```
 
 Any additional non-spatial dimensions must be explicitly selected or reduced in
@@ -167,7 +180,9 @@ The heatmap is a native grid diagnostic, not a map reprojection. Use lat/lon
 output or a future backend-specific payload builder when geographic coastlines
 and projected overlays are required.
 
-Static Matplotlib rendering is strongest for regular raster-like arrays. For
+Static Cartopy rendering is strongest for geographic `lat`/`lon` rasters and
+dataframe point layers. Static Matplotlib rendering remains useful for native
+model-grid diagnostics that should not be interpreted as geographic maps. For
 geohash trigger tables, provide decoded `lat`/`lon` or `x`/`y` columns for
 static plotting today; future renderer payload builders can lower geohash cells
 into polygons or instanced geometry without changing the scene API.

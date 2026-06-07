@@ -298,12 +298,14 @@ std_field = arr.std(dim=["ensemble", "sample"])
 scene = viz.Scene(
     title=f"Start date: {np.datetime_as_string(ds['time'].values[0], unit='h')}"
 )
+projection = viz.ProjectionSpec(kind="platecarree")
 scene.add_raster(
     mean_field.isel(time=0, lead_time=slice(0, lead_time)),
     name="ws10m mean",
     colormap="nipy_spectral",
     vmin=0,
     vmax=40,
+    projection=projection,
 )
 scene.add_raster(
     std_field.isel(time=0, lead_time=slice(0, lead_time)),
@@ -311,9 +313,10 @@ scene.add_raster(
     colormap="magma",
     vmin=0,
     vmax=4,
+    projection=projection,
 )
 scene.save(
     "outputs/18_ensemble_corrdiff_w10m.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(12, 5),
 )

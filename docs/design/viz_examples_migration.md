@@ -28,6 +28,8 @@ prefer:
 - xarray `.sel(...)`, `.isel(...)`, `.mean(...)`, `.std(...)`, and explicit
   `xr.DataArray(...)` construction before calling `viz`.
 - Backend-owned raster layout for layer rows and `time` or `lead_time` columns.
+- Projected geographic plots use `backend="cartopy"` with layer-level
+  `ProjectionSpec` metadata instead of bespoke Cartopy subplot construction.
 
 The remaining example quick helpers are intentionally limited to APIs that do
 not yet have a scene-layer equivalent:
@@ -78,8 +80,13 @@ from earth2studio import viz
 
 ds = xr.open_zarr("outputs/forecast.zarr")
 scene = viz.Scene(title="t2m forecast")
-scene.add_raster(ds["t2m"].isel(time=0, lead_time=[0, 2, 4]), colormap="turbo")
-scene.save("outputs/t2m_forecast.jpg", backend="matplotlib")
+projection = viz.ProjectionSpec(kind="robinson")
+scene.add_raster(
+    ds["t2m"].isel(time=0, lead_time=[0, 2, 4]),
+    colormap="turbo",
+    projection=projection,
+)
+scene.save("outputs/t2m_forecast.jpg", backend="cartopy")
 ```
 
 When an example already has an Earth2 Studio IO backend in memory, convert or
@@ -93,9 +100,8 @@ reprojection support.
 
 ## API Gaps To Close Before Full Migration
 
-- `CartopyBackend`: projection-aware maps, coastlines, state/country features,
-  and `pcolormesh`/`contourf` choices.
-- CartoPy-native raster sequence lowering once projection-aware maps are added.
+- Cartopy animation and richer map styling, for example `contourf` lowering and
+  country/state feature presets beyond the current metadata controls.
 - `TrackLayer`: grouped line rendering for cyclone tracks and object paths.
 - `LineLayer`: scalar time-series plots for statistics examples.
 - `VectorLayer`: quiver/barb rendering from `u10m`/`v10m` and derived `ws10m`.

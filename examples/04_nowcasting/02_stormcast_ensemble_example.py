@@ -169,6 +169,17 @@ def _field(data, name: str, units: str) -> xr.DataArray:
 variable = "refc"
 cmap = "gist_ncar"
 x = io[variable]
+projection = viz.ProjectionSpec(
+    kind="lambert_conformal",
+    metadata={
+        "central_longitude": 262.5,
+        "central_latitude": 38.5,
+        "standard_parallels": (38.5, 38.5),
+        "globe_semimajor_axis": 6371229,
+        "globe_semiminor_axis": 6371229,
+        "states": True,
+    },
+)
 
 scene = viz.Scene(title=f"{forecast} - {variable} - Lead time: {step}hrs")
 scene.add_raster(
@@ -177,6 +188,7 @@ scene.add_raster(
     colormap=cmap,
     vmin=0,
     vmax=60,
+    projection=projection,
 )
 scene.add_raster(
     _field(np.where(x[1, 0, step] > 0, x[1, 0, step], np.nan), variable, "dBZ"),
@@ -184,6 +196,7 @@ scene.add_raster(
     colormap=cmap,
     vmin=0,
     vmax=60,
+    projection=projection,
 )
 scene.add_raster(
     _field(
@@ -195,10 +208,11 @@ scene.add_raster(
     colormap=cmap,
     vmin=0,
     vmax=60,
+    projection=projection,
 )
 scene.save(
     f"outputs/10_{date}_{variable}_{step}_ensemble.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(20, 6),
 )
 
@@ -212,19 +226,26 @@ cmap = "Spectral_r"
 x = io[variable]
 
 scene = viz.Scene(title=f"{forecast} - {variable} - Lead time: {step}hrs")
-scene.add_raster(_field(x[0, 0, step], variable, "K"), name="Member 0", colormap=cmap)
+scene.add_raster(
+    _field(x[0, 0, step], variable, "K"),
+    name="Member 0",
+    colormap=cmap,
+    projection=projection,
+)
 scene.add_raster(
     _field(x[1, 0, step], variable, "K"),
     name="Member 1",
     colormap=cmap,
+    projection=projection,
 )
 scene.add_raster(
     _field(x[:, 0, step].std(axis=0), f"{variable}_std", "K"),
     name="Std",
     colormap=cmap,
+    projection=projection,
 )
 scene.save(
     f"outputs/10_{date}_{variable}_{step}_ensemble.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(20, 6),
 )

@@ -137,12 +137,17 @@ def _as_numpy(value):
 
 
 scene = viz.Scene(title="cBottle datasource")
+projection = viz.ProjectionSpec(
+    kind="orthographic",
+    metadata={"central_longitude": 300.0},
+)
 scene.add_raster(
     era5_da.sel(variable=variable).isel(time=0),
     name="ERA5",
     colormap="cubehelix",
     vmin=0,
     vmax=90,
+    projection=projection,
 )
 for i in range(n_samples):
     scene.add_raster(
@@ -151,18 +156,26 @@ for i in range(n_samples):
         colormap="cubehelix",
         vmin=0,
         vmax=90,
+        projection=projection,
     )
-scene.add_raster(
+scene.save(
+    "outputs/15_tcwv_cbottle_datasource.jpg",
+    backend="cartopy",
+    figsize=(12, 8),
+)
+
+native_scene = viz.Scene(title="cBottle native HEALPix")
+native_scene.add_raster(
     cbottle_native_da.sel(variable=variable).isel(time=0),
     name="CBottle Native HEALPix Heatmap",
     colormap="cubehelix",
     vmin=0,
     vmax=90,
 )
-scene.save(
-    "outputs/15_tcwv_cbottle_datasource.jpg",
+native_scene.save(
+    "outputs/15_tcwv_cbottle_native_heatmap.jpg",
     backend="matplotlib",
-    figsize=(12, 8),
+    figsize=(6, 4),
 )
 # %%
 # Variable Infilling with CBottleInfill Diagnostic
@@ -263,12 +276,14 @@ def _tcwv_field(data, name: str) -> xr.DataArray:
 
 
 scene = viz.Scene(title="cBottle infill")
+projection = viz.ProjectionSpec(kind="mollweide", metadata={"central_longitude": 0})
 scene.add_raster(
     _tcwv_field(era5_data[0, 0, 0], variable),
     name="ERA5",
     colormap="jet",
     vmin=0,
     vmax=90,
+    projection=projection,
 )
 scene.add_raster(
     _tcwv_field(torch.mean(output_0[:, 0, var_idx], axis=0), variable),
@@ -276,6 +291,7 @@ scene.add_raster(
     colormap="jet",
     vmin=0,
     vmax=90,
+    projection=projection,
 )
 scene.add_raster(
     _tcwv_field(torch.mean(output_1[:, 0, var_idx], axis=0), variable),
@@ -283,6 +299,7 @@ scene.add_raster(
     colormap="jet",
     vmin=0,
     vmax=90,
+    projection=projection,
 )
 scene.add_raster(
     _tcwv_field(torch.std(output_0[:, 0, var_idx], axis=0), f"{variable}_std"),
@@ -290,6 +307,7 @@ scene.add_raster(
     colormap="inferno",
     vmin=0,
     vmax=10,
+    projection=projection,
 )
 scene.add_raster(
     _tcwv_field(torch.std(output_1[:, 0, var_idx], axis=0), f"{variable}_std"),
@@ -297,9 +315,10 @@ scene.add_raster(
     colormap="inferno",
     vmin=0,
     vmax=10,
+    projection=projection,
 )
 scene.save(
     "outputs/15_tcwv_cbottle_infill.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(10, 6),
 )

@@ -190,12 +190,25 @@ def _u10m_field(data, coords):
 
 
 scene = viz.Scene(title="cBottle super resolution")
+projection = viz.ProjectionSpec(
+    kind="platecarree",
+    metadata={
+        "extent": (
+            super_resolution_window[1] - 10,
+            super_resolution_window[3] + 10,
+            super_resolution_window[0] - 10,
+            super_resolution_window[2] + 10,
+        ),
+        "gridline_labels": True,
+    },
+)
 scene.add_raster(
     _u10m_field(synth_x[0, 0, 3, :, :], synth_coords),
     name="Synthetic Data (cBottle3D, low resolution)",
     colormap="RdBu_r",
     vmin=-20,
     vmax=20,
+    projection=projection,
 )
 scene.add_raster(
     _u10m_field(sr_synth_x[0, 0, 3, :, :], sr_synth_coords),
@@ -203,6 +216,7 @@ scene.add_raster(
     colormap="RdBu_r",
     vmin=-20,
     vmax=20,
+    projection=projection,
 )
 scene.add_raster(
     _u10m_field(era5_x[0, 0, 0, :, :], era5_coords),
@@ -210,6 +224,7 @@ scene.add_raster(
     colormap="RdBu_r",
     vmin=-20,
     vmax=20,
+    projection=projection,
 )
 scene.add_raster(
     _u10m_field(sr_infill_x[0, 0, 3, :, :], sr_infill_coords),
@@ -217,9 +232,10 @@ scene.add_raster(
     colormap="RdBu_r",
     vmin=-20,
     vmax=20,
+    projection=projection,
 )
 scene.save(
     "outputs/16_cbottle_super_resolution.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(24, 24),
 )

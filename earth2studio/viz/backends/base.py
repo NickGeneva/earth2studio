@@ -131,6 +131,7 @@ def ensure_default_backends() -> None:
         return
     register_backend("summary", SummaryBackend)
     register_backend("matplotlib", _matplotlib_factory)
+    register_backend("cartopy", _cartopy_factory)
     _DEFAULTS_REGISTERED = True
 
 
@@ -188,3 +189,9 @@ def _matplotlib_factory() -> VizBackend:
     from earth2studio.viz.backends.matplotlib import MatplotlibBackend
 
     return MatplotlibBackend()
+
+
+def _cartopy_factory() -> VizBackend:
+    from earth2studio.viz.backends.cartopy import CartopyBackend
+
+    return CartopyBackend()

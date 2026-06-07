@@ -229,11 +229,30 @@ ws10m = _field(
     "m s^-1",
 )
 scene = viz.Scene(title="CorrDiff prediction")
-scene.add_raster(mrr, name="Radar Reflectivity", colormap="inferno")
-scene.add_raster(t2m, name="2-meter Temperature", colormap="RdBu_r")
-scene.add_raster(ws10m, name="10-meter Wind Speed", colormap="Greens")
+projection = viz.ProjectionSpec(
+    kind="lambert_conformal",
+    metadata={"central_longitude": float(np.asarray(lon).mean())},
+)
+scene.add_raster(
+    mrr,
+    name="Radar Reflectivity",
+    colormap="inferno",
+    projection=projection,
+)
+scene.add_raster(
+    t2m,
+    name="2-meter Temperature",
+    colormap="RdBu_r",
+    projection=projection,
+)
+scene.add_raster(
+    ws10m,
+    name="10-meter Wind Speed",
+    colormap="Greens",
+    projection=projection,
+)
 scene.save(
     "outputs/04_corr_diff_prediction.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(4 * 8, 8),
 )

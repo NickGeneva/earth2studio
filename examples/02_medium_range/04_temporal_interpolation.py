@@ -126,9 +126,17 @@ field = xr.DataArray(
     attrs={"units": "kg/m^2"},
 )
 scene = viz.Scene(title="Water Vapour")
-scene.add_raster(field, name="tcwv", colormap="twilight_shifted", vmin=0, vmax=85)
+projection = viz.ProjectionSpec(kind="robinson")
+scene.add_raster(
+    field,
+    name="tcwv",
+    colormap="twilight_shifted",
+    vmin=0,
+    vmax=85,
+    projection=projection,
+)
 scene.save(
     "outputs/12_tcwv_steps.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(15, 6),
 )

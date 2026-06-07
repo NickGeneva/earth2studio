@@ -275,16 +275,35 @@ scene = viz.Scene(
         f"(lead {lead_time.astype('timedelta64[m]').item()})"
     )
 )
-scene.add_raster(goes, name=f"Predicted GOES {goes_channel}", colormap="gray_r")
+projection = viz.ProjectionSpec(
+    kind="lambert_conformal",
+    metadata={
+        "central_longitude": 262.5,
+        "central_latitude": 38.5,
+        "standard_parallels": (38.5, 38.5),
+        "globe_semimajor_axis": 6371229,
+        "globe_semiminor_axis": 6371229,
+        "states": True,
+        "states_linewidth": 1.0,
+        "coastline_linewidth": 1.2,
+    },
+)
+scene.add_raster(
+    goes,
+    name=f"Predicted GOES {goes_channel}",
+    colormap="gray_r",
+    projection=projection,
+)
 scene.add_raster(
     refc,
     name="Predicted MRMS refc",
     colormap="inferno",
     vmin=0.0,
     vmax=55.0,
+    projection=projection,
 )
 scene.save(
     "outputs/20_stormscope_goes_example.png",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(12, 5),
 )

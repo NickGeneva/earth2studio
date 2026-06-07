@@ -222,21 +222,24 @@ print(da_custom)
 from earth2studio import viz
 
 scene = viz.Scene(title="r500")
+projection = viz.ProjectionSpec(kind="mollweide")
 scene.add_raster(
     da_custom.sel(variable="r500").isel(time=0),
     name="Custom ARCO",
     vmin=0,
     vmax=100,
+    projection=projection,
 )
 scene.add_raster(
     da_gfs.sel(variable="r500").isel(time=0),
     name="GFS",
     vmin=0,
     vmax=100,
+    projection=projection,
 )
 scene.save(
     "outputs/03_custom_datasource_gfs_versus_custom.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(10, 3),
 )
 
@@ -298,9 +301,16 @@ field = xr.DataArray(
     name=variable,
 )
 scene = viz.Scene(title=f"{variable} - {forecast}")
-scene.add_raster(field, name=variable, colormap="magma", vmin=0, vmax=80)
+scene.add_raster(
+    field,
+    name=variable,
+    colormap="magma",
+    vmin=0,
+    vmax=80,
+    projection=projection,
+)
 scene.save(
     "outputs/03_custom_datasource_prediction.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(6, 4),
 )

@@ -166,10 +166,19 @@ from earth2studio import viz
 
 # Fetch a sample to get station locations
 sample_df = isd(init_time, ["t2m", "u10m", "v10m"])
-station_lats = sample_df["lat"].values
-station_lons = sample_df["lon"].values
 
 station_scene = viz.Scene(title="ISD Station Locations - Central United States")
+station_projection = viz.ProjectionSpec(
+    kind="platecarree",
+    metadata={
+        "extent": (-110, -85, 30, 47),
+        "states": True,
+        "land": True,
+        "gridline_labels": True,
+        "gridline_width": 0.3,
+        "gridline_alpha": 0.5,
+    },
+)
 station_scene.add_points(
     sample_df,
     lat="lat",
@@ -177,10 +186,11 @@ station_scene.add_points(
     fields=(),
     name="ISD stations",
     color="black",
+    projection=station_projection,
 )
 station_scene.save(
     "outputs/21_isd_stations.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(8, 6),
 )
 # %%
@@ -253,12 +263,44 @@ obs_field = _with_latlon(
 diff_field = (obs_field - no_obs_field).rename(f"{variable}_diff")
 
 scene = viz.Scene(title="StormCast SDA comparison")
-scene.add_raster(no_obs_field, name="No Obs", colormap="PRGn", vmin=-10, vmax=10)
-scene.add_raster(obs_field, name="Obs", colormap="PRGn", vmin=-10, vmax=10)
-scene.add_raster(diff_field, name="Obs - No Obs", colormap="RdBu_r", vmin=-3, vmax=3)
+hrrr_projection = viz.ProjectionSpec(
+    kind="lambert_conformal",
+    metadata={
+        "central_longitude": 262.5,
+        "central_latitude": 38.5,
+        "standard_parallels": (38.5, 38.5),
+        "globe_semimajor_axis": 6371229,
+        "globe_semiminor_axis": 6371229,
+        "states": True,
+    },
+)
+scene.add_raster(
+    no_obs_field,
+    name="No Obs",
+    colormap="PRGn",
+    vmin=-10,
+    vmax=10,
+    projection=hrrr_projection,
+)
+scene.add_raster(
+    obs_field,
+    name="Obs",
+    colormap="PRGn",
+    vmin=-10,
+    vmax=10,
+    projection=hrrr_projection,
+)
+scene.add_raster(
+    diff_field,
+    name="Obs - No Obs",
+    colormap="RdBu_r",
+    vmin=-3,
+    vmax=3,
+    projection=hrrr_projection,
+)
 scene.save(
     "outputs/21_stormcast_sda_comparison.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(4 * nsteps, 8),
 )
 # %%
@@ -296,13 +338,23 @@ obs_err = np.abs(obs_field - truth_field).rename(f"abs_obs_{variable}")
 err_max = 5
 scene = viz.Scene(title="StormCast SDA absolute error")
 scene.add_raster(
-    no_obs_err, name="|No Obs - Truth|", colormap="viridis", vmin=0, vmax=err_max
+    no_obs_err,
+    name="|No Obs - Truth|",
+    colormap="viridis",
+    vmin=0,
+    vmax=err_max,
+    projection=hrrr_projection,
 )
 scene.add_raster(
-    obs_err, name="|Obs - Truth|", colormap="viridis", vmin=0, vmax=err_max
+    obs_err,
+    name="|Obs - Truth|",
+    colormap="viridis",
+    vmin=0,
+    vmax=err_max,
+    projection=hrrr_projection,
 )
 scene.save(
     "outputs/21_stormcast_sda_gt_comparison.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(4 * nsteps, 6),
 )

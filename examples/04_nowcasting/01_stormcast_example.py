@@ -145,9 +145,25 @@ field = xr.DataArray(
     attrs={"units": "K"},
 )
 scene = viz.Scene(title=f"{forecast} - Lead time: {step}hrs")
-scene.add_raster(field, name=variable, colormap="Spectral_r")
+projection = viz.ProjectionSpec(
+    kind="lambert_conformal",
+    metadata={
+        "central_longitude": 262.5,
+        "central_latitude": 38.5,
+        "standard_parallels": (38.5, 38.5),
+        "globe_semimajor_axis": 6371229,
+        "globe_semiminor_axis": 6371229,
+        "states": True,
+    },
+)
+scene.add_raster(
+    field,
+    name=variable,
+    colormap="Spectral_r",
+    projection=projection,
+)
 scene.save(
     f"outputs/09_{date}_t2m_prediction.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(10, 6),
 )

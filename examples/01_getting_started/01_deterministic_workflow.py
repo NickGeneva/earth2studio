@@ -125,8 +125,14 @@ field = xr.DataArray(
     name=variable,
 )
 scene = viz.Scene(title=f"{forecast} - Lead time: {6*step}hrs")
-scene.add_raster(field, name=variable, colormap="Spectral_r")
+projection = viz.ProjectionSpec(kind="robinson")
+scene.add_raster(
+    field,
+    name=variable,
+    colormap="Spectral_r",
+    projection=projection,
+)
 scene.save(
     "outputs/01_t2m_prediction.jpg",
-    backend="matplotlib",
+    backend="cartopy",
 )

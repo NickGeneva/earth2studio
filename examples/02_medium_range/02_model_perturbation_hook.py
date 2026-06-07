@@ -199,6 +199,7 @@ from earth2studio import viz
 
 ds_unperturbed = xr.open_zarr("outputs/05_ensemble.zarr")
 ds_perturbed = xr.open_zarr("outputs/05_ensemble_model_perturbation.zarr")
+projection = viz.ProjectionSpec(kind="platecarree")
 
 for lt in [10, 20, 30, 40]:
     unperturbed = ds_unperturbed["tcwv"].isel(time=0, lead_time=lt)
@@ -213,24 +214,28 @@ for lt in [10, 20, 30, 40]:
         unperturbed.mean(dim="ensemble"),
         name="Unperturbed ensemble mean - tcwv",
         colormap="Blues",
+        projection=projection,
     )
     scene.add_raster(
         unperturbed.std(dim="ensemble"),
         name="Unperturbed ensemble std - tcwv",
         colormap="RdPu",
+        projection=projection,
     )
     scene.add_raster(
         perturbed.mean(dim="ensemble"),
         name="Perturbed ensemble mean - tcwv",
         colormap="Blues",
+        projection=projection,
     )
     scene.add_raster(
         perturbed.std(dim="ensemble"),
         name="Perturbed ensemble std - tcwv",
         colormap="RdPu",
+        projection=projection,
     )
     scene.save(
         f"outputs/05_model_perturbation_{forecast_date}_leadtime_{lt}.png",
-        backend="matplotlib",
+        backend="cartopy",
         figsize=(20, 10),
     )

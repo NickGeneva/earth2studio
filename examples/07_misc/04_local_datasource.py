@@ -165,9 +165,10 @@ field = xr.DataArray(
     name="msl",
 )
 scene = viz.Scene(title="msl")
-scene.add_raster(field, name="msl", colormap="PiYG")
+projection = viz.ProjectionSpec(kind="robinson")
+scene.add_raster(field, name="msl", colormap="PiYG", projection=projection)
 scene.save(
     "outputs/19_msl_1day.png",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(12, 7),
 )

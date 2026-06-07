@@ -130,6 +130,14 @@ from earth2studio import viz
 conv_plot = conv_df.iloc[::10]
 sat_plot = sat_df.iloc[::10]
 scene = viz.Scene(title=f"Observation Locations {str(analysis_time[0])[:16]} UTC")
+projection = viz.ProjectionSpec(
+    kind="robinson",
+    metadata={
+        "coastline_linewidth": 0.5,
+        "gridline_width": 0.3,
+        "gridline_alpha": 0.5,
+    },
+)
 scene.add_points(
     conv_plot,
     lat="lat",
@@ -139,6 +147,7 @@ scene.add_points(
     color="tab:blue",
     size=0.1,
     alpha=0.3,
+    projection=projection,
 )
 scene.add_points(
     sat_plot,
@@ -149,10 +158,11 @@ scene.add_points(
     color="tab:orange",
     size=0.1,
     alpha=0.3,
+    projection=projection,
 )
 scene.save(
     "outputs/22_healda_obs_locations.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(16, 4),
 )
 # %%
@@ -217,11 +227,12 @@ for title, da in zip(titles, results):
             ),
             name=f"{title} - {var}",
             colormap=cmap,
+            projection=projection,
         )
 
 scene.save(
     "outputs/22_healda_analysis.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(14, 8),
 )
 # %%
@@ -267,10 +278,11 @@ for title, da_pred in zip(diff_titles, diff_results):
             colormap="RdBu_r",
             vmin=diff_ranges[var][0],
             vmax=diff_ranges[var][1],
+            projection=projection,
         )
 
 scene.save(
     "outputs/22_healda_differences.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(14, 8),
 )

@@ -16,7 +16,7 @@
 """Agent-friendly summary: tests for Scene and backend dispatch behavior.
 
 Key APIs under test: `Scene` layer creation, summary backend rendering/saving,
-backend registry, `plot`, and Matplotlib installed-or-missing behavior.
+backend registry, `plot`, and Matplotlib/Cartopy installed-or-missing behavior.
 """
 
 import importlib.util
@@ -27,7 +27,15 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from earth2studio.viz import BackendProtocol, LayerProtocol, Scene, SceneProtocol, plot
+from earth2studio.viz import (
+    BackendProtocol,
+    LayerProtocol,
+    ProjectionSpec,
+    Scene,
+    SceneProtocol,
+    plot,
+)
+from earth2studio.viz.backends import cartopy as cartopy_backend
 from earth2studio.viz.backends.base import (
     SummaryBackend,
     VizDependencyError,
@@ -39,6 +47,107 @@ from earth2studio.viz.backends.matplotlib import MatplotlibBackend
 from earth2studio.viz.layers import Layer
 from earth2studio.viz.regional import RegionSpec
 from earth2studio.viz.styles import LayerStyle
+
+
+class _FakeCRS:
+    def __init__(self, kind: str, **kwargs: object):
+        self.kind = kind
+        self.kwargs = kwargs
+
+
+class _FakeCCRS:
+    def PlateCarree(self, **kwargs: object) -> _FakeCRS:
+        return _FakeCRS("platecarree", **kwargs)
+
+    def Robinson(self, **kwargs: object) -> _FakeCRS:
+        return _FakeCRS("robinson", **kwargs)
+
+    def Mollweide(self, **kwargs: object) -> _FakeCRS:
+        return _FakeCRS("mollweide", **kwargs)
+
+    def Orthographic(self, **kwargs: object) -> _FakeCRS:
+        return _FakeCRS("orthographic", **kwargs)
+
+    def LambertConformal(self, **kwargs: object) -> _FakeCRS:
+        return _FakeCRS("lambert_conformal", **kwargs)
+
+    def Globe(self, **kwargs: object) -> dict[str, object]:
+        return dict(kwargs)
+
+
+class _FakeFeature:
+    def __init__(self, name: str):
+        self.name = name
+        self.scale: str | None = None
+
+    def with_scale(self, scale: str) -> "_FakeFeature":
+        feature = _FakeFeature(self.name)
+        feature.scale = scale
+        return feature
+
+
+class _FakeCFeature:
+    STATES = _FakeFeature("states")
+    LAND = _FakeFeature("land")
+
+
+class _FakeAxis:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, dict[str, object]]] = []
+        self.title: str | None = None
+        self.axis_off = False
+
+    def pcolormesh(self, *args: object, **kwargs: object) -> str:
+        self.calls.append(("pcolormesh", dict(kwargs)))
+        return "mesh"
+
+    def scatter(self, *args: object, **kwargs: object) -> str:
+        self.calls.append(("scatter", dict(kwargs)))
+        return "points"
+
+    def set_extent(self, *args: object, **kwargs: object) -> None:
+        self.calls.append(("set_extent", dict(kwargs)))
+
+    def coastlines(self, **kwargs: object) -> None:
+        self.calls.append(("coastlines", dict(kwargs)))
+
+    def add_feature(self, feature: object, **kwargs: object) -> None:
+        self.calls.append(("add_feature", {"feature": feature, **kwargs}))
+
+    def gridlines(self, **kwargs: object) -> None:
+        self.calls.append(("gridlines", dict(kwargs)))
+
+    def set_title(self, title: str) -> None:
+        self.title = title
+
+    def set_axis_off(self) -> None:
+        self.axis_off = True
+
+
+class _FakeFigure:
+    def __init__(self) -> None:
+        self.title: str | None = None
+        self.colorbars = 0
+
+    def suptitle(self, title: str) -> None:
+        self.title = title
+
+    def colorbar(self, *args: object, **kwargs: object) -> None:
+        self.colorbars += 1
+
+    def savefig(self, path: str | Path) -> None:
+        Path(path).write_text("saved")
+
+
+class _FakePyplot:
+    def subplots(
+        self,
+        nrows: int,
+        ncols: int,
+        **kwargs: object,
+    ) -> tuple[_FakeFigure, list[list[_FakeAxis]]]:
+        axes = [[_FakeAxis() for _ in range(ncols)] for _ in range(nrows)]
+        return _FakeFigure(), axes
 
 
 def test_scene_adds_raster_points_and_summary(
@@ -204,6 +313,7 @@ def test_backend_registry() -> None:
     register_backend("unit-summary", SummaryBackend, replace=True)
 
     assert "summary" in available_backends()
+    assert "cartopy" in available_backends()
     assert get_backend("unit-summary").name == "summary"
 
     with pytest.raises(ValueError, match="already registered"):
@@ -252,6 +362,141 @@ def test_matplotlib_backend_installed_or_missing(
         assert saved.exists()
         with pytest.raises(NotImplementedError, match="not implemented"):
             backend.animate(scene, tmp_path / "movie.gif")
+
+
+def test_cartopy_backend_installed_or_missing(
+    tmp_path: Path,
+    sample_dataarray: xr.DataArray,
+    sample_frame: pd.DataFrame,
+) -> None:
+    projection = ProjectionSpec(
+        kind="robinson",
+        metadata={"coastlines": False, "gridlines": False},
+    )
+    scene = Scene(title="Cartopy")
+    scene.add_raster(
+        sample_dataarray,
+        variable="t2m",
+        time=0,
+        name="t2m",
+        projection=projection,
+    )
+    scene.add_points(
+        sample_frame,
+        color="red",
+        size=4,
+        projection=projection,
+    )
+    backend = get_backend("cartopy")
+
+    missing = next(
+        (
+            package
+            for package in ("cartopy", "matplotlib")
+            if importlib.util.find_spec(package) is None
+        ),
+        None,
+    )
+    if missing is not None:
+        with pytest.raises(VizDependencyError) as error:
+            backend.render(scene)
+        assert error.value.package == missing
+    else:
+        result = backend.render(scene)
+        assert result.backend == "cartopy"
+        assert result.output is not None
+        assert result.metadata["axes"].shape == (2, 2)
+        saved = backend.save(scene, tmp_path / "cartopy.png")
+        assert saved.exists()
+        with pytest.raises(NotImplementedError, match="not implemented"):
+            backend.animate(scene, tmp_path / "cartopy.gif")
+
+
+@pytest.mark.parametrize(
+    ("projection", "expected_kind"),
+    [
+        (ProjectionSpec(kind="plate_carree"), "platecarree"),
+        (ProjectionSpec(kind="robinson"), "robinson"),
+        (ProjectionSpec(kind="mollweide"), "mollweide"),
+        (
+            ProjectionSpec(
+                kind="orthographic",
+                metadata={"central_longitude": 300.0, "central_latitude": 10.0},
+            ),
+            "orthographic",
+        ),
+        (ProjectionSpec(kind="unknown"), "platecarree"),
+    ],
+)
+def test_cartopy_projection_lowering(
+    projection: ProjectionSpec,
+    expected_kind: str,
+) -> None:
+    lowered = cartopy_backend._cartopy_projection(projection, _FakeCCRS())
+
+    assert lowered.kind == expected_kind
+
+
+def test_cartopy_backend_render_with_lightweight_plot_fakes(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    sample_dataarray: xr.DataArray,
+    sample_frame: pd.DataFrame,
+) -> None:
+    monkeypatch.setattr(
+        cartopy_backend,
+        "_cartopy",
+        lambda: (_FakeCCRS(), _FakeCFeature()),
+    )
+    monkeypatch.setattr(cartopy_backend, "_pyplot", _FakePyplot)
+    projection = ProjectionSpec(
+        kind="lambert_conformal",
+        metadata={
+            "central_longitude": 262.5,
+            "central_latitude": 38.5,
+            "standard_parallels": (38.5, 38.5),
+            "globe_semimajor_axis": 6371229,
+            "globe_semiminor_axis": 6371229,
+            "extent": (-110.0, -85.0, 30.0, 47.0),
+            "states": True,
+            "land": True,
+            "gridline_labels": True,
+        },
+    )
+    scene = Scene(title="Projected")
+    scene.add_raster(
+        sample_dataarray,
+        variable="t2m",
+        time=0,
+        name="t2m",
+        projection=projection,
+    )
+    scene.add_points(
+        sample_frame,
+        color="red",
+        size=4,
+        projection=projection,
+    )
+    backend = cartopy_backend.CartopyBackend()
+
+    assert backend.supports(scene)
+    result = backend.render(scene, colorbar=True)
+
+    axes = result.metadata["axes"]
+    assert result.backend == "cartopy"
+    assert result.output.title == "Projected"
+    assert result.output.colorbars == 2
+    assert axes[0][0].title == "t2m | lead_time=0 h"
+    assert axes[1][0].title == "Points"
+    assert axes[1][1].axis_off
+    assert axes[0][0].calls[0][0] == "pcolormesh"
+    assert any(name == "scatter" for name, _ in axes[1][0].calls)
+    assert any(name == "add_feature" for name, _ in axes[0][0].calls)
+
+    shown = backend.show(scene)
+    assert shown.title == "Projected"
+    saved = backend.save(scene, tmp_path / "cartopy.txt")
+    assert saved.read_text() == "saved"
 
 
 def test_matplotlib_backend_renders_raster_sequences_as_layer_rows(

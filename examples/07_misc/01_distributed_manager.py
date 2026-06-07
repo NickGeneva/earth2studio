@@ -193,15 +193,17 @@ if dist.rank == 0:
         .astype(int)
     )
     scene = viz.Scene(title=f"TCWV Forecast Lead Time - {lead_days} days")
+    projection = viz.ProjectionSpec(kind="robinson")
     scene.add_raster(
         ds["tcwv"].isel(time=slice(0, 6), lead_time=-1),
         name="tcwv",
         colormap="gist_earth",
         vmin=0,
         vmax=100,
+        projection=projection,
     )
     scene.save(
         "outputs/08_tcwv_distributed_manager.jpg",
-        backend="matplotlib",
+        backend="cartopy",
         figsize=(12, 6),
     )

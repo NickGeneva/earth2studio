@@ -137,8 +137,23 @@ field = xr.DataArray(
     attrs={"units": "m"},
 )
 scene = viz.Scene(title=f"{forecast.strftime('%Y-%m-%d')} - Lead time: {6*step}hrs")
-scene.add_raster(field, name=variable, colormap="terrain", vmin=0.0, vmax=0.01)
+projection = viz.ProjectionSpec(
+    kind="orthographic",
+    metadata={
+        "central_longitude": -100,
+        "central_latitude": 40,
+        "extent": (220, 340, 20, 70),
+    },
+)
+scene.add_raster(
+    field,
+    name=variable,
+    colormap="terrain",
+    vmin=0.0,
+    vmax=0.01,
+    projection=projection,
+)
 scene.save(
     "outputs/02_tp_prediction.jpg",
-    backend="matplotlib",
+    backend="cartopy",
 )

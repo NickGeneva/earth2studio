@@ -139,10 +139,29 @@ field = xr.DataArray(
     attrs={"units": "m/s"},
 )
 scene = viz.Scene(title="Guided TC Sample: 10m Zonal Wind")
-scene.add_raster(field, name=u_var, colormap="RdBu_r", vmin=-30, vmax=30)
+projection = viz.ProjectionSpec(
+    kind="platecarree",
+    metadata={
+        "extent": (-100.0, -60.0, lat_min, lat_max),
+        "coastline_resolution": "110m",
+        "coastline_linewidth": 0.8,
+        "gridline_labels": True,
+        "gridline_width": 0.5,
+        "gridline_alpha": 0.5,
+        "gridline_style": "--",
+    },
+)
+scene.add_raster(
+    field,
+    name=u_var,
+    colormap="RdBu_r",
+    vmin=-30,
+    vmax=30,
+    projection=projection,
+)
 scene.save(
     "outputs/05_cbottle_tc_guided_sample.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(8, 4.5),
 )
 
@@ -195,9 +214,14 @@ field = xr.DataArray(
     name=f"{u_var}_latent",
 )
 scene = viz.Scene(title=f"Forward Latents: {u_var} Channel")
-scene.add_raster(field, name=f"{u_var}_latent", colormap="viridis")
+scene.add_raster(
+    field,
+    name=f"{u_var}_latent",
+    colormap="viridis",
+    projection=projection,
+)
 scene.save(
     "outputs/05_cbottle_tc_forward_latents.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(8, 4.5),
 )

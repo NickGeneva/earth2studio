@@ -182,10 +182,25 @@ tcwv = xr.DataArray(
     attrs={"units": "kg/m^2"},
 )
 scene = viz.Scene(title=f"{forecast} - Lead time: {6*step}hrs")
-scene.add_raster(u10m, name="u10m", colormap="RdBu_r", vmin=-20, vmax=20)
-scene.add_raster(tcwv, name="tcwv", colormap="Blues", vmin=0, vmax=70)
+projection = viz.ProjectionSpec(kind="robinson")
+scene.add_raster(
+    u10m,
+    name="u10m",
+    colormap="RdBu_r",
+    vmin=-20,
+    vmax=20,
+    projection=projection,
+)
+scene.add_raster(
+    tcwv,
+    name="tcwv",
+    colormap="Blues",
+    vmin=0,
+    vmax=70,
+    projection=projection,
+)
 scene.save(
     "outputs/06_atlas_u10m_tcwv.jpg",
-    backend="matplotlib",
+    backend="cartopy",
     figsize=(16, 5),
 )
