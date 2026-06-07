@@ -431,25 +431,35 @@ class Scene:
         self.layers.remove(layer)
         return layer
 
-    def render(self, backend: str = "summary", **kwargs: Any) -> RenderResult:
+    def render(self, backend: str = "summary", **backend_kwargs: Any) -> RenderResult:
         """Render this scene with a registered backend."""
-        return get_backend(backend).render(self, **kwargs)
+        return get_backend(backend).render(self, **backend_kwargs)
 
-    def show(self, backend: str = "summary", **kwargs: Any) -> Any:
+    def show(
+        self,
+        backend: str = "summary",
+        *,
+        streaming: bool = False,
+        **backend_kwargs: Any,
+    ) -> Any:
         """Show this scene using a registered backend."""
-        return get_backend(backend).show(self, **kwargs)
+        return get_backend(backend).show(
+            self,
+            streaming=streaming,
+            **backend_kwargs,
+        )
 
     def save(
-        self, path: str | Path, *, backend: str = "summary", **kwargs: Any
+        self, path: str | Path, *, backend: str = "summary", **backend_kwargs: Any
     ) -> Path:
         """Save this scene using a registered backend."""
-        return get_backend(backend).save(self, path, **kwargs)
+        return get_backend(backend).save(self, path, **backend_kwargs)
 
     def animate(
-        self, path: str | Path, *, backend: str = "summary", **kwargs: Any
+        self, path: str | Path, *, backend: str = "summary", **backend_kwargs: Any
     ) -> Path:
         """Animate this scene using a registered backend."""
-        return get_backend(backend).animate(self, path, **kwargs)
+        return get_backend(backend).animate(self, path, **backend_kwargs)
 
     def summary(self) -> dict[str, Any]:
         """Return a serializable scene summary."""

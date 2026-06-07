@@ -78,16 +78,22 @@ class VizBackend(Protocol):
     def supports(self, scene: Any) -> bool:
         """Return whether the backend can render the provided scene."""
 
-    def render(self, scene: Any, **kwargs: Any) -> RenderResult:
+    def render(self, scene: Any, **backend_kwargs: Any) -> RenderResult:
         """Render the scene into an in-memory result."""
 
-    def show(self, scene: Any, **kwargs: Any) -> Any:
+    def show(
+        self,
+        scene: Any,
+        *,
+        streaming: bool = False,
+        **backend_kwargs: Any,
+    ) -> Any:
         """Show the scene in the backend's natural representation."""
 
-    def save(self, scene: Any, path: str | Path, **kwargs: Any) -> Path:
+    def save(self, scene: Any, path: str | Path, **backend_kwargs: Any) -> Path:
         """Save a scene representation to disk."""
 
-    def animate(self, scene: Any, path: str | Path, **kwargs: Any) -> Path:
+    def animate(self, scene: Any, path: str | Path, **backend_kwargs: Any) -> Path:
         """Save an animation to disk."""
 
 
@@ -156,28 +162,38 @@ class SummaryBackend:
         """Return True for all scenes because this backend only summarizes."""
         return True
 
-    def render(self, scene: Any, **kwargs: Any) -> RenderResult:
+    def render(self, scene: Any, **backend_kwargs: Any) -> RenderResult:
         """Render the scene as a serializable summary dictionary."""
         return RenderResult(
             backend=self.name,
             output=scene.summary(),
-            metadata={"kwargs": dict(kwargs)},
+            metadata={"kwargs": dict(backend_kwargs)},
         )
 
-    def show(self, scene: Any, **kwargs: Any) -> RenderResult:
+    def show(
+        self,
+        scene: Any,
+        *,
+        streaming: bool = False,
+        **backend_kwargs: Any,
+    ) -> RenderResult:
         """Return the same result as `render` for deterministic inspection."""
-        return self.render(scene, **kwargs)
+        if streaming:
+            raise NotImplementedError(
+                "Visualization backend 'summary' does not support streaming sessions yet"
+            )
+        return self.render(scene, **backend_kwargs)
 
-    def save(self, scene: Any, path: str | Path, **kwargs: Any) -> Path:
+    def save(self, scene: Any, path: str | Path, **backend_kwargs: Any) -> Path:
         """Write a JSON summary to disk."""
-        result = self.render(scene, **kwargs)
+        result = self.render(scene, **backend_kwargs)
         output_path = Path(path)
         output_path.write_text(json.dumps(result.output, default=str, indent=2))
         return output_path
 
-    def animate(self, scene: Any, path: str | Path, **kwargs: Any) -> Path:
+    def animate(self, scene: Any, path: str | Path, **backend_kwargs: Any) -> Path:
         """Write timeline metadata to disk as a lightweight animation stand-in."""
-        result = self.render(scene, **kwargs)
+        result = self.render(scene, **backend_kwargs)
         output_path = Path(path)
         output_path.write_text(
             json.dumps(result.output.get("timeline", {}), default=str, indent=2)

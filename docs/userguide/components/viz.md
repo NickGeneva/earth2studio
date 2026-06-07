@@ -121,6 +121,23 @@ scene.camera.set(lon=-98.0, lat=38.0, distance=2.4)
 scene.show(backend="matplotlib")
 ```
 
+`show` keeps shared options explicit and sends every renderer-specific option as
+a keyword argument. The core call shape is:
+
+```python
+scene.show(
+    backend="cartopy",
+    streaming=False,
+    figsize=(12, 6),
+    colorbar=True,
+)
+```
+
+`backend` selects the renderer, `streaming` reserves the persistent-session
+path, and remaining keyword arguments are validated by the selected backend.
+The initial static backends accept the shared keyword but do not yet create
+streaming sessions.
+
 ## Regional Terrain Scene
 
 Regional scenes use {class}`earth2studio.viz.RegionSpec` to keep local

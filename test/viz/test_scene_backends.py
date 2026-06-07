@@ -289,6 +289,9 @@ def test_summary_backend_show_supports_and_animates(
     assert isinstance(backend, BackendProtocol)
     assert backend.supports(scene)
     assert backend.show(scene).output["title"] == "Animate"
+    assert backend.show(scene, tag="unit").metadata["kwargs"] == {"tag": "unit"}
+    with pytest.raises(NotImplementedError, match="streaming sessions"):
+        scene.show(streaming=True)
 
     path = backend.animate(scene, tmp_path / "timeline.json")
     payload = json.loads(path.read_text())
@@ -358,6 +361,8 @@ def test_matplotlib_backend_installed_or_missing(
         assert result.backend == "matplotlib"
         assert result.output is not None
         assert backend.show(scene) is not None
+        with pytest.raises(NotImplementedError, match="streaming sessions"):
+            backend.show(scene, streaming=True)
         saved = backend.save(scene, tmp_path / "figure.png")
         assert saved.exists()
         with pytest.raises(NotImplementedError, match="not implemented"):
@@ -495,6 +500,8 @@ def test_cartopy_backend_render_with_lightweight_plot_fakes(
 
     shown = backend.show(scene)
     assert shown.title == "Projected"
+    with pytest.raises(NotImplementedError, match="streaming sessions"):
+        backend.show(scene, streaming=True)
     saved = backend.save(scene, tmp_path / "cartopy.txt")
     assert saved.read_text() == "saved"
 

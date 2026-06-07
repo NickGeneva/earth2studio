@@ -114,8 +114,18 @@ class CartopyBackend:
                     fig.colorbar(artist, ax=ax, shrink=0.74, pad=0.04)
         return RenderResult(backend=self.name, output=fig, metadata={"axes": axes})
 
-    def show(self, scene: Any, **kwargs: Any) -> Any:
+    def show(
+        self,
+        scene: Any,
+        *,
+        streaming: bool = False,
+        **kwargs: Any,
+    ) -> Any:
         """Render and return the Matplotlib figure."""
+        if streaming:
+            raise NotImplementedError(
+                "Visualization backend 'cartopy' does not support streaming sessions yet"
+            )
         return self.render(scene, **kwargs).output
 
     def save(self, scene: Any, path: str | Path, **kwargs: Any) -> Path:

@@ -98,14 +98,30 @@ class BackendProtocol(Protocol):
     def supports(self, scene: SceneProtocol) -> bool:
         """Return whether the backend can render the scene."""
 
-    def render(self, scene: SceneProtocol, **kwargs: Any) -> Any:
+    def render(self, scene: SceneProtocol, **backend_kwargs: Any) -> Any:
         """Render a scene and return a backend-specific result."""
 
-    def show(self, scene: SceneProtocol, **kwargs: Any) -> Any:
+    def show(
+        self,
+        scene: SceneProtocol,
+        *,
+        streaming: bool = False,
+        **backend_kwargs: Any,
+    ) -> Any:
         """Show a scene using a backend-native view."""
 
-    def save(self, scene: SceneProtocol, path: str | Path, **kwargs: Any) -> Path:
+    def save(
+        self,
+        scene: SceneProtocol,
+        path: str | Path,
+        **backend_kwargs: Any,
+    ) -> Path:
         """Save a scene artifact."""
 
-    def animate(self, scene: SceneProtocol, path: str | Path, **kwargs: Any) -> Path:
+    def animate(
+        self,
+        scene: SceneProtocol,
+        path: str | Path,
+        **backend_kwargs: Any,
+    ) -> Path:
         """Save a scene animation artifact."""
