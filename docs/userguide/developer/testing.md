@@ -141,6 +141,10 @@ to `1`, `true`, `yes`, or `on`.
 Coverage is calculated using the [coverage.py](https://coverage.readthedocs.io/en/7.5.3/)
 package configured in the [pyproject.toml](https://github.com/NVIDIA/earth2studio/blob/main/pyproject.toml).
 Presently the CI pipeline will fail if unit test coverage drops below 90%.
+While developing the visualization submodule, keep `earth2studio.viz` above the
+same package-wide coverage standard. Prefer a small number of scenario tests
+that exercise real xarray, pandas, layer, scene, and backend flows over narrow
+mock-heavy tests.
 
 The CI pipeline runs tests using tox environments which automatically collect coverage data.
 After all test jobs complete, coverage is combined and reported:
@@ -151,6 +155,12 @@ make pytest TOX_ENV=test-data
 
 # Combine coverage from all test runs
 make coverage
+```
+
+For the visualization submodule:
+
+```bash
+tox run -e test-viz
 ```
 
 The `make coverage` command combines coverage data from all test environments and generates

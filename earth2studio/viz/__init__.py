@@ -41,7 +41,9 @@ from earth2studio.viz.base import (
     AssetSourceProtocol,
     BackendProtocol,
     LayerProtocol,
+    SceneEventProtocol,
     SceneProtocol,
+    SceneSessionProtocol,
     TextureManagerProtocol,
 )
 from earth2studio.viz.cache import (
@@ -99,7 +101,7 @@ from earth2studio.viz.quick import (
     track_panel,
 )
 from earth2studio.viz.regional import RegionSpec
-from earth2studio.viz.scene import Scene
+from earth2studio.viz.scene import Scene, SceneEvent
 from earth2studio.viz.styles import LayerStyle, ProjectionSpec
 from earth2studio.viz.textures import (
     TextureCachePolicy,
@@ -134,7 +136,10 @@ __all__ = [
     "RegionSpec",
     "RenderResult",
     "Scene",
+    "SceneEvent",
+    "SceneEventProtocol",
     "SceneProtocol",
+    "SceneSessionProtocol",
     "SeriesPanel",
     "TerrainLayer",
     "TextureCachePolicy",

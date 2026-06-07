@@ -30,6 +30,7 @@ from earth2studio.viz.adapters.dataframe import FrameView
 from earth2studio.viz.adapters.xarray import RasterSequenceView, RasterView
 from earth2studio.viz.backends.base import (
     BackendCapabilities,
+    RedrawSession,
     RenderResult,
     VizDependencyError,
 )
@@ -127,12 +128,16 @@ class MatplotlibBackend:
         scene: Any,
         *,
         streaming: bool = False,
+        auto_flush: bool = True,
         **kwargs: Any,
     ) -> Any:
         """Render and return the Matplotlib figure."""
         if streaming:
-            raise NotImplementedError(
-                "Visualization backend 'matplotlib' does not support streaming sessions yet"
+            return RedrawSession(
+                backend=self.name,
+                scene=scene,
+                render=lambda: self.render(scene, **kwargs),
+                auto_flush=auto_flush,
             )
         return self.render(scene, **kwargs).output
 

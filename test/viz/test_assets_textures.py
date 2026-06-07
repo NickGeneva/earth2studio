@@ -150,6 +150,42 @@ def test_texture_sequence_rejects_empty_and_out_of_range() -> None:
         TextureSequence().select(index=0)
 
 
+def test_texture_sequence_cache_metadata_and_mixed_timestamps() -> None:
+    class KeyedSource:
+        key = "custom-source"
+
+    keyed = KeyedSource()
+    tiled = TextureFrame(
+        source=keyed,
+        index=0,
+        tile="z0/x0/y0",
+        lod=2,
+        shape=(256, 256, 4),
+        dtype="uint8",
+        metadata={"role": "albedo"},
+    )
+    untimed = TextureSequence(frames=[tiled], name="Untimed")
+    mixed = TextureSequence(
+        frames=[
+            TextureFrame(source=TextureSource(uri="early.png"), index=0, timestamp="b"),
+            TextureFrame(source=TextureSource(uri="late.png"), index=1, timestamp=1),
+        ]
+    )
+
+    assert "tile:z0/x0/y0" in tiled.cache_key
+    assert "lod:2" in tiled.cache_key
+    assert tiled.as_dict()["source"]["data_type"] == "KeyedSource"
+    assert tiled.as_dict()["metadata"]["role"] == "albedo"
+    assert untimed.time_extent is None
+    assert untimed.select(index=0).index == 0
+    assert untimed.select(timestamp=pd.Timestamp("2026-06-07")).index == 0
+    assert mixed.select(timestamp=1).index == 1
+    assert "builtins.object" in TextureFrame(source=object()).cache_key
+    assert TextureFrame(source=TextureSource(uri="summary.png")).as_dict()["source"][
+        "uri"
+    ] == "summary.png"
+
+
 def test_scene_adds_asset_layers_and_texture_sequence() -> None:
     time = pd.Timestamp("2026-06-07T00:00:00")
     sequence = TextureSequence(

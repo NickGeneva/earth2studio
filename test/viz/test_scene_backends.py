@@ -21,6 +21,7 @@ backend registry, `plot`, and Matplotlib/Cartopy installed-or-missing behavior.
 
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -32,10 +33,14 @@ from earth2studio.viz import (
     LayerProtocol,
     ProjectionSpec,
     Scene,
+    SceneEventProtocol,
     SceneProtocol,
+    SceneSessionProtocol,
     plot,
 )
+from earth2studio.viz.assets import TextureSource
 from earth2studio.viz.backends import cartopy as cartopy_backend
+from earth2studio.viz.backends.anari import AnariBackend
 from earth2studio.viz.backends.base import (
     SummaryBackend,
     VizDependencyError,
@@ -44,9 +49,11 @@ from earth2studio.viz.backends.base import (
     register_backend,
 )
 from earth2studio.viz.backends.matplotlib import MatplotlibBackend
+from earth2studio.viz.backends.ovrtx import OvrTxBackend
 from earth2studio.viz.layers import Layer
 from earth2studio.viz.regional import RegionSpec
 from earth2studio.viz.styles import LayerStyle
+from earth2studio.viz.textures import TextureFrame, TextureSequence
 
 
 class _FakeCRS:
@@ -281,21 +288,197 @@ def test_summary_backend_saves_json(
 def test_summary_backend_show_supports_and_animates(
     tmp_path: Path,
     sample_dataarray: xr.DataArray,
+    sample_frame: pd.DataFrame,
 ) -> None:
     scene = Scene(title="Animate")
-    scene.add_raster(sample_dataarray, variable="t2m", time=0, lead_time=0)
+    raster = scene.add_raster(sample_dataarray, variable="t2m", time=0, lead_time=0)
+    points = scene.add_points(sample_frame.iloc[:1].copy())
     backend = SummaryBackend()
 
     assert isinstance(backend, BackendProtocol)
     assert backend.supports(scene)
     assert backend.show(scene).output["title"] == "Animate"
     assert backend.show(scene, tag="unit").metadata["kwargs"] == {"tag": "unit"}
-    with pytest.raises(NotImplementedError, match="streaming sessions"):
-        scene.show(streaming=True)
+
+    session = scene.show(streaming=True, auto_flush=False, tag="stream")
+    assert isinstance(session, SceneSessionProtocol)
+    assert session.result.metadata["kwargs"] == {"tag": "stream"}
+
+    raster.update(sample_dataarray.sel(variable="t2m").isel(time=0, lead_time=1))
+    points.append(sample_frame.iloc[1:].copy())
+    assert session.pending_events
+    assert isinstance(session.pending_events[-1], SceneEventProtocol)
+    assert len(points.data.table) == 3
+    assert session.output["layers"][0]["name"] == "t2m"
+    assert session.pending_events
+
+    result = session.flush()
+    assert result.output["layers"][0]["name"] == "t2m"
+    assert session.pending_events == []
+
+    with session.hold():
+        raster.append(
+            sample_dataarray.sel(variable="t2m").isel(time=1, lead_time=1),
+            time=pd.Timestamp("2026-06-07T18:00:00"),
+        )
+    assert session.pending_events
+    assert raster.data.frame_count == 2
+    session.flush()
+    raster.hide()
+    assert session.pending_events
+    session.close()
+    assert session.closed
+
+    auto_session = scene.show(streaming=True)
+    raster.show()
+    assert auto_session.pending_events == []
+    auto_session.close()
 
     path = backend.animate(scene, tmp_path / "timeline.json")
     payload = json.loads(path.read_text())
     assert "frames" in payload
+
+
+def test_scene_streaming_updates_cover_raster_points_and_textures(
+    sample_dataarray: xr.DataArray,
+    sample_frame: pd.DataFrame,
+) -> None:
+    scene = Scene(title="Streaming payloads")
+    raster = scene.add_raster(
+        sample_dataarray,
+        variable="t2m",
+        time=0,
+        lead_time=0,
+        name="t2m",
+    )
+    sequence = scene.add_raster(
+        sample_dataarray,
+        variable="t2m",
+        time=0,
+        name="t2m lead times",
+    )
+    points = scene.add_points(sample_frame.iloc[:1].copy(), name="Stations")
+    image = scene.add_image(TextureSource(uri="first.png", time=pd.Timestamp("2026-06-07")))
+    session = scene.show(streaming=True, auto_flush=False)
+
+    next_frame = sample_dataarray.sel(variable="t2m").isel(time=1, lead_time=1)
+    raster.update(next_frame, quality="analysis")
+    raster.append(
+        sample_dataarray.sel(variable="t2m").isel(time=0, lead_time=1),
+        time=pd.Timestamp("2026-06-07T12:00:00"),
+    )
+    raster.append(
+        sample_dataarray.sel(variable="t2m").isel(time=1, lead_time=0),
+        time=pd.Timestamp("2026-06-07T18:00:00"),
+    )
+    points.append(sample_frame.iloc[1:].copy())
+
+    first_texture = TextureFrame(
+        source=TextureSource(uri="frame0.png"),
+        index=0,
+        timestamp=pd.Timestamp("2026-06-07T00:00:00"),
+    )
+    image.update(first_texture, role="satellite")
+    image.append(
+        TextureFrame(
+            source=TextureSource(uri="frame1.png"),
+            index=1,
+            timestamp=pd.Timestamp("2026-06-07T01:00:00"),
+        )
+    )
+    image.append("frame2.png", time=pd.Timestamp("2026-06-07T02:00:00"))
+    image.append(
+        TextureSequence(
+            frames=[
+                TextureFrame(
+                    source=TextureSource(uri="frame3.png"),
+                    index=3,
+                    timestamp=pd.Timestamp("2026-06-07T03:00:00"),
+                )
+            ]
+        )
+    )
+
+    incoming_sequence = sample_dataarray.sel(variable="t2m").isel(time=1)
+    sequence.append(incoming_sequence)
+    with pytest.raises(ValueError, match="frame dimensions must match"):
+        sequence.append(sample_dataarray.sel(variable="t2m").isel(lead_time=1))
+
+    assert session.pending_events
+    result = session.flush()
+    assert result.output["layers"][0]["metadata"]["quality"] == "analysis"
+    assert raster.data.frame_count == 3
+    assert points.data.size == 3
+    assert image.data.as_dict()["frame_count"] == 4
+    assert image.metadata["role"] == "satellite"
+    assert scene.timeline.range() is not None
+    session.close()
+
+
+def test_scene_asset_variants_region_cube_and_vector_payloads(
+    tmp_path: Path,
+    cube_dataarray: xr.DataArray,
+    sample_dataset: xr.Dataset,
+) -> None:
+    region = RegionSpec.from_lonlat_bounds(
+        name="local",
+        west=-123.0,
+        south=36.0,
+        east=-121.0,
+        north=38.0,
+        target_crs="EPSG:4326",
+    )
+    scene = Scene(title="Asset variants", region=region)
+    image = scene.add_image(
+        TextureSource(
+            uri="source.png",
+            name="source",
+            crs="EPSG:4326",
+            bounds=(-123.0, 36.0, -121.0, 38.0),
+            time=pd.Timestamp("2026-06-07T00:00:00"),
+            codec="png",
+        ),
+        name="renamed",
+        mime_type="image/png",
+    )
+    geotiff = scene.add_geotiff(
+        TextureSource(uri="terrain.tif", name="terrain", crs="EPSG:32610"),
+        name="Geo",
+        time=pd.Timestamp("2026-06-07T01:00:00"),
+    )
+    mesh_from_asset = scene.add_mesh(
+        TextureSource(uri="mesh-source.usd", name="mesh source"),
+        transform=(1.0, 0.0, 0.0, 1.0),
+    )
+    mesh_from_object = scene.add_mesh(
+        {"vertices": [(0.0, 0.0, 0.0)]},
+        name="Inline mesh",
+        material={"roughness": 0.5},
+    )
+    cube = scene.add_region_cube(
+        cube_dataarray.to_dataset(name="q850"),
+        variable="q850",
+        vertical="z",
+        levels=[100.0],
+    )
+    vector = scene.add_vectors(
+        sample_dataset,
+        vector=("u10m", "v10m", "t2m"),
+        mode="glyphs",
+    )
+
+    assert image.metadata["asset"]["codec"] == "png"
+    assert geotiff.metadata["asset"]["time"] == pd.Timestamp("2026-06-07T01:00:00")
+    assert mesh_from_asset.metadata["asset"]["uri"] == "mesh-source.usd"
+    assert mesh_from_object.metadata["asset"]["material"]["roughness"] == 0.5
+    assert cube.metadata["vertical"] == "z"
+    assert cube.metadata["levels"] == (100.0,)
+    assert vector.data["w"].name == "t2m"
+
+    saved = scene.save(tmp_path / "scene.json")
+    animated = scene.animate(tmp_path / "timeline.json")
+    assert json.loads(saved.read_text())["title"] == "Asset variants"
+    assert "frames" in json.loads(animated.read_text())
 
 
 def test_plot_uses_summary_backend(sample_dataarray: xr.DataArray) -> None:
@@ -316,7 +499,9 @@ def test_backend_registry() -> None:
     register_backend("unit-summary", SummaryBackend, replace=True)
 
     assert "summary" in available_backends()
+    assert "anari" in available_backends()
     assert "cartopy" in available_backends()
+    assert "ovrtx" in available_backends()
     assert get_backend("unit-summary").name == "summary"
 
     with pytest.raises(ValueError, match="already registered"):
@@ -361,8 +546,9 @@ def test_matplotlib_backend_installed_or_missing(
         assert result.backend == "matplotlib"
         assert result.output is not None
         assert backend.show(scene) is not None
-        with pytest.raises(NotImplementedError, match="streaming sessions"):
-            backend.show(scene, streaming=True)
+        session = backend.show(scene, streaming=True, auto_flush=False)
+        assert session.output is not None
+        session.close()
         saved = backend.save(scene, tmp_path / "figure.png")
         assert saved.exists()
         with pytest.raises(NotImplementedError, match="not implemented"):
@@ -500,10 +686,224 @@ def test_cartopy_backend_render_with_lightweight_plot_fakes(
 
     shown = backend.show(scene)
     assert shown.title == "Projected"
-    with pytest.raises(NotImplementedError, match="streaming sessions"):
-        backend.show(scene, streaming=True)
+    session = backend.show(scene, streaming=True, auto_flush=False)
+    assert session.output.title == "Projected"
+    session.close()
     saved = backend.save(scene, tmp_path / "cartopy.txt")
     assert saved.read_text() == "saved"
+
+
+def test_ovrtx_backend_browser_session_and_dependency_gate(
+    tmp_path: Path,
+    sample_dataarray: xr.DataArray,
+    sample_frame: pd.DataFrame,
+) -> None:
+    scene = Scene(title="OVRTX globe")
+    scene.add_default_texture()
+    raster = scene.add_raster(
+        sample_dataarray,
+        variable="t2m",
+        time=0,
+        name="t2m",
+        alpha=0.8,
+    )
+    scene.add_points(sample_frame, name="Stations")
+    backend = OvrTxBackend()
+
+    assert backend.supports(scene)
+    assert not backend.supports(
+        Scene(layers=[Layer(id="volume", name="Volume", data=None, kind="volume")])
+    )
+
+    session = scene.show(
+        "ovrtx",
+        streaming=True,
+        auto_flush=False,
+        open_browser=False,
+        output_dir=tmp_path / "ovrtx",
+        width=640,
+        height=360,
+    )
+
+    assert session.backend == "ovrtx"
+    assert session.url.startswith("file:")
+    assert session.html_path.exists()
+    assert session.payload["layout"] == {
+        "viewport": "streamed_video",
+        "timeline": "bottom",
+        "layers": "upper_right",
+        "camera": "orbit",
+    }
+    assert session.payload["render"]["transport"] == "ovstream_webrtc"
+    assert session.payload["render"]["resolution"] == (640, 360)
+    assert session.payload["stream"]["input"] == "nvst_native"
+    assert session.payload["default_texture"]["source"]["name"] == "global_base_color"
+    assert 'def RenderProduct "Viewport"' in session.payload["stage"]
+    assert "rel camera = </Session/Camera>" in session.payload["stage"]
+    assert "remote-video" in session.html
+    assert "layer-list" in session.html
+    assert "coverage" in session.html
+    assert "_repr_html_" not in session._repr_html_()
+    assert session.output["title"] == "OVRTX globe"
+
+    raster.hide()
+    assert session.pending_events
+    assert session.payload["layers"][1]["visible"] is True
+    session.flush()
+    assert session.payload["layers"][1]["visible"] is False
+    with session.hold():
+        raster.show()
+    assert session.pending_events
+    assert session.flush().output["layers"][1]["visible"] is True
+    session.close()
+    session.update(object())
+    assert session.pending_events == []
+    assert session.flush().output["title"] == "OVRTX globe"
+    session.close()
+
+    empty_payload = backend.render(Scene()).output
+    assert empty_payload["timeline"]["frames"] == []
+    assert empty_payload["default_texture"]["layer_id"] is None
+
+    saved = backend.save(scene, tmp_path / "ovrtx.json")
+    assert json.loads(saved.read_text())["render"]["renderer"] == "ovrtx"
+    animated = backend.animate(scene, tmp_path / "ovrtx_timeline.json")
+    assert "frames" in json.loads(animated.read_text())
+
+    notebook = backend.show(
+        scene,
+        viewer="notebook",
+        open_browser=True,
+        output_dir=tmp_path / "ovrtx-notebook",
+        title="Notebook globe",
+    )
+    assert notebook.viewer == "notebook"
+    assert notebook.payload["title"] == "Notebook globe"
+    notebook.close()
+
+    with pytest.raises(ValueError, match="browser"):
+        backend.show(scene, viewer="desktop", open_browser=False)
+
+    missing = next(
+        (
+            package
+            for package in ("ovrtx", "ovstream")
+            if importlib.util.find_spec(package) is None
+        ),
+        None,
+    )
+    if missing is None:
+        assert backend.render(scene, require_renderer=True).metadata["runtime"]["ready"]
+    else:
+        with pytest.raises(VizDependencyError) as error:
+            backend.render(scene, require_renderer=True)
+        assert error.value.package == missing
+
+
+def test_anari_backend_sdk_viewer_handoff_and_dependency_gate(
+    tmp_path: Path,
+    sample_dataarray: xr.DataArray,
+    sample_frame: pd.DataFrame,
+) -> None:
+    scene = Scene(title="ANARI native")
+    raster = scene.add_raster(
+        sample_dataarray,
+        variable="t2m",
+        time=0,
+        name="t2m",
+        alpha=0.8,
+    )
+    scene.add_points(sample_frame, name="Stations")
+    backend = AnariBackend()
+
+    assert backend.supports(scene)
+    session = scene.show(
+        "anari",
+        streaming=True,
+        auto_flush=False,
+        open_viewer=False,
+        output_dir=tmp_path / "anari",
+        width=640,
+        height=360,
+        library="helide",
+    )
+
+    assert session.backend == "anari"
+    assert session.descriptor_path.exists()
+    assert session.payload["layout"] == {
+        "viewport": "anari_sdk_interactive_viewer",
+        "timeline": "viewer_control",
+        "layers": "viewer_control",
+        "camera": "orbit",
+    }
+    assert session.payload["render"]["renderer"] == "anari"
+    assert session.payload["render"]["viewer_component"] == (
+        "anari_sdk_interactive_viewer"
+    )
+    assert session.payload["render"]["library"] == "helide"
+    assert session.payload["render"]["resolution"] == (640, 360)
+    assert session.payload["runtime"]["library"] == "helide"
+    assert isinstance(session.payload["runtime"]["sdk_viewer"], bool)
+    assert session.payload["handoff"]["format"] == (
+        "earth2studio.viz.anari.session.v1"
+    )
+    assert session.payload["layers"][0]["anari_target"] == (
+        "textured_surface_or_sampler"
+    )
+    assert session.payload["layers"][1]["anari_target"] == "sphere_or_glyph_geometry"
+
+    raster.hide()
+    assert session.pending_events
+    assert session.payload["layers"][0]["visible"] is True
+    session.flush()
+    assert session.payload["layers"][0]["visible"] is False
+    with session.hold():
+        raster.show()
+    assert session.pending_events
+    assert session.flush().output["layers"][0]["visible"] is True
+    session.close()
+    session.update(object())
+    assert session.pending_events == []
+    assert session.flush().output["title"] == "ANARI native"
+    session.close()
+
+    saved = backend.save(scene, tmp_path / "anari.json")
+    assert json.loads(saved.read_text())["render"]["renderer"] == "anari"
+    animated = backend.animate(scene, tmp_path / "anari_timeline.json")
+    assert "frames" in json.loads(animated.read_text())
+
+    if importlib.util.find_spec("anari") is None:
+        with pytest.raises(VizDependencyError) as error:
+            backend.render(scene, require_renderer=True)
+        assert error.value.package == "anari"
+    else:
+        assert backend.render(scene, require_renderer=True).metadata["runtime"]["ready"]
+
+    with pytest.raises(VizDependencyError) as error:
+        backend.render(
+            scene,
+            require_viewer=True,
+            viewer_executable=tmp_path / "missing-anari-viewer",
+        )
+    assert error.value.package == "anariViewer"
+
+    launched = backend.show(
+        scene,
+        open_viewer=True,
+        output_dir=tmp_path / "anari-launched",
+        viewer_executable=sys.executable,
+        viewer_args=("-c", "import time; time.sleep(30)"),
+        title="Launched ANARI",
+    )
+    assert launched.payload["title"] == "Launched ANARI"
+    assert launched.process is not None
+    assert launched.process.poll() is None
+    assert launched.launch() is launched.process
+    launched.result = None
+    assert launched.output["title"] == "Launched ANARI"
+    process = launched.process
+    launched.close()
+    process.wait(timeout=5)
 
 
 def test_matplotlib_backend_renders_raster_sequences_as_layer_rows(

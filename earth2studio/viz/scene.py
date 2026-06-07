@@ -27,10 +27,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Sequence
 
+import pandas as pd
 import xarray as xr
 
-from earth2studio.viz.adapters.dataframe import DataFrameAdapter
-from earth2studio.viz.adapters.xarray import XarrayAdapter
+from earth2studio.viz.adapters.dataframe import DataFrameAdapter, FrameView
+from earth2studio.viz.adapters.xarray import (
+    RasterSequenceView,
+    RasterView,
+    XarrayAdapter,
+)
 from earth2studio.viz.assets import AssetSource, MeshSource, TextureSource
 from earth2studio.viz.backends.base import RenderResult, get_backend
 from earth2studio.viz.camera import Camera
@@ -50,12 +55,22 @@ from earth2studio.viz.layers import (
 )
 from earth2studio.viz.regional import RegionSpec
 from earth2studio.viz.styles import LayerStyle, ProjectionSpec
-from earth2studio.viz.textures import TextureSequence
+from earth2studio.viz.textures import TextureFrame, TextureSequence
 from earth2studio.viz.timeline import (
     Timeline,
     infer_frames_from_dataframe,
     infer_frames_from_xarray,
 )
+
+
+@dataclass(frozen=True, kw_only=True)
+class SceneEvent:
+    """Backend-facing description of one scene or layer mutation."""
+
+    kind: str
+    scene: "Scene"
+    layer: Layer | None = None
+    payload: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -69,6 +84,11 @@ class Scene:
     camera: Camera = field(default_factory=Camera)
     metadata: dict[str, Any] = field(default_factory=dict)
     _id_counter: int = 0
+    _sessions: list[Any] = field(default_factory=list, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        """Connect timeline notifications to the scene event stream."""
+        self.timeline._notify = self._timeline_changed
 
     @property
     def visible_layers(self) -> list[Layer]:
@@ -80,6 +100,8 @@ class Scene:
         if any(existing.id == layer.id for existing in self.layers):
             raise ValueError(f"Layer id {layer.id!r} already exists")
         self.layers.append(layer)
+        self._attach_layer(layer)
+        self._emit("layer_added", layer)
         return layer
 
     def add_raster(
@@ -429,6 +451,8 @@ class Scene:
         """Remove and return a layer by id or name."""
         layer = self.get_layer(key)
         self.layers.remove(layer)
+        self._emit("layer_removed", layer)
+        layer._scene = None
         return layer
 
     def render(self, backend: str = "summary", **backend_kwargs: Any) -> RenderResult:
@@ -440,14 +464,19 @@ class Scene:
         backend: str = "summary",
         *,
         streaming: bool = False,
+        auto_flush: bool = True,
         **backend_kwargs: Any,
     ) -> Any:
         """Show this scene using a registered backend."""
-        return get_backend(backend).show(
+        session_or_result = get_backend(backend).show(
             self,
             streaming=streaming,
+            auto_flush=auto_flush,
             **backend_kwargs,
         )
+        if streaming:
+            self._attach_session(session_or_result)
+        return session_or_result
 
     def save(
         self, path: str | Path, *, backend: str = "summary", **backend_kwargs: Any
@@ -480,6 +509,111 @@ class Scene:
         self._id_counter += 1
         return f"{prefix}-{self._id_counter:03d}"
 
+    def _attach_layer(self, layer: Layer) -> None:
+        layer._scene = self
+
+    def _attach_session(self, session: Any) -> None:
+        if not _is_scene_session(session) or session in self._sessions:
+            return
+        self._sessions.append(session)
+
+    def _detach_session(self, session: Any) -> None:
+        if session in self._sessions:
+            self._sessions.remove(session)
+
+    def _emit(
+        self,
+        kind: str,
+        layer: Layer | None = None,
+        payload: dict[str, Any] | None = None,
+    ) -> None:
+        if not self._sessions:
+            return
+        event = SceneEvent(
+            kind=kind,
+            scene=self,
+            layer=layer,
+            payload={} if payload is None else payload,
+        )
+        for session in list(self._sessions):
+            if getattr(session, "closed", False):
+                self._detach_session(session)
+                continue
+            session.update(event)
+
+    def _timeline_changed(self, kind: str, payload: dict[str, Any]) -> None:
+        self._emit("timeline_changed", payload={"change": kind, **payload})
+
+    def _set_layer_visible(self, layer: Layer, visible: bool) -> None:
+        old_visible = layer.visible
+        layer.visible = visible
+        if old_visible != visible:
+            self._emit(
+                "layer_visibility_changed",
+                layer,
+                {"old_visible": old_visible, "visible": visible},
+            )
+
+    def _update_layer(
+        self,
+        layer: Layer,
+        data: Any,
+        *,
+        time: Any | None = None,
+        **metadata: Any,
+    ) -> None:
+        layer.data = _coerce_layer_data(layer, data)
+        if metadata:
+            layer.metadata.update(metadata)
+        self._add_layer_frames(layer, data, time=time)
+        layer.time_extent = self.timeline.range()
+        self._emit(
+            "layer_updated",
+            layer,
+            {"data_type": type(data).__name__, "time": time},
+        )
+
+    def _append_layer(
+        self,
+        layer: Layer,
+        data: Any,
+        *,
+        time: Any | None = None,
+        **metadata: Any,
+    ) -> None:
+        layer.data = _append_layer_data(layer, data, time=time)
+        if metadata:
+            layer.metadata.update(metadata)
+        self._add_layer_frames(layer, data, time=time)
+        layer.time_extent = self.timeline.range()
+        self._emit(
+            "layer_appended",
+            layer,
+            {"data_type": type(data).__name__, "time": time},
+        )
+
+    def _add_layer_frames(
+        self,
+        layer: Layer,
+        data: Any,
+        *,
+        time: Any | None,
+    ) -> None:
+        if time is not None:
+            self.timeline.add_frames([time])
+            return
+        if isinstance(data, (xr.DataArray, xr.Dataset)):
+            self.timeline.add_frames(infer_frames_from_xarray(data))
+            return
+        if isinstance(data, TextureFrame) and data.timestamp is not None:
+            self.timeline.add_frames([data.timestamp])
+            return
+        if isinstance(layer.data, TextureSequence):
+            self._add_sequence_frames(layer.data)
+            return
+        if hasattr(data, "columns"):
+            self.timeline.add_frames(infer_frames_from_dataframe(data))
+
     def _add_asset_time(self, time: Any | None) -> None:
         if time is not None:
             self.timeline.add_frames([time])
@@ -489,6 +623,281 @@ class Scene:
             frame.timestamp for frame in sequence.frames if frame.timestamp is not None
         ]
         self.timeline.add_frames(frames)
+
+
+def _is_scene_session(candidate: Any) -> bool:
+    return all(
+        hasattr(candidate, name)
+        for name in ("update", "flush", "close", "closed", "auto_flush")
+    )
+
+
+def _coerce_layer_data(layer: Layer, data: Any) -> Any:
+    if isinstance(layer, (RasterLayer, TerrainLayer, DrapedRasterLayer)):
+        return _coerce_raster_data(layer, data)
+    if isinstance(layer, PointLayer):
+        return _coerce_point_data(layer, data)
+    if isinstance(layer, ImageLayer) and isinstance(data, TextureFrame):
+        return TextureSequence(frames=[data], name=layer.name)
+    return data
+
+
+def _append_layer_data(layer: Layer, data: Any, *, time: Any | None) -> Any:
+    if isinstance(layer, (RasterLayer, TerrainLayer, DrapedRasterLayer)):
+        return _append_raster_data(layer, data, time=time)
+    if isinstance(layer, PointLayer):
+        return _append_point_data(layer, data)
+    if isinstance(layer, ImageLayer) and isinstance(layer.data, TextureSequence):
+        return _append_texture_data(layer.data, data, time=time)
+    return _coerce_layer_data(layer, data)
+
+
+def _coerce_raster_data(
+    layer: RasterLayer | TerrainLayer | DrapedRasterLayer,
+    data: Any,
+) -> Any:
+    if isinstance(data, (RasterView, RasterSequenceView)):
+        return data
+    if isinstance(data, (xr.DataArray, xr.Dataset)):
+        return _xarray_view_for_layer(layer, data)
+    return data
+
+
+def _append_raster_data(
+    layer: RasterLayer | TerrainLayer | DrapedRasterLayer,
+    data: Any,
+    *,
+    time: Any | None,
+) -> Any:
+    existing = layer.data
+    incoming = _coerce_raster_data(layer, data)
+    if not isinstance(incoming, (RasterView, RasterSequenceView)):
+        return incoming
+    if isinstance(existing, RasterSequenceView):
+        return _append_to_raster_sequence(existing, incoming, time=time)
+    if isinstance(existing, RasterView):
+        return _raster_views_to_sequence(existing, incoming, time=time)
+    return incoming
+
+
+def _xarray_view_for_layer(
+    layer: RasterLayer | TerrainLayer | DrapedRasterLayer,
+    data: xr.DataArray | xr.Dataset,
+) -> RasterView | RasterSequenceView:
+    existing = layer.data
+    variable = getattr(existing, "variable", None)
+    x_coord = getattr(existing, "x_coord", None)
+    y_coord = getattr(existing, "y_coord", None)
+    attempts = (
+        {"variable": variable, "x": x_coord, "y": y_coord},
+        {"variable": None, "x": x_coord, "y": y_coord},
+        {"variable": None, "x": None, "y": None},
+    )
+    last_error: Exception | None = None
+    for attempt in attempts:
+        try:
+            return XarrayAdapter(data).to_raster_layer_view(**attempt)
+        except (KeyError, ValueError) as exc:
+            last_error = exc
+    if last_error is None:
+        raise ValueError("Could not adapt xarray data for raster layer")
+    raise last_error
+
+
+def _append_to_raster_sequence(
+    existing: RasterSequenceView,
+    incoming: RasterView | RasterSequenceView,
+    *,
+    time: Any | None,
+) -> RasterSequenceView:
+    if len(existing.frame_dims) != 1:
+        raise ValueError(
+            "RasterLayer.append supports one frame dimension; select extra "
+            "dimensions before streaming new frames"
+        )
+    frame_dim = existing.frame_dims[0]
+    if isinstance(incoming, RasterSequenceView):
+        if incoming.frame_dims != existing.frame_dims:
+            raise ValueError("Appended raster sequence frame dimensions must match")
+        incoming_data = incoming.data
+    else:
+        incoming_data = _expand_frame(
+            incoming.data,
+            frame_dim,
+            time if time is not None else _next_frame_index(existing.data, frame_dim),
+        )
+    data = xr.concat([existing.data, incoming_data], dim=frame_dim)
+    return RasterSequenceView(
+        data=data,
+        y_dim=existing.y_dim,
+        x_dim=existing.x_dim,
+        y_coord=existing.y_coord,
+        x_coord=existing.x_coord,
+        frame_dims=existing.frame_dims,
+        variable=existing.variable,
+        device=_device_for_data(data.data),
+        grid=existing.grid,
+        attrs=dict(data.attrs),
+        native_heatmap=existing.native_heatmap,
+    )
+
+
+def _raster_views_to_sequence(
+    existing: RasterView,
+    incoming: RasterView | RasterSequenceView,
+    *,
+    time: Any | None,
+) -> RasterSequenceView:
+    frame_dim = _raster_frame_dim(existing, incoming, time=time)
+    existing_data = _expand_frame(
+        existing.data,
+        frame_dim,
+        _frame_value(existing.data, frame_dim, fallback=0),
+    )
+    if isinstance(incoming, RasterSequenceView):
+        if len(incoming.frame_dims) != 1 or incoming.frame_dims[0] != frame_dim:
+            raise ValueError("Appended raster sequence frame dimensions must match")
+        incoming_data = incoming.data
+    else:
+        incoming_data = _expand_frame(
+            incoming.data,
+            frame_dim,
+            time if time is not None else _next_frame_index(existing_data, frame_dim),
+        )
+    data = xr.concat([existing_data, incoming_data], dim=frame_dim)
+    return RasterSequenceView(
+        data=data,
+        y_dim=existing.y_dim,
+        x_dim=existing.x_dim,
+        y_coord=existing.y_coord,
+        x_coord=existing.x_coord,
+        frame_dims=(frame_dim,),
+        variable=existing.variable,
+        device=_device_for_data(data.data),
+        grid=existing.grid,
+        attrs=dict(data.attrs),
+    )
+
+
+def _raster_frame_dim(
+    existing: RasterView,
+    incoming: RasterView | RasterSequenceView,
+    *,
+    time: Any | None,
+) -> str:
+    if time is not None:
+        return "time"
+    if existing.time_coord is not None:
+        return existing.time_coord
+    if isinstance(incoming, RasterView) and incoming.time_coord is not None:
+        return incoming.time_coord
+    if isinstance(incoming, RasterSequenceView) and len(incoming.frame_dims) == 1:
+        return incoming.frame_dims[0]
+    return "frame"
+
+
+def _expand_frame(data: xr.DataArray, dim: str, value: Any) -> xr.DataArray:
+    if dim in data.dims:
+        return data
+    array = data
+    if dim in array.coords:
+        scalar_value = _frame_value(array, dim, fallback=value)
+        value = scalar_value if value is None else value
+        array = array.drop_vars(dim)
+    return array.expand_dims({dim: [value]})
+
+
+def _frame_value(data: xr.DataArray, dim: str, *, fallback: Any) -> Any:
+    if dim not in data.coords:
+        return fallback
+    coord = data.coords[dim]
+    values = coord.values
+    if getattr(values, "shape", ()) == ():
+        return values.item()
+    if getattr(values, "size", 0):
+        return values[0]
+    return fallback
+
+
+def _next_frame_index(data: xr.DataArray, dim: str) -> int:
+    return int(data.sizes[dim]) if dim in data.sizes else 0
+
+
+def _coerce_point_data(layer: PointLayer, data: Any) -> Any:
+    if isinstance(data, FrameView):
+        return data
+    if not hasattr(data, "columns"):
+        return data
+    existing = layer.data
+    kwargs: dict[str, Any] = {}
+    if isinstance(existing, FrameView):
+        kwargs = {
+            "lat": existing.lat,
+            "lon": existing.lon,
+            "x": existing.x,
+            "y": existing.y,
+            "z": existing.z,
+            "time": existing.time,
+            "fields": existing.fields,
+        }
+    return DataFrameAdapter(data).to_frame_view(**kwargs)
+
+
+def _append_point_data(layer: PointLayer, data: Any) -> Any:
+    existing = layer.data
+    incoming = _coerce_point_data(layer, data)
+    if not isinstance(existing, FrameView) or not isinstance(incoming, FrameView):
+        return incoming
+    table = _concat_tables(existing.table, incoming.table)
+    return DataFrameAdapter(table).to_frame_view(
+        lat=existing.lat,
+        lon=existing.lon,
+        x=existing.x,
+        y=existing.y,
+        z=existing.z,
+        time=existing.time,
+        fields=existing.fields,
+    )
+
+
+def _append_texture_data(
+    sequence: TextureSequence,
+    data: Any,
+    *,
+    time: Any | None,
+) -> TextureSequence:
+    if isinstance(data, TextureSequence):
+        for frame in data.frames:
+            sequence.append(frame)
+        return sequence
+    if isinstance(data, TextureFrame):
+        frame = data
+    else:
+        frame = TextureFrame(
+            source=data,
+            index=len(sequence.frames),
+            timestamp=time,
+        )
+    sequence.append(frame)
+    return sequence
+
+
+def _concat_tables(left: Any, right: Any) -> Any:
+    module = type(left).__module__.split(".", maxsplit=1)[0]
+    if module == "cudf":
+        import cudf
+
+        return cudf.concat([left, right], ignore_index=True)
+    return pd.concat([left, right], ignore_index=True)
+
+
+def _device_for_data(data: Any) -> str:
+    if hasattr(data, "__cuda_array_interface__"):
+        return "cuda"
+    module = type(data).__module__.split(".", maxsplit=1)[0]
+    if module in {"cupy", "cudf"}:
+        return "cuda"
+    return "cpu"
 
 
 def _style(style: LayerStyle | None = None, **style_kwargs: Any) -> LayerStyle:

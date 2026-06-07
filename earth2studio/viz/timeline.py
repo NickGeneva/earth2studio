@@ -23,7 +23,7 @@ Key APIs: `Timeline` stores ordered frames and current playback state;
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 import pandas as pd
 import xarray as xr
@@ -36,6 +36,12 @@ class Timeline:
     frames: list[Any] = field(default_factory=list)
     current_index: int = 0
     mode: str = "time"
+    _notify: Callable[[str, dict[str, Any]], None] | None = field(
+        default=None,
+        init=False,
+        repr=False,
+        compare=False,
+    )
 
     def __post_init__(self) -> None:
         """Deduplicate frames and validate the current index."""
@@ -51,27 +57,38 @@ class Timeline:
 
     def add_frames(self, frames: Iterable[Any]) -> "Timeline":
         """Merge new frames into the timeline and return it."""
+        before = tuple(self.frames)
         self.frames = _dedupe([*self.frames, *frames])
         self._validate_index()
+        if tuple(self.frames) != before:
+            self._emit("frames_added", {"frames": list(self.frames)})
         return self
 
     def set(self, *, time: Any | None = None, index: int | None = None) -> "Timeline":
         """Set the active frame by value or index."""
+        before = self.current_index
         if index is not None:
             self.current_index = index
             self._validate_index()
+            if self.current_index != before:
+                self._emit("current_changed", {"current": self.current})
             return self
         if time is None:
             return self
         for i, frame in enumerate(self.frames):
             if _frame_equal(frame, time):
                 self.current_index = i
+                if self.current_index != before:
+                    self._emit("current_changed", {"current": self.current})
                 return self
         raise KeyError(f"Timeline frame {time!r} was not found")
 
     def use_valid_time(self) -> "Timeline":
         """Mark the timeline as using forecast valid time."""
+        before = self.mode
         self.mode = "valid_time"
+        if self.mode != before:
+            self._emit("mode_changed", {"mode": self.mode})
         return self
 
     def range(self) -> tuple[Any, Any] | None:
@@ -86,6 +103,10 @@ class Timeline:
             return
         if self.current_index < 0 or self.current_index >= len(self.frames):
             raise IndexError("Timeline current_index is out of range")
+
+    def _emit(self, kind: str, payload: dict[str, Any]) -> None:
+        if self._notify is not None:
+            self._notify(kind, payload)
 
 
 def infer_frames_from_xarray(

@@ -95,6 +95,7 @@ viz = [
     "plotly>=6",
     "usd-core>=26.5",
     "ovrtx==0.3.0.312915",
+    "ovstream",
     "anari==1.0.1",
 ]
 utils = [

@@ -128,15 +128,61 @@ a keyword argument. The core call shape is:
 scene.show(
     backend="cartopy",
     streaming=False,
+    auto_flush=True,
     figsize=(12, 6),
     colorbar=True,
 )
 ```
 
-`backend` selects the renderer, `streaming` reserves the persistent-session
-path, and remaining keyword arguments are validated by the selected backend.
-The initial static backends accept the shared keyword but do not yet create
-streaming sessions.
+`backend` selects the renderer, `streaming` requests a persistent session,
+`auto_flush` controls whether layer changes immediately update the backend, and
+remaining keyword arguments are validated by the selected backend.
+
+## Streaming Sessions
+
+When `streaming=True`, `show` returns a backend-owned session. Updating layer
+state and flushing backend state are separate operations:
+
+```python
+scene = viz.Scene(title="Streaming forecast")
+layer = scene.add_raster(forecast.sel(ensemble=0), name="t2m", colormap="turbo")
+
+session = scene.show(backend="cartopy", streaming=True, auto_flush=False)
+
+layer.update(next_frame)      # mutate scene/layer state only
+layer.append(later_frame)     # extend the layer's time series
+session.flush()               # redraw or reconcile the backend once
+session.close()
+```
+
+The default is `auto_flush=True`, which keeps notebooks and small scripts
+simple. Use `auto_flush=False` or `session.hold()` when a model loop appends
+several frames, textures, or point batches and the backend should update once.
+The built-in `summary`, `matplotlib`, and `cartopy` sessions implement rough
+streaming by redrawing from the current scene. The `ovrtx` session uses the same
+event path to keep a browser/notebook globe payload synchronized with layer and
+timeline changes while the renderer-owned texture upload and WebRTC frame loop
+are attached under the backend.
+
+```python
+scene = viz.Scene(title="OVRTX globe")
+scene.add_default_texture()
+layer = scene.add_raster(forecast.sel(ensemble=0), name="t2m", colormap="turbo")
+
+session = scene.show(
+    backend="ovrtx",
+    streaming=True,
+    open_browser=True,
+)
+
+layer.append(next_valid_time_frame, time=next_valid_time)
+```
+
+The OVRTX browser surface follows the Command Center layout: streamed viewport
+pixels in the main view, a layer list in the upper right, a timeline along the
+bottom, and orbit-camera state owned by the renderer path. In notebooks, the
+returned session exposes `_repr_html_()` so the same session document can be
+embedded inline.
 
 ## Regional Terrain Scene
 
@@ -314,8 +360,18 @@ backend = get_backend("summary")
 ```
 
 The built-in `summary` backend has no optional dependencies and returns a
-serializable scene dictionary. The `matplotlib` backend imports Matplotlib only
-when used.
+serializable scene dictionary. The `matplotlib`, `cartopy`, `ovrtx`, and
+`anari` backends import their plotting or renderer dependencies only when those
+runtime paths are requested. `scene.show(backend="ovrtx", streaming=True)` can
+create the browser/notebook session payload without importing OVRTX; pass
+`require_renderer=True` when a script should fail early unless `ovrtx` and
+`ovstream` are importable.
+
+`scene.show(backend="anari", streaming=True)` creates an ANARI-SDK native viewer
+handoff descriptor. This path is intentionally SDK-oriented: it defaults to the
+SDK sample `helide` library, can launch a configured ANARI-SDK viewer executable,
+and does not select NVIDIA VisRTX unless a user or downstream integration opts
+into that device explicitly.
 
 ## Scalar Styling
 
@@ -347,6 +403,10 @@ three structural protocols:
   `visible`, `data`, `metadata`, and `summary()`.
 - {class}`earth2studio.viz.SceneProtocol`: a scene has `layers`,
   `visible_layers`, `metadata`, and `summary()`.
+- {class}`earth2studio.viz.SceneEventProtocol`: backend sessions receive
+  scene, layer, timeline, and visibility mutation events.
+- {class}`earth2studio.viz.SceneSessionProtocol`: a streaming session has
+  `update`, `flush`, `hold`, and `close`.
 - {class}`earth2studio.viz.BackendProtocol`: a backend has `supports`,
   `render`, `show`, `save`, and `animate`.
 

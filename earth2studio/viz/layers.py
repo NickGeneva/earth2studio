@@ -45,15 +45,52 @@ class Layer:
     projection: ProjectionSpec = field(default_factory=ProjectionSpec)
     time_extent: TimeExtent = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    _scene: Any | None = field(default=None, init=False, repr=False, compare=False)
 
     def show(self) -> "Layer":
         """Mark this layer visible and return it."""
-        self.visible = True
+        if self._scene is not None:
+            self._scene._set_layer_visible(self, True)
+        else:
+            self.visible = True
         return self
 
     def hide(self) -> "Layer":
         """Mark this layer hidden and return it."""
-        self.visible = False
+        if self._scene is not None:
+            self._scene._set_layer_visible(self, False)
+        else:
+            self.visible = False
+        return self
+
+    def update(
+        self,
+        data: Any,
+        *,
+        time: Any | None = None,
+        **metadata: Any,
+    ) -> "Layer":
+        """Replace layer data and notify attached streaming sessions."""
+        if self._scene is not None:
+            self._scene._update_layer(self, data, time=time, **metadata)
+        else:
+            self.data = data
+            self.metadata.update(metadata)
+        return self
+
+    def append(
+        self,
+        data: Any,
+        *,
+        time: Any | None = None,
+        **metadata: Any,
+    ) -> "Layer":
+        """Append data to streamable layer state and notify sessions."""
+        if self._scene is not None:
+            self._scene._append_layer(self, data, time=time, **metadata)
+        else:
+            self.data = data
+            self.metadata.update(metadata)
         return self
 
     def summary(self) -> dict[str, Any]:

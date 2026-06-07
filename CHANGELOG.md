@@ -22,6 +22,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   through 2011-03-27 with cycles every 5 days, served from the NCEI HTTPS
   archive
 - Added IBTrACS tropical cyclone track DataFrame source (`IBTrACS`)
+- Added initial `earth2studio.viz` scene, layer, timeline, and plotting APIs
+  for xarray and pandas/cuDF-like data.
+- Added Matplotlib, CartoPy, OVRTX session payload, and ANARI-SDK viewer handoff
+  visualization backends.
+- Added visualization asset, texture, default-domain, native-grid heatmap, and
+  regional cube support.
+- Added streaming Viz sessions with layer update/append events and
+  `auto_flush` control.
+- Added Viz documentation, examples migration notes, and focused scenario tests
+  using the package-wide coverage standard.
 
 ### Changed
 

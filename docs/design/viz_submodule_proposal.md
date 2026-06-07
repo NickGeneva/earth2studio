@@ -84,6 +84,7 @@ viz = [
     "plotly>=6",
     "usd-core>=26.5",
     "ovrtx==0.3.0.312915",
+    "ovstream",
     "anari==1.0.1",
 ]
 ```
@@ -93,9 +94,9 @@ Notes:
 - `ovrtx` is the NVIDIA Omniverse RTX package name. PyPI currently lists
   `0.3.0.312915` uploaded May 18, 2026, with Python >=3.10. NVIDIA's package
   index provides platform wheels.
-- `anari` is the current PyPI package name for Python bindings that import as
-  `pynari`. It currently targets CUDA-capable Linux use cases, so it should be
-  install-smoked before becoming mandatory in any production environment.
+- `anari` is the current PyPI package name for SDK-style Python bindings. The
+  native interactive viewer path should still target a Khronos ANARI-SDK build
+  with the viewer component enabled; the Python wheel alone is not the viewer.
 - `usd-core` provides OpenUSD Python libraries. It is the right dependency
   anchor for scene export, terrain mesh packaging, OpenUSD payloads, and
   renderer handoff.
@@ -136,16 +137,16 @@ backend delegates, texture managers, and exporters.
 
 | Capability | Current status | Missing for parity | Owning area |
 | --- | --- | --- | --- |
-| Scene/layer registry | Partial | Reordering, filtering, and change events for renderer delegates. | `scene.py`, backend delegates |
+| Scene/layer registry | Partial | Reordering and filtering helpers. Internal change events now notify streaming sessions. | `scene.py`, backend delegates |
 | Base feature metadata | Implemented | None for the first pass. | `layers.py` |
 | Image feature material controls | Partial | Alpha opacity, gamma, and scalar remapping are portable style controls. Alpha-source masks, flip U/V, longitudinal offset, and affine texture transforms remain backend/source-transform details. | `styles.py`, `assets.py`, backend material lowering |
-| Timeline playback | Partial | Playback rate, loop policy, UTC-to-playback mapping, frame-change events. | `timeline.py`, backend sessions |
+| Timeline playback | Partial | Playback rate, loop policy, and UTC-to-playback mapping. Internal frame-change events now reach renderer sessions. | `timeline.py`, backend sessions |
 | Dynamic texture streaming | Partial | Concrete OVRTX texture manager, async decode/upload queues, CPU staging cache, GPU residency cache, mosaic/tile/LOD loaders. | `textures.py`, `base.py`, renderer backend |
 | Default global textures | Implemented | Actual packaged/pre-populated optimized assets. | `domains.py`, deployment packaging |
 | Grid/projection support | Partial | Regular lat/lon, curvilinear lat/lon, projected/native, cubed-sphere, HPX/HEALPix, diamond, GOES, and geohash-indexed grid intent are represented. Native HEALPix/cubed face stacks can render as heatmap mosaics; backend payload builders still need concrete geographic lowering for HPX/geohash/tiled mosaics. | `grids.py`, `native.py`, adapters, backend payload builders |
 | Regional terrain | Partial | Tiled terrain mesh generation, OpenUSD export, renderer-backed local scene session, vertical datum transforms. | `regional.py`, terrain builders, exporters |
 | Vector/flow objects | Partial | Scene-level track adapter, streamline generation, 3D glyph instancing, backend flow-object lowering. | `layers.py`, vector payload builders |
-| Application session | Missing | Backend-owned session lifecycle, renderer delegate subscriptions, camera sync, cleanup, picking/selection. | `backends/` |
+| Application session | Partial | Summary, Matplotlib, and Cartopy sessions redraw from scene events. The initial OVRTX session now emits a browser/notebook globe payload with layer and timeline controls. Missing concrete OVRTX render loop, ovstream server ownership, camera sync, cleanup hooks, picking, and selection. | `backends/` |
 | Data-to-visual payload bridge | Missing | Stable xarray-to-texture encoding, texture compression, volume payload conversion, forecast provenance on generated payloads. | `adapters/`, backend payload builders |
 
 This gap inventory is also encoded in `earth2studio.viz.capabilities` as
@@ -832,6 +833,7 @@ class VizBackend(Protocol):
         scene: Scene,
         *,
         streaming: bool = False,
+        auto_flush: bool = True,
         **backend_kwargs,
     ) -> Any: ...
     def save(self, scene: Scene, path: str | Path, **backend_kwargs) -> Path: ...
@@ -839,10 +841,31 @@ class VizBackend(Protocol):
 ```
 
 Backend-specific controls should remain keyword-only. The shared front-door
-arguments are limited to the scene operation itself, for example `backend` and
-`streaming` for `Scene.show(...)`; renderer launch details, cache sizes, ports,
-devices, and layout preferences stay in `**backend_kwargs` and are validated by
-the selected backend.
+arguments are limited to the scene operation itself, for example `backend`,
+`streaming`, and `auto_flush` for `Scene.show(...)`; renderer launch details,
+cache sizes, ports, devices, and layout preferences stay in `**backend_kwargs`
+and are validated by the selected backend.
+
+Streaming backends should return a duck-typed session:
+
+```python
+class SceneSessionProtocol(Protocol):
+    backend: str
+    scene: Scene
+    auto_flush: bool
+    closed: bool
+
+    def update(self, event: SceneEventProtocol) -> None: ...
+    def flush(self) -> Any: ...
+    def hold(self) -> ContextManager[SceneSessionProtocol]: ...
+    def close(self) -> None: ...
+```
+
+`Layer.update(...)` and `Layer.append(...)` mutate layer state. `auto_flush`
+decides whether pending scene events immediately reconcile with the backend.
+Manual loops can pass `auto_flush=False` and call `session.flush()` explicitly.
+This preserves the Command Center delegate model without adding a second render
+API beside `show`.
 
 There is intentionally no `serve()` method in this phase.
 
@@ -857,12 +880,15 @@ Recommended initial backends:
 - `matplotlib`: simple 2D images, smoke tests, non-geospatial fallback.
 - `cartopy`: geospatial static plots, projections, coastlines, and publication
   figures.
-- `ovrtx`: high-fidelity local renderer path when the package and RTX runtime
+- `ovrtx`: high-fidelity RTX renderer path with an initial browser/notebook
+  session payload and future ovstream frame loop when the package and runtime
   are available.
 - `openusd`: scene export and renderer handoff path for regional terrain,
   textured surfaces, local assets, cameras, and volume references.
-- `anari`: portable scientific renderer path when Python bindings and devices
-  are available.
+- `anari`: portable scientific renderer path with a headless descriptor and
+  ANARI-SDK native viewer handoff first. The initial route should use the SDK
+  viewer component and sample `helide`/environment-selected libraries rather
+  than selecting VisRTX by default.
 
 `register_backend(name, factory)` should allow downstream teams to add plugins
 without modifying Earth2 Studio.
@@ -945,6 +971,42 @@ scene = viz.Scene()
 scene.add_raster(forecast, variable="msl", colormap="viridis")
 scene.camera.set(lon=-40, lat=25, distance=2.0)
 viewer = scene.show(backend="ovrtx")
+```
+
+Browser-streamed OVRTX globe session:
+
+```python
+scene = viz.Scene(title="OVRTX globe")
+scene.add_default_texture()
+layer = scene.add_raster(forecast, variable="tcwv", colormap="turbo")
+
+session = scene.show(
+    backend="ovrtx",
+    streaming=True,
+    open_browser=True,
+    require_renderer=False,
+)
+layer.append(next_frame, time=next_valid_time)
+```
+
+The session payload deliberately mirrors the useful Command Center pieces:
+streamed viewport ownership, upper-right layer controls, bottom timeline
+coverage, and orbit-camera intent. The browser document exposes the video
+surface and state controls; actual RTX pixels should arrive from a backend-owned
+`ovrtx` plus `ovstream` render loop rather than a browser-side 3D renderer.
+
+Streaming model loop:
+
+```python
+scene = viz.Scene(title="Streaming inference")
+layer = scene.add_raster(first_frame, name="t2m", colormap="turbo")
+
+session = scene.show(backend="cartopy", streaming=True, auto_flush=False)
+for valid_time, frame in model_frames:
+    layer.append(frame, time=valid_time)
+    if should_redraw(valid_time):
+        session.flush()
+session.close()
 ```
 
 ## Why Keep This In Earth2 Studio?
@@ -1054,8 +1116,8 @@ tools do not provide out of the box:
   Studio eventually make the static subset part of the base install?
 - Should OVRTX be pinned to `0.3.0.312915` immediately, or should it use a
   compatible range after the first install smoke?
-- Should ANARI support target the `anari` PyPI package first, or should the
-  backend target Khronos SDK installations and vendor bindings more generally?
+- How much of the ANARI-SDK native viewer bridge should live in Python versus a
+  small compiled viewer application that consumes the `anari` backend payload?
 - What CRS/projection metadata should be standardized for non-lat/lon grids
   such as HRRR?
 - Which vertical datum and height conventions should be first-class for regional
@@ -1112,6 +1174,8 @@ The manual plotting migration is tracked separately in
   <https://openusd.org/dev/user_guides/schemas/usdVol/Volume.html>
 - Khronos ANARI overview:
   <https://www.khronos.org/anari/>
+- Khronos ANARI SDK:
+  <https://github.com/KhronosGroup/ANARI-SDK>
 - ANARI 1.1 specification:
   <https://registry.khronos.org/ANARI/specs/1.1/ANARI-1.1.html>
 - ANARI Python binding package:

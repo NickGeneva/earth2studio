@@ -31,7 +31,7 @@ def test_default_capability_inventory_tracks_current_gaps() -> None:
     by_id = {capability.id: capability for capability in inventory}
 
     assert by_id["default-global-textures"].status == "implemented"
-    assert by_id["application-session"].status == "missing"
+    assert by_id["application-session"].status == "partial"
     assert by_id["dynamic-texture-streaming"].status == "partial"
     assert by_id["data-to-visual-payload"].public_api_required is False
     assert (

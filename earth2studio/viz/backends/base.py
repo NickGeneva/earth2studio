@@ -23,7 +23,8 @@ no-dependency backend for tests, debugging, and metadata inspection.
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
@@ -86,6 +87,7 @@ class VizBackend(Protocol):
         scene: Any,
         *,
         streaming: bool = False,
+        auto_flush: bool = True,
         **backend_kwargs: Any,
     ) -> Any:
         """Show the scene in the backend's natural representation."""
@@ -100,6 +102,69 @@ class VizBackend(Protocol):
 BackendFactory = Callable[[], VizBackend]
 _BACKENDS: dict[str, BackendFactory] = {}
 _DEFAULTS_REGISTERED = False
+
+
+class RedrawSession:
+    """Small streaming session that reconciles by rerendering the scene."""
+
+    def __init__(
+        self,
+        *,
+        backend: str,
+        scene: Any,
+        render: Callable[[], RenderResult],
+        auto_flush: bool = True,
+    ):
+        self.backend = backend
+        self.scene = scene
+        self.auto_flush = auto_flush
+        self.closed = False
+        self.pending_events: list[Any] = []
+        self.result: RenderResult | None = None
+        self._render = render
+        self._hold_depth = 0
+        self.flush()
+
+    @property
+    def output(self) -> Any:
+        """Return the latest backend output without reconciling pending events."""
+        if self.result is None and not self.closed:
+            self.flush()
+        return None if self.result is None else self.result.output
+
+    def update(self, event: Any) -> None:
+        """Record an event and flush immediately when auto-flush is enabled."""
+        if self.closed:
+            return
+        self.pending_events.append(event)
+        if self.auto_flush and self._hold_depth == 0:
+            self.flush()
+
+    def flush(self) -> RenderResult:
+        """Redraw the scene from current state and clear pending events."""
+        if self.closed and self.result is not None:
+            return self.result
+        self.result = self._render()
+        self.pending_events.clear()
+        return self.result
+
+    @contextmanager
+    def hold(self) -> Iterator["RedrawSession"]:
+        """Collect events without flushing until the caller explicitly flushes."""
+        self._hold_depth += 1
+        try:
+            yield self
+        finally:
+            self._hold_depth -= 1
+
+    def close(self) -> None:
+        """Detach the session and release references to pending events."""
+        if self.closed:
+            return
+        self.closed = True
+        self.pending_events.clear()
+        if hasattr(self.scene, "_detach_session"):
+            self.scene._detach_session(self)
 
 
 def register_backend(
@@ -138,6 +203,8 @@ def ensure_default_backends() -> None:
     register_backend("summary", SummaryBackend)
     register_backend("matplotlib", _matplotlib_factory)
     register_backend("cartopy", _cartopy_factory)
+    register_backend("ovrtx", _ovrtx_factory)
+    register_backend("anari", _anari_factory)
     _DEFAULTS_REGISTERED = True
 
 
@@ -175,12 +242,16 @@ class SummaryBackend:
         scene: Any,
         *,
         streaming: bool = False,
+        auto_flush: bool = True,
         **backend_kwargs: Any,
-    ) -> RenderResult:
+    ) -> Any:
         """Return the same result as `render` for deterministic inspection."""
         if streaming:
-            raise NotImplementedError(
-                "Visualization backend 'summary' does not support streaming sessions yet"
+            return RedrawSession(
+                backend=self.name,
+                scene=scene,
+                render=lambda: self.render(scene, **backend_kwargs),
+                auto_flush=auto_flush,
             )
         return self.render(scene, **backend_kwargs)
 
@@ -211,3 +282,15 @@ def _cartopy_factory() -> VizBackend:
     from earth2studio.viz.backends.cartopy import CartopyBackend
 
     return CartopyBackend()
+
+
+def _ovrtx_factory() -> VizBackend:
+    from earth2studio.viz.backends.ovrtx import OvrTxBackend
+
+    return OvrTxBackend()
+
+
+def _anari_factory() -> VizBackend:
+    from earth2studio.viz.backends.anari import AnariBackend
+
+    return AnariBackend()
