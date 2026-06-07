@@ -32,12 +32,11 @@ In this example you will learn:
 - How to run a single-member forecast with Atlas
 - How to visualize predicted 10m u-wind and total column water vapour
 """
+
 # /// script
 # dependencies = [
 #   "torch==2.11.0", # Match lock file to avoid torch-harmonics issue
-#   "earth2studio[atlas] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
-#   "matplotlib",
+#   "earth2studio[atlas,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -162,46 +161,44 @@ print(io.root.tree())
 # component (u10m) and total column water vapour (tcwv) at 12 hours into the forecast.
 
 # %%
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
 forecast = "2024-01-01"
 step = 2  # lead time = 12 hrs into the forecast
 
-plt.close("all")
-projection = ccrs.Robinson()
-
-fig, ax = plt.subplots(1, 2, subplot_kw={"projection": projection}, figsize=(16, 5))
-
-# Plot u10m
-im0 = ax[0].pcolormesh(
-    io["lon"][:],
-    io["lat"][:],
-    io["u10m"][0, step],
-    transform=ccrs.PlateCarree(),
-    cmap="RdBu_r",
-    vmin=-20,
-    vmax=20,
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            viz.raster_dataarray(
+                io["u10m"][0, step],
+                lat=io["lat"][:],
+                lon=io["lon"][:],
+                name="u10m",
+                attrs={"units": "m/s"},
+            ),
+            title=f"{forecast} - u10m - Lead time: {6*step}hrs",
+            colormap="RdBu_r",
+            vmin=-20,
+            vmax=20,
+            colorbar_label="m/s",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                io["tcwv"][0, step],
+                lat=io["lat"][:],
+                lon=io["lon"][:],
+                name="tcwv",
+                attrs={"units": "kg/m^2"},
+            ),
+            title=f"{forecast} - tcwv - Lead time: {6*step}hrs",
+            colormap="Blues",
+            vmin=0,
+            vmax=70,
+            colorbar_label="kg/m^2",
+        ),
+    ],
+    "outputs/06_atlas_u10m_tcwv.jpg",
+    ncols=2,
+    figsize=(16, 5),
+    dpi=300,
 )
-ax[0].set_title(f"{forecast} - u10m - Lead time: {6*step}hrs")
-ax[0].coastlines()
-ax[0].gridlines()
-plt.colorbar(im0, ax=ax[0], shrink=0.6, pad=0.04, label="m/s")
-
-# Plot tcwv
-im1 = ax[1].pcolormesh(
-    io["lon"][:],
-    io["lat"][:],
-    io["tcwv"][0, step],
-    transform=ccrs.PlateCarree(),
-    cmap="Blues",
-    vmin=0,
-    vmax=70,
-)
-ax[1].set_title(f"{forecast} - tcwv - Lead time: {6*step}hrs")
-ax[1].coastlines()
-ax[1].gridlines()
-plt.colorbar(im1, ax=ax[1], shrink=0.6, pad=0.04, label="kg/m²")
-
-plt.tight_layout()
-plt.savefig("outputs/06_atlas_u10m_tcwv.jpg", dpi=300)

@@ -8,5 +8,6 @@ diagnostic
 datasources
 perturbation
 io
+viz
 statistics
 ```

@@ -27,10 +27,10 @@ This example demonstrates how to:
 - Load the local store as a data source for an inference pipeline with the Microsoft Aurora model
 - Run the deterministic workflow and plot results
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[aurora] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[aurora,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -150,36 +150,26 @@ io = run.deterministic(
 # ---------------
 # The last step is to post-process our results.
 
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
-plt.close("all")
-projection = ccrs.Robinson()
-fig, axes = plt.subplots(
-    2,
-    2,
-    subplot_kw={"projection": projection},
-    figsize=(12, 7),
-    constrained_layout=True,
-)
-axes = axes.ravel()
-
-lon = io["lon"][:]
-lat = io["lat"][:]
 lead_steps = [1, 2, 3, 4]  # 6h, 12h, 18h, 24h
-for ax, step in zip(axes, lead_steps):
-    im = ax.pcolormesh(
-        lon,
-        lat,
-        io["msl"][0, step],
-        transform=ccrs.PlateCarree(),
-        cmap="PiYG",
-    )
-    ax.set_title(f"msl - Lead time: {6*step}h")
-    ax.coastlines()
-    ax.gridlines(draw_labels=False)
-
-fig.colorbar(
-    im, ax=axes, orientation="horizontal", fraction=0.05, pad=0.07, label="msl"
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            viz.raster_dataarray(
+                io["msl"][0, step],
+                lat=io["lat"][:],
+                lon=io["lon"][:],
+                name="msl",
+            ),
+            title=f"msl - Lead time: {6*step}h",
+            colormap="PiYG",
+            colorbar_label="msl",
+        )
+        for step in lead_steps
+    ],
+    "outputs/19_msl_1day.png",
+    ncols=2,
+    figsize=(12, 7),
+    dpi=150,
 )
-plt.savefig("outputs/19_msl_1day.png", dpi=150)

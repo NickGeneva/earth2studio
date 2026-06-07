@@ -31,10 +31,10 @@ In this example you will learn:
 - Running iterative prognostic forecasts
 - Plotting a single GOES channel with MRMS overlay
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[data,stormscope] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[data,stormscope,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -62,12 +62,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
+from earth2studio import viz
 from earth2studio.data import GFS_FX, GOES, MRMS, fetch_data
 from earth2studio.models.px.stormscope import (
     StormScopeBase,
@@ -240,72 +238,50 @@ mrms_ch_idx = list(model_mrms.variables).index("refc")
 y_pred = torch.where(model.valid_mask, y_pred, torch.nan)
 y_mrms_pred = torch.where(model_mrms.valid_mask, y_mrms_pred, torch.nan)
 
-# Prepare HRRR Lambert Conformal projection
-proj_hrrr = ccrs.LambertConformal(
-    central_longitude=262.5,
-    central_latitude=38.5,
-    standard_parallels=(38.5, 38.5),
-    globe=ccrs.Globe(semimajor_axis=6371229, semiminor_axis=6371229),
-)
-plt.figure(figsize=(9, 6))
-ax = plt.axes(projection=proj_hrrr)
-
-# Dual layer coast/state lines for better day/night visibility
-# Black halo (thicker)
-ax.coastlines(color="black", linewidth=1.2)
-ax.add_feature(cfeature.STATES, edgecolor="black", linewidth=1.0)
-
-# White inner line (thinner)
-ax.coastlines(color="white", linewidth=0.4)
-ax.add_feature(cfeature.STATES, edgecolor="white", linewidth=0.3)
-
 field = y_pred[0, 0, 0, goes_ch_idx].detach().cpu().numpy()
-im = ax.pcolormesh(
-    lon_out,
-    lat_out,
-    field,
-    transform=ccrs.PlateCarree(),
-    cmap="gray_r",
-    shading="auto",
-)
-
-# Overlay MRMS on top of GOES
 field_mrms = y_mrms_pred[0, 0, 0, mrms_ch_idx]
 field_mrms = (
     torch.where(~model.valid_mask, torch.nan, field_mrms).detach().cpu().numpy()
 )
 field_mrms = np.where(field_mrms <= 0, np.nan, field_mrms)
-im_mrms = ax.pcolormesh(
-    lon_out,
-    lat_out,
-    field_mrms,
-    transform=ccrs.PlateCarree(),
-    cmap="inferno",
-    shading="auto",
-    vmin=0.0,
-    vmax=55.0,
-)
-plt.colorbar(
-    im,
-    label="GOES Clean IR 10.35um [K]",
-    orientation="horizontal",
-    pad=0.05,
-    shrink=0.5,
-)
-plt.colorbar(
-    im_mrms,
-    label="MRMS Reflectivity [dBZ]",
-    orientation="horizontal",
-    pad=0.1,
-    shrink=0.5,
-)
 
 time = y_coords["time"][0].item()
 lead_time = y_coords["lead_time"][0]
-plt.title(
-    f"Predicted GOES {goes_channel} with MRMS overlay from {time} UTC "
-    f"initialization (lead {lead_time.astype('timedelta64[m]').item()})"
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            viz.raster_dataarray(
+                field,
+                lat=lat_out,
+                lon=lon_out,
+                name=goes_channel,
+                attrs={"units": "K"},
+            ),
+            title=f"Predicted GOES {goes_channel}",
+            colormap="gray_r",
+            colorbar_label="GOES Clean IR 10.35um [K]",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                field_mrms,
+                lat=lat_out,
+                lon=lon_out,
+                name="refc",
+                attrs={"units": "dBZ"},
+            ),
+            title="Predicted MRMS refc",
+            colormap="inferno",
+            vmin=0.0,
+            vmax=55.0,
+            colorbar_label="MRMS Reflectivity [dBZ]",
+        ),
+    ],
+    "outputs/20_stormscope_goes_example.png",
+    ncols=2,
+    figsize=(12, 5),
+    title=(
+        f"Predicted fields from {time} UTC initialization "
+        f"(lead {lead_time.astype('timedelta64[m]').item()})"
+    ),
+    dpi=300,
 )
-
-plt.tight_layout()
-plt.savefig("outputs/20_stormscope_goes_example.png", dpi=300)

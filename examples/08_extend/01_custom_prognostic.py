@@ -30,10 +30,10 @@ In this example you will learn:
 - Implementing a custom prognostic model
 - Running this model in existing workflows
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "matplotlib",
+#   "earth2studio[viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -299,31 +299,29 @@ print(io.root.tree())
 # become progressively more noisy as time progresses.
 
 # %%
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
 forecast = "2024-01-01"
 variable = "u10m"
 
-plt.close("all")
-
-# Create a figure and axes with the specified projection
-fig, ax = plt.subplots(2, 2, figsize=(6, 4))
-
-# Plot u10m every 6 hours
-ax[0, 0].imshow(io[variable][0, 0], vmin=-20, vmax=20)
-ax[0, 1].imshow(io[variable][0, 6], vmin=-20, vmax=20)
-ax[1, 0].imshow(io[variable][0, 12], vmin=-20, vmax=20)
-ax[1, 1].imshow(io[variable][0, 18], vmin=-20, vmax=20)
-
-
-# Set title
-plt.suptitle(f"{variable} - {forecast}")
 times = (
     io["lead_time"][:].astype("timedelta64[ns]").astype("timedelta64[h]").astype(int)
 )
-ax[0, 0].set_title(f"Lead time: {times[0]}hrs")
-ax[0, 1].set_title(f"Lead time: {times[6]}hrs")
-ax[1, 0].set_title(f"Lead time: {times[12]}hrs")
-ax[1, 1].set_title(f"Lead time: {times[18]}hrs")
-
-plt.savefig("outputs/01_custom_prognostic_prediction.jpg", bbox_inches="tight")
+steps = [0, 6, 12, 18]
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            viz.raster_dataarray(io[variable][0, step], name=variable),
+            title=f"Lead time: {times[step]}hrs",
+            vmin=-20,
+            vmax=20,
+            colorbar_label=variable,
+        )
+        for step in steps
+    ],
+    "outputs/01_custom_prognostic_prediction.jpg",
+    ncols=2,
+    figsize=(6, 4),
+    title=f"{variable} - {forecast}",
+    bbox_inches="tight",
+)

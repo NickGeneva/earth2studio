@@ -36,10 +36,10 @@ In this example you will learn:
 - Instantiating cBottle infill diagnostic model
 - Creating a simple infilling inference workflow
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[cbottle] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[cbottle,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -117,46 +117,42 @@ print(cbottle_da)
 # data.
 
 # %%
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
+from earth2studio import viz
+
+
+def _as_numpy(value):
+    return value.cpu().numpy() if hasattr(value, "cpu") else value
+
 
 variable = "tcwv"
-
-plt.close("all")
-projection = ccrs.Orthographic(central_longitude=300.0)
-
-# Create a figure and axes with the specified projection
-fig, ax = plt.subplots(2, 3, subplot_kw={"projection": projection}, figsize=(11, 6))
-ax = ax.flatten()
-
-ax[0].pcolormesh(
-    era5_da.coords["lon"],
-    era5_da.coords["lat"],
-    era5_da.sel(variable=variable).isel(time=0),
-    transform=ccrs.PlateCarree(),
-    cmap="cubehelix",
-)
-ax[0].set_title("ERA5")
-
-for i in range(n_samples):
-    ax[i + 1].pcolormesh(
-        cbottle_da.coords["lon"],
-        cbottle_da.coords["lat"],
-        cbottle_da.sel(variable=variable).isel(time=i),
-        transform=ccrs.PlateCarree(),
-        cmap="cubehelix",
+panels = [
+    viz.raster_panel(
+        era5_da.sel(variable=variable).isel(time=0),
+        title="ERA5",
+        colormap="cubehelix",
         vmin=0,
         vmax=90,
-    )
-    ax[i + 1].set_title(f"CBottle Sample {i}")
+        colorbar_label=variable,
+    ),
+    *[
+        viz.raster_panel(
+            cbottle_da.sel(variable=variable).isel(time=i),
+            title=f"CBottle Sample {i}",
+            colormap="cubehelix",
+            vmin=0,
+            vmax=90,
+            colorbar_label=variable,
+        )
+        for i in range(n_samples)
+    ],
+]
 
-for ax0 in ax:
-    ax0.coastlines()
-    ax0.gridlines()
-
-plt.tight_layout()
-plt.savefig("outputs/15_tcwv_cbottle_datasource.jpg")
-
+viz.save_raster_grid(
+    panels,
+    "outputs/15_tcwv_cbottle_datasource.jpg",
+    ncols=3,
+    figsize=(11, 6),
+)
 # %%
 # Variable Infilling with CBottleInfill Diagnostic
 # ------------------------------------------------
@@ -242,49 +238,77 @@ variable = "tcwv"
 var_idx = np.where(output_coords["variable"] == "tcwv")[0][0]
 era5_data, _ = fetch_data(era5_ds, times[:1], [variable], device=device)
 
-plt.close("all")
-projection = ccrs.Mollweide(central_longitude=0)
+panels = [
+    viz.raster_panel(
+        viz.raster_dataarray(
+            era5_data[0, 0, 0].cpu().numpy(),
+            lat=_as_numpy(output_coords["lat"]),
+            lon=_as_numpy(output_coords["lon"]),
+            name=variable,
+        ),
+        title="ERA5",
+        colormap="jet",
+        vmin=0,
+        vmax=90,
+        colorbar_label=variable,
+    ),
+    viz.raster_panel(
+        viz.raster_dataarray(
+            torch.mean(output_0[:, 0, var_idx], axis=0).cpu().numpy(),
+            lat=_as_numpy(output_coords["lat"]),
+            lon=_as_numpy(output_coords["lon"]),
+            name=variable,
+        ),
+        title="3 Input Variables Mean",
+        colormap="jet",
+        vmin=0,
+        vmax=90,
+        colorbar_label=variable,
+    ),
+    viz.raster_panel(
+        viz.raster_dataarray(
+            torch.mean(output_1[:, 0, var_idx], axis=0).cpu().numpy(),
+            lat=_as_numpy(output_coords["lat"]),
+            lon=_as_numpy(output_coords["lon"]),
+            name=variable,
+        ),
+        title="13 Input Variables Mean",
+        colormap="jet",
+        vmin=0,
+        vmax=90,
+        colorbar_label=variable,
+    ),
+    viz.raster_panel(
+        viz.raster_dataarray(
+            torch.std(output_0[:, 0, var_idx], axis=0).cpu().numpy(),
+            lat=_as_numpy(output_coords["lat"]),
+            lon=_as_numpy(output_coords["lon"]),
+            name=f"{variable}_std",
+        ),
+        title="3 Input Variables Std",
+        colormap="inferno",
+        vmin=0,
+        vmax=10,
+        colorbar_label=f"{variable} std",
+    ),
+    viz.raster_panel(
+        viz.raster_dataarray(
+            torch.std(output_1[:, 0, var_idx], axis=0).cpu().numpy(),
+            lat=_as_numpy(output_coords["lat"]),
+            lon=_as_numpy(output_coords["lon"]),
+            name=f"{variable}_std",
+        ),
+        title="13 Input Variables Std",
+        colormap="inferno",
+        vmin=0,
+        vmax=10,
+        colorbar_label=f"{variable} std",
+    ),
+]
 
-# Create a figure and axes with the specified projection
-fig, ax = plt.subplots(2, 3, subplot_kw={"projection": projection}, figsize=(10, 6))
-
-
-def plot_contour(
-    ax0: plt.axes,
-    data: torch.Tensor,
-    cmap: str = "jet",
-    vrange: tuple[int, int] = (0, 90),
-) -> None:
-    """Contour helper"""
-    ax0.contourf(
-        output_coords["lon"],
-        output_coords["lat"],
-        data.cpu(),
-        vmin=vrange[0],
-        vmax=vrange[1],
-        transform=ccrs.PlateCarree(),
-        levels=12,
-        cmap=cmap,
-    )
-    ax0.coastlines()
-    ax0.gridlines()
-
-
-plot_contour(ax[0, 0], era5_data[0, 0, 0])
-plot_contour(ax[0, 1], torch.mean(output_0[:, 0, var_idx], axis=0))
-plot_contour(ax[0, 2], torch.mean(output_1[:, 0, var_idx], axis=0))
-plot_contour(
-    ax[1, 1], torch.std(output_0[:, 0, var_idx], axis=0), cmap="inferno", vrange=(0, 10)
+viz.save_raster_grid(
+    panels,
+    "outputs/15_tcwv_cbottle_infill.jpg",
+    ncols=3,
+    figsize=(10, 6),
 )
-plot_contour(
-    ax[1, 2], torch.std(output_1[:, 0, var_idx], axis=0), cmap="inferno", vrange=(0, 10)
-)
-
-ax[0, 0].set_title("ERA5")
-ax[0, 1].set_title("3 Input Variables Mean")
-ax[0, 2].set_title("13 Input Variables Mean")
-ax[1, 1].set_title("3 Input Variables Std")
-ax[1, 2].set_title("13 Input Variables Std")
-
-plt.tight_layout()
-plt.savefig("outputs/15_tcwv_cbottle_infill.jpg")

@@ -37,10 +37,10 @@ In this example you will learn:
 - How to use the output selection and regridding methods to select appropriate data
 - How to use the DLESyMLatLon model with earth2studio workflows
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[dlesym] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[dlesym,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -219,9 +219,7 @@ print(ds)
 # Let's plot some of the forecasted outputs for the atmosphere and ocean components.
 
 # %%
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
 # lat = x_atmos_coords["lat"]
 # lon = x_atmos_coords["lon"]
@@ -231,54 +229,28 @@ ocean_var, ocean_units = "sst", "K"
 # ocean_var_idx = list(x_ocean_coords["variable"]).index(ocean_var)
 lead_time = ds.lead_time.values[-1]
 
-plt.close("all")
-# Create a Robinson projection
-projection = ccrs.Robinson()
-
-# Create a figure and axes with the specified projection
-fig, axs = plt.subplots(1, 2, subplot_kw={"projection": projection}, figsize=(15, 6))
-
-# Plot the field using pcolormesh
-im = axs[0].pcolormesh(
-    ds.lon.values,
-    ds.lat.values,
-    ds[atmos_var].sel(time=ic_date, lead_time=lead_time).values,
-    transform=ccrs.PlateCarree(),
-    cmap="cividis",
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            ds[atmos_var].sel(time=ic_date, lead_time=lead_time),
+            title=(
+                f"Initialization: {ic_date} - "
+                f"Lead time: {lead_time.astype('timedelta64[h]')}"
+            ),
+            colormap="cividis",
+            colorbar_label=f"{atmos_var} [{atmos_units}]",
+        ),
+        viz.raster_panel(
+            ds[ocean_var].sel(time=ic_date, lead_time=lead_time),
+            title=(
+                f"Initialization: {ic_date} - "
+                f"Lead time: {lead_time.astype('timedelta64[h]')}"
+            ),
+            colormap="Spectral_r",
+            colorbar_label=f"{ocean_var} [{ocean_units}]",
+        ),
+    ],
+    "outputs/14_ws10m_sst_prediction.png",
+    ncols=2,
+    figsize=(15, 6),
 )
-
-# Set title
-axs[0].set_title(
-    f"Initialization: {ic_date} - Lead time: {lead_time.astype('timedelta64[h]')}"
-)
-
-# Add coastlines and gridlines
-axs[0].coastlines()
-axs[0].gridlines()
-
-cbar = fig.colorbar(im, ax=axs[0], orientation="horizontal", pad=0.05)
-cbar.set_label(f"{atmos_var} [{atmos_units}]")
-
-# Plot the ocean component
-im = axs[1].pcolormesh(
-    ds.lon.values,
-    ds.lat.values,
-    ds[ocean_var].sel(time=ic_date, lead_time=lead_time).values,
-    transform=ccrs.PlateCarree(),
-    cmap="Spectral_r",
-)
-
-axs[1].set_title(
-    f"Initialization: {ic_date} - Lead time: {lead_time.astype('timedelta64[h]')}"
-)
-
-# Add coastlines and gridlines
-axs[1].add_feature(cfeature.LAND, color="grey", zorder=100)
-axs[1].coastlines()
-axs[1].gridlines()
-
-cbar = fig.colorbar(im, ax=axs[1], orientation="horizontal", pad=0.05)
-cbar.set_label(f"{ocean_var} [{ocean_units}]")
-
-plt.tight_layout()
-plt.savefig("outputs/14_ws10m_sst_prediction.png")

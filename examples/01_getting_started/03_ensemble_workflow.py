@@ -33,12 +33,12 @@ In this example you will learn:
 - Running a simple built in workflow for ensembling
 - Post-processing results
 """
+
 # /// script
 # dependencies = [
 #   "torch==2.11.0", # Match lock file to avoid torch-harmonics issue
-#   "earth2studio[fcn,perturbation] @ git+https://github.com/NVIDIA/earth2studio.git",
+#   "earth2studio[fcn,perturbation,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 #   "scipy>=1.15.2",
-#   "cartopy",
 # ]
 #
 # [tool.uv]
@@ -131,65 +131,54 @@ io = ensemble(
 # %%
 # Post Processing
 # ---------------
-# The last step is to post process our results. Cartopy is a great library for plotting
-# fields on projections of a sphere.
+# The last step is to post process our results. The viz module accepts xarray-native
+# fields and owns the static plotting backend.
 #
 # Notice that the Zarr IO function has additional APIs to interact with the stored data.
 
 # %%
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
 forecast = "2024-01-01"
 
 
-def plot_(axi, data, title, cmap):
-    """Convenience function for plotting pcolormesh."""
-    # Plot the field using pcolormesh
-    im = axi.pcolormesh(
-        io["lon"][:],
-        io["lat"][:],
-        data,
-        transform=ccrs.PlateCarree(),
-        cmap=cmap,
-    )
-    plt.colorbar(im, ax=axi, shrink=0.6, pad=0.04)
-    # Set title
-    axi.set_title(title)
-    # Add coastlines and gridlines
-    axi.coastlines()
-    axi.gridlines()
-
-
 for variable, cmap in zip(["tcwv"], ["Blues"]):
     step = 4  # lead time = 24 hrs
-
-    plt.close("all")
-    # Create a Robinson projection
-    projection = ccrs.Robinson()
-
-    # Create a figure and axes with the specified projection
-    fig, (ax1, ax2, ax3) = plt.subplots(
-        nrows=1, ncols=3, subplot_kw={"projection": projection}, figsize=(16, 3)
+    panels = [
+        viz.raster_panel(
+            viz.raster_dataarray(
+                io[variable][0, 0, step],
+                lat=io["lat"][:],
+                lon=io["lon"][:],
+                name=variable,
+            ),
+            title=f"{forecast} - Lead time: {6*step}hrs - Member: 0",
+            colormap=cmap,
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                io[variable][1, 0, step],
+                lat=io["lat"][:],
+                lon=io["lon"][:],
+                name=variable,
+            ),
+            title=f"{forecast} - Lead time: {6*step}hrs - Member: 1",
+            colormap=cmap,
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                np.std(io[variable][:, 0, step], axis=0),
+                lat=io["lat"][:],
+                lon=io["lon"][:],
+                name=f"{variable}_std",
+            ),
+            title=f"{forecast} - Lead time: {6*step}hrs - Std",
+            colormap=cmap,
+        ),
+    ]
+    viz.save_raster_grid(
+        panels,
+        f"outputs/03_{forecast}_{variable}_{step}_ensemble.jpg",
+        ncols=3,
+        figsize=(16, 3),
     )
-
-    plot_(
-        ax1,
-        io[variable][0, 0, step],
-        f"{forecast} - Lead time: {6*step}hrs - Member: {0}",
-        cmap,
-    )
-    plot_(
-        ax2,
-        io[variable][1, 0, step],
-        f"{forecast} - Lead time: {6*step}hrs - Member: {1}",
-        cmap,
-    )
-    plot_(
-        ax3,
-        np.std(io[variable][:, 0, step], axis=0),
-        f"{forecast} - Lead time: {6*step}hrs - Std",
-        cmap,
-    )
-
-    plt.savefig(f"outputs/03_{forecast}_{variable}_{step}_ensemble.jpg")

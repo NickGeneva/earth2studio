@@ -50,11 +50,11 @@ In this example you will learn:
 - How to visualize results
 
 """
+
 # /// script
 # dependencies = [
 #   "torch==2.11.0", # Match lock file to avoid torch-harmonics issue
-#   "earth2studio[sfno] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[sfno,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -194,10 +194,10 @@ for i, package in enumerate([model_package_1, model_package_2]):
 # results.
 
 # %%
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
+
+from earth2studio import viz
 
 lead_time = 4
 plot_date = start_date + timedelta(hours=int(6 * lead_time))
@@ -216,39 +216,25 @@ wind_speed = np.sqrt(ds.u10m**2 + ds.v10m**2)
 mean_wind = wind_speed.isel(time=0, lead_time=lead_time).mean(dim="ensemble")
 std_wind = wind_speed.isel(time=0, lead_time=lead_time).std(dim="ensemble")
 
-# Create figure with two subplots
-fig, (ax1, ax2) = plt.subplots(
-    1, 2, figsize=(15, 4), subplot_kw={"projection": ccrs.PlateCarree()}
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            mean_wind,
+            title=f'Mean Wind Speed\n{plot_date.strftime("%Y-%m-%d %H:%M UTC")}',
+            colormap="nipy_spectral",
+            colorbar_label="m/s",
+        ),
+        viz.raster_panel(
+            std_wind,
+            title=(
+                "Wind Speed Standard Deviation\n"
+                f'{plot_date.strftime("%Y-%m-%d %H:%M UTC")}'
+            ),
+            colormap="viridis",
+            colorbar_label="m/s",
+        ),
+    ],
+    f"outputs/11_hens_step_{plot_date.strftime('%Y_%m_%d')}.jpg",
+    ncols=2,
+    figsize=(15, 4),
 )
-
-# Plot mean
-p1 = ax1.contourf(
-    mean_wind.coords["lon"],
-    mean_wind.coords["lat"],
-    mean_wind,
-    levels=15,
-    transform=ccrs.PlateCarree(),
-    cmap="nipy_spectral",
-)
-ax1.coastlines()
-ax1.set_title(f'Mean Wind Speed\n{plot_date.strftime("%Y-%m-%d %H:%M UTC")}')
-fig.colorbar(p1, ax=ax1, label="m/s")
-
-# Plot standard deviation
-p2 = ax2.contourf(
-    std_wind.coords["lon"],
-    std_wind.coords["lat"],
-    std_wind,
-    levels=15,
-    transform=ccrs.PlateCarree(),
-    cmap="viridis",
-)
-ax2.coastlines()
-ax2.set_title(
-    f'Wind Speed Standard Deviation\n{plot_date.strftime("%Y-%m-%d %H:%M UTC")}'
-)
-fig.colorbar(p2, ax=ax2, label="m/s")
-
-plt.tight_layout()
-# Save the figure
-plt.savefig(f"outputs/11_hens_step_{plot_date.strftime('%Y_%m_%d')}.jpg")

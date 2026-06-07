@@ -30,10 +30,10 @@ In this example you will learn:
 - Implementing a custom diagnostic model
 - Running this custom model in a workflow with built in prognostic
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[dlwp] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[dlwp,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -227,49 +227,35 @@ print(io.root.tree())
 # Let's plot the Celsius temperature field from our custom diagnostic model.
 
 # %%
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
 forecast = "2024-01-01"
 variable = "t2m_c"
-
-plt.close("all")
-
-# Create a figure and axes with the specified projection
-fig, ax = plt.subplots(
-    1,
-    5,
-    figsize=(12, 4),
-    subplot_kw={"projection": ccrs.Orthographic()},
-    constrained_layout=True,
-)
 
 times = (
     io["lead_time"][:].astype("timedelta64[ns]").astype("timedelta64[h]").astype(int)
 )
 step = 4  # 24hrs
-for i, t in enumerate(range(0, 20, step)):
-
-    ctr = ax[i].contourf(
-        io["lon"][:],
-        io["lat"][:],
-        io[variable][0, t],
-        vmin=-10,
-        vmax=30,
-        transform=ccrs.PlateCarree(),
-        levels=20,
-        cmap="coolwarm",
-    )
-    ax[i].set_title(f"{times[t]}hrs")
-    ax[i].coastlines()
-    ax[i].gridlines()
-
-plt.suptitle(f"{variable} - {forecast}")
-
-cbar = plt.cm.ScalarMappable(cmap="coolwarm")
-cbar.set_array(io[variable][0, 0])
-cbar.set_clim(-10.0, 30)
-cbar = fig.colorbar(cbar, ax=ax[-1], orientation="vertical", label="C", shrink=0.8)
-
-
-plt.savefig("outputs/02_custom_diagnostic_dlwp_prediction.jpg")
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            viz.raster_dataarray(
+                io[variable][0, t],
+                lat=io["lat"][:],
+                lon=io["lon"][:],
+                name=variable,
+                attrs={"units": "C"},
+            ),
+            title=f"{times[t]}hrs",
+            colormap="coolwarm",
+            vmin=-10,
+            vmax=30,
+            colorbar_label="C",
+        )
+        for t in range(0, 20, step)
+    ],
+    "outputs/02_custom_diagnostic_dlwp_prediction.jpg",
+    ncols=5,
+    figsize=(12, 4),
+    title=f"{variable} - {forecast}",
+)

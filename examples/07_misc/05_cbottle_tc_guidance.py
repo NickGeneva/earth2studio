@@ -41,10 +41,10 @@ In this example you will learn:
 - Reloading the model with second-order derivative support for odds-ratio computation
 - Computing and interpreting the log-odds ratio of a guided sample
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[cbottle] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[cbottle,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -107,10 +107,7 @@ guided_sample, guided_coords = model(guidance, coords)
 # generated tropical cyclone structure.
 
 # %%
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
-
-plt.close("all")
+from earth2studio import viz
 
 variables = guided_coords["variable"]
 u_var = "u10m"
@@ -133,24 +130,27 @@ lon_carib = lon_coords[lon_mask]
 # Convert to -180..180 for plotting
 lon_carib_deg = ((lon_carib + 180.0) % 360.0) - 180.0
 
-fig, ax = plt.subplots(subplot_kw={"projection": ccrs.PlateCarree()}, figsize=(8, 4.5))
-pcm = ax.pcolormesh(
-    lon_carib_deg,
-    lat_carib,
-    u_carib,
-    shading="auto",
-    cmap="RdBu_r",
-    vmin=-30,
-    vmax=30,
-    transform=ccrs.PlateCarree(),
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            viz.raster_dataarray(
+                u_carib,
+                lat=lat_carib,
+                lon=lon_carib_deg,
+                name=u_var,
+                attrs={"units": "m/s"},
+            ),
+            title="Guided TC Sample: 10m Zonal Wind",
+            colormap="RdBu_r",
+            vmin=-30,
+            vmax=30,
+            colorbar_label=f"{u_var} (m/s)",
+        )
+    ],
+    "outputs/05_cbottle_tc_guided_sample.jpg",
+    ncols=1,
+    figsize=(8, 4.5),
 )
-ax.set_extent([-100.0, -60.0, lat_min, lat_max], crs=ccrs.PlateCarree())
-ax.coastlines(resolution="110m", linewidth=0.8)
-ax.gridlines(draw_labels=True, linewidth=0.5, alpha=0.5, linestyle="--")
-plt.colorbar(pcm, ax=ax, label=f"{u_var} (m/s)", pad=0.08, shrink=0.92)
-ax.set_title("Guided TC Sample: 10m Zonal Wind")
-plt.tight_layout()
-plt.savefig("outputs/05_cbottle_tc_guided_sample.jpg")
 
 # %%
 # Computing the Odds Ratio
@@ -187,8 +187,6 @@ print(f"Forward latents shape: {tuple(forward_latents.shape)}")
 # computation operates on.
 
 # %%
-plt.close("all")
-
 # Identify the u10m channel in output variable ordering
 latent_variables = latent_coords["variable"]
 u_latent_idx = int(np.where(latent_variables == u_var)[0][0])
@@ -196,19 +194,21 @@ latent_u = forward_latents[0, u_latent_idx].detach().cpu().numpy()
 
 latent_u_carib = latent_u[np.ix_(lat_mask, lon_mask)]
 
-fig, ax = plt.subplots(subplot_kw={"projection": ccrs.PlateCarree()}, figsize=(8, 4.5))
-pcm = ax.pcolormesh(
-    lon_carib_deg,
-    lat_carib,
-    latent_u_carib,
-    shading="auto",
-    cmap="viridis",
-    transform=ccrs.PlateCarree(),
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            viz.raster_dataarray(
+                latent_u_carib,
+                lat=lat_carib,
+                lon=lon_carib_deg,
+                name=f"{u_var}_latent",
+            ),
+            title=f"Forward Latents: {u_var} Channel",
+            colormap="viridis",
+            colorbar_label=f"Forward Latent ({u_var})",
+        )
+    ],
+    "outputs/05_cbottle_tc_forward_latents.jpg",
+    ncols=1,
+    figsize=(8, 4.5),
 )
-ax.set_extent([-100.0, -60.0, lat_min, lat_max], crs=ccrs.PlateCarree())
-ax.coastlines(resolution="110m", linewidth=0.8)
-ax.gridlines(draw_labels=True, linewidth=0.5, alpha=0.5, linestyle="--")
-plt.colorbar(pcm, ax=ax, label=f"Forward Latent ({u_var})", pad=0.08, shrink=0.92)
-ax.set_title(f"Forward Latents: {u_var} Channel")
-plt.tight_layout()
-plt.savefig("outputs/05_cbottle_tc_forward_latents.jpg")

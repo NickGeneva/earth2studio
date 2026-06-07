@@ -34,10 +34,10 @@ In this example you will learn:
 - Initializing and writing with the Asynchronous Non-blocking Zarr IO backend
 - Discussing performance implications and strategies that can be used
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[dlwp] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "matplotlib",
+#   "earth2studio[dlwp,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -449,8 +449,9 @@ if "S3FS_KEY" in os.environ and "S3FS_SECRET" in os.environ:
 # the same.
 
 # %%
-import matplotlib.pyplot as plt
 import xarray as xr
+
+from earth2studio import viz
 
 # Load the datasets
 ds_async = xr.open_zarr("outputs/17_io_async.zarr", consolidated=False)
@@ -460,32 +461,40 @@ ds_nonblocking = xr.open_zarr(
 ds_sync = xr.open_zarr("outputs/17_io_sync.zarr")
 ds_nc = xr.open_dataset("outputs/17_io_sync.nc")
 
-# Create a 2x2 subplot grid
-fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-fig.suptitle("Comparison of mean t2m across IO Backends")
-
-# Plot t2m from each dataset
-axes[0, 0].imshow(
-    ds_async.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"), vmin=250, vmax=320
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            ds_async.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
+            title="Async Zarr",
+            vmin=250,
+            vmax=320,
+            colorbar_label="t2m",
+        ),
+        viz.raster_panel(
+            ds_nonblocking.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
+            title="Non-blocking Async Zarr",
+            vmin=250,
+            vmax=320,
+            colorbar_label="t2m",
+        ),
+        viz.raster_panel(
+            ds_sync.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
+            title="Sync Zarr",
+            vmin=250,
+            vmax=320,
+            colorbar_label="t2m",
+        ),
+        viz.raster_panel(
+            ds_nc.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
+            title="NetCDF",
+            vmin=250,
+            vmax=320,
+            colorbar_label="t2m",
+        ),
+    ],
+    "outputs/17_io_performance.jpg",
+    ncols=2,
+    figsize=(12, 8),
+    title="Comparison of mean t2m across IO Backends",
+    bbox_inches="tight",
 )
-axes[0, 0].set_title("Async Zarr")
-
-axes[0, 1].imshow(
-    ds_nonblocking.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
-    vmin=250,
-    vmax=320,
-)
-axes[0, 1].set_title("Non-blocking Async Zarr")
-
-axes[1, 0].imshow(
-    ds_sync.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"), vmin=250, vmax=320
-)
-axes[1, 0].set_title("Sync Zarr")
-
-axes[1, 1].imshow(
-    ds_nc.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"), vmin=250, vmax=320
-)
-axes[1, 1].set_title("NetCDF")
-
-plt.tight_layout()
-plt.savefig("outputs/17_io_performance.jpg", bbox_inches="tight")

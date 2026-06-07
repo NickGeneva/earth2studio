@@ -36,10 +36,10 @@ In this example you will learn:
 - Limitations of parallel inference in Earth2Studio
 - Post-processing strategies of parallel job outputs
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[dlwp] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "matplotlib",
+#   "earth2studio[dlwp,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -177,28 +177,38 @@ torch.distributed.barrier()
 #   to better utilize compute resources.
 
 if dist.rank == 0:
-    import matplotlib.pyplot as plt
     import xarray as xr
 
+    from earth2studio import viz
     from earth2studio.utils.time import timearray_to_datetime
 
     paths = [f"outputs/08_output_{i}.zarr" for i in range(dist.world_size)]
     ds = xr.open_mfdataset(paths, combine="nested", concat_dim="time", engine="zarr")
     print(ds)
 
-    ncols = 3
-    fig, ax = plt.subplots(2, ncols, figsize=(12, 6))
-
     time = timearray_to_datetime(ds.coords["time"].values.astype("datetime64[ns]"))
-    for i in range(6):
-        ax[i // ncols, i % ncols].imshow(
-            ds["tcwv"].isel(time=i, lead_time=-1).values,
-            cmap="gist_earth",
+    panels = [
+        viz.raster_panel(
+            ds["tcwv"].isel(time=i, lead_time=-1),
+            title=time[i].strftime("%m/%d/%Y"),
+            colormap="gist_earth",
             vmin=0,
             vmax=100,
+            colorbar_label="tcwv",
         )
-        ax[i // ncols, i % ncols].set_title(time[i].strftime("%m/%d/%Y"))
-    plt.suptitle(
-        f'TCWV Forecast Lead Time - {ds.coords["lead_time"].values[-1].astype("timedelta64[ns]").astype("timedelta64[D]").astype(int)} days'
+        for i in range(6)
+    ]
+    lead_days = (
+        ds.coords["lead_time"]
+        .values[-1]
+        .astype("timedelta64[ns]")
+        .astype("timedelta64[D]")
+        .astype(int)
     )
-    plt.savefig("outputs/08_tcwv_distributed_manager.jpg")
+    viz.save_raster_grid(
+        panels,
+        "outputs/08_tcwv_distributed_manager.jpg",
+        ncols=3,
+        figsize=(12, 6),
+        title=f"TCWV Forecast Lead Time - {lead_days} days",
+    )

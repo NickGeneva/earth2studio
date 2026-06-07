@@ -35,11 +35,11 @@ In this example you will learn:
 - How to run the interpolation model
 - How to visualize the results
 """
+
 # /// script
 # dependencies = [
 #   "torch==2.11.0", # Match lock file to avoid torch-harmonics issue
-#   "earth2studio[sfno,interp-modafno] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "matplotlib",
+#   "earth2studio[sfno,interp-modafno,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -60,8 +60,7 @@ In this example you will learn:
 # %%
 import os
 
-import matplotlib.pyplot as plt
-
+from earth2studio import viz
 from earth2studio.data import GFS
 from earth2studio.io import ZarrBackend
 from earth2studio.models.px import SFNO, InterpModAFNO
@@ -113,18 +112,24 @@ print(io.root.tree())
 # Get the number of time steps
 n_steps = io["tcwv"].shape[1]
 
-# Create a single figure with subplots
-fig, axs = plt.subplots(2, 3, figsize=(15, 6))
-axs = axs.ravel()
-
-# Create plots for each time step
-for step in range(min([n_steps, 6])):
-    im = axs[step].imshow(
-        io["tcwv"][0, step], cmap="twilight_shifted", aspect="auto", vmin=0, vmax=85
+panels = [
+    viz.raster_panel(
+        viz.raster_dataarray(
+            io["tcwv"][0, step],
+            name="tcwv",
+            attrs={"units": "kg/m^2"},
+        ),
+        title=f"Water Vapour - Step: {step} hrs",
+        colormap="twilight_shifted",
+        vmin=0,
+        vmax=85,
+        colorbar_label="kg/m^2",
     )
-    axs[step].set_title(f"Water Vapour - Step: {step} hrs")
-    fig.colorbar(im, ax=axs[step], label="kg/m^2")
-
-plt.tight_layout()
-# Save the figure
-plt.savefig("outputs/12_tcwv_steps.jpg")
+    for step in range(min([n_steps, 6]))
+]
+viz.save_raster_grid(
+    panels,
+    "outputs/12_tcwv_steps.jpg",
+    ncols=3,
+    figsize=(15, 6),
+)

@@ -28,10 +28,10 @@ see
  - https://arxiv.org/abs/2408.10958
 
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[data,stormcast] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[data,stormcast,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -113,52 +113,36 @@ print(io.root.tree())
 # %%
 # Post Processing
 # ---------------
-# The last step is to post process our results. Cartopy is a great library for plotting
-# fields on projections of a sphere. Here we will just plot the temperature at 2 meters
-# (t2m) 4 hours into the forecast.
+# The last step is to post process our results. The viz module accepts xarray-native
+# fields and owns the static plotting backend. Here we will plot the temperature at
+# 2 meters (t2m) 4 hours into the forecast.
 #
 # Notice that the Zarr IO function has additional APIs to interact with the stored data.
 
 # %%
-import cartopy
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
 forecast = f"{date}"
 variable = "t2m"
 step = 4  # lead time = 1 hr
 
-plt.close("all")
-
-# Create a correct Lambert Conformal projection
-projection = ccrs.LambertConformal(
-    central_longitude=262.5,
-    central_latitude=38.5,
-    standard_parallels=(38.5, 38.5),
-    globe=ccrs.Globe(semimajor_axis=6371229, semiminor_axis=6371229),
-)
-
-# Create a figure and axes with the specified projection
-fig, ax = plt.subplots(subplot_kw={"projection": projection}, figsize=(10, 6))
-
-# Plot the field using pcolormesh
-im = ax.pcolormesh(
-    model.lon,
-    model.lat,
+field = viz.raster_dataarray(
     io[variable][0, step],
-    transform=ccrs.PlateCarree(),
-    cmap="Spectral_r",
+    lat=model.lat,
+    lon=model.lon,
+    name=variable,
+    attrs={"units": "K"},
 )
-
-# Set state lines
-ax.add_feature(
-    cartopy.feature.STATES.with_scale("50m"), linewidth=0.5, edgecolor="black", zorder=2
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            field,
+            title=f"{forecast} - Lead time: {step}hrs",
+            colormap="Spectral_r",
+            colorbar_label="K",
+        )
+    ],
+    f"outputs/09_{date}_t2m_prediction.jpg",
+    ncols=1,
+    figsize=(10, 6),
 )
-
-# Set title
-ax.set_title(f"{forecast} - Lead time: {step}hrs")
-
-# Add coastlines and gridlines
-ax.coastlines()
-ax.gridlines()
-plt.savefig(f"outputs/09_{date}_t2m_prediction.jpg")

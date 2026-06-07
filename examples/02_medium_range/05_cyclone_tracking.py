@@ -34,11 +34,11 @@ In this example you will learn:
 - How to couple the TC tracker to a prognostic model
 - Post-processing results
 """
+
 # /// script
 # dependencies = [
 #   "torch==2.11.0", # Match lock file to avoid torch-harmonics issue
-#   "earth2studio[cyclone,sfno] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[cyclone,sfno,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -181,11 +181,10 @@ torch.save(sfno_tracks, "outputs/13_sfno_paths.pt")
 
 from datetime import datetime, timedelta
 
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-import matplotlib.patches as mpatches
-import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+
+from earth2studio import viz
 
 # Convert tracks from tensors to numpy arrays
 era5_paths = era5_tracks.numpy()
@@ -194,67 +193,51 @@ sfno_paths = sfno_tracks.numpy()
 # Calculate end date
 end_time = start_time + timedelta(hours=6 * nsteps)
 
-# Create figure with cartopy projection
-plt.figure(figsize=(10, 8))
-projection = ccrs.LambertConformal(
-    central_longitude=130.0, central_latitude=30.0, standard_parallels=(20.0, 40.0)
+
+def _paths_to_frame(paths: np.ndarray, source: str) -> pd.DataFrame:
+    rows = []
+    for path in range(paths.shape[1]):
+        lats = paths[0, path, :, 0]
+        lons = paths[0, path, :, 1]
+        mask = ~np.isnan(lats) & ~np.isnan(lons)
+        if mask.any() and len(lons[mask]) > 2:
+            rows.extend(
+                {
+                    "path": f"{source}-{path}",
+                    "lat": lat,
+                    "lon": lon,
+                }
+                for lat, lon in zip(lats[mask], lons[mask])
+            )
+    return pd.DataFrame(rows, columns=["path", "lat", "lon"])
+
+
+viz.save_tracks(
+    [
+        viz.track_panel(
+            _paths_to_frame(era5_paths, "ERA5"),
+            group="path",
+            label="ERA5",
+            color="tab:orange",
+            linewidth=1.5,
+        ),
+        viz.track_panel(
+            _paths_to_frame(sfno_paths, "SFNO"),
+            group="path",
+            label="SFNO",
+            color="tab:blue",
+            linewidth=1.5,
+        ),
+    ],
+    f"outputs/13_{start_time}_cyclone_tracks.jpg",
+    title=(
+        "Tropical Cyclone Tracks\n"
+        f'{start_time.strftime("%Y-%m-%d")} to {end_time.strftime("%Y-%m-%d")}'
+    ),
+    figsize=(10, 8),
+    bbox_inches="tight",
+    dpi=300,
 )
-ax = plt.axes(projection=projection)
-
-# Add map features
-ax.add_feature(cfeature.COASTLINE)
-ax.add_feature(cfeature.LAND, alpha=0.1)
-ax.gridlines(draw_labels=True, alpha=0.6)
-ax.set_extent([90, 170, 0, 50], crs=ccrs.PlateCarree())
-
-era5_cmap = plt.cm.autumn
-sfno_cmap = plt.cm.winter
-
-for path in range(era5_paths.shape[1]):
-    # Get lat/lon coordinates, filtering out nans
-    lats = era5_paths[0, path, :, 0]
-    lons = era5_paths[0, path, :, 1]
-    mask = ~np.isnan(lats) & ~np.isnan(lons)
-    if mask.any() and len(lons[mask]) > 2:
-        color = era5_cmap(path / era5_paths.shape[1])
-        ax.plot(
-            lons[mask],
-            lats[mask],
-            color=color,
-            linestyle="-.",
-            marker="x",
-            label="ERA5" if path == 0 else "",
-            transform=ccrs.PlateCarree(),
-        )
-
-for path in range(sfno_paths.shape[1]):
-    # Get lat/lon coordinates, filtering out nans
-    lats = sfno_paths[0, path, :, 0]
-    lons = sfno_paths[0, path, :, 1]
-    mask = ~np.isnan(lats) & ~np.isnan(lons)
-    if mask.any() and len(lons[mask]) > 2:
-        color = sfno_cmap(path / sfno_paths.shape[1])
-        ax.plot(
-            lons[mask],
-            lats[mask],
-            color=color,
-            linestyle="-",
-            label="SFNO" if path == 0 else "",
-            transform=ccrs.PlateCarree(),
-        )
-
-era5_patch = mpatches.Rectangle(
-    (0, 0), 1, 1, fc=era5_cmap(0.3), alpha=0.9, label="ERA5"
-)
-sfno_patch = mpatches.Rectangle(
-    (0, 0), 1, 1, fc=sfno_cmap(0.3), alpha=0.9, label="SFNO"
-)
-ax.legend(handles=[era5_patch, sfno_patch], loc="upper right", title="Cyclone Tracks")
-
-plt.title(
-    f'Tropical Cyclone Tracks\n{start_time.strftime("%Y-%m-%d")} to {end_time.strftime("%Y-%m-%d")}'
-)
-plt.savefig(f"outputs/13_{start_time}_cyclone_tracks.jpg", bbox_inches="tight", dpi=300)
 
 # %%
 # In addition to filtering out the NaN values, users may want to apply other post

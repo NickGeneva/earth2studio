@@ -34,10 +34,10 @@ In this example you will learn:
 - Running the model with different observation combinations
 - Comparing the assimilated global fields against ERA5 data
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[da-healda] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[da-healda,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -124,53 +124,39 @@ logger.info(f"Fetched {len(sat_df)} satellite observations")
 # observations typically for the model's 24-hour time window.
 
 # %%
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
-plt.close("all")
-fig, axes = plt.subplots(
-    1,
-    2,
-    subplot_kw={"projection": ccrs.Robinson()},
+conv_plot = conv_df.iloc[::10]
+sat_plot = sat_df.iloc[::10]
+viz.save_point_sets(
+    [
+        viz.point_panel(
+            conv_plot,
+            lat="lat",
+            lon="lon",
+            fields=(),
+            title=f"Conventional obs (n={len(conv_df):,})",
+            color="tab:blue",
+            size=0.1,
+            alpha=0.3,
+        ),
+        viz.point_panel(
+            sat_plot,
+            lat="lat",
+            lon="lon",
+            fields=(),
+            title=f"Satellite obs (n={len(sat_df):,})",
+            color="tab:orange",
+            size=0.1,
+            alpha=0.3,
+        ),
+    ],
+    "outputs/22_healda_obs_locations.jpg",
+    ncols=2,
+    title=f"Observation Locations {str(analysis_time[0])[:16]} UTC",
     figsize=(16, 4),
+    dpi=150,
 )
-
-# Conventional observations
-ax = axes[0]
-ax.set_global()
-ax.coastlines(linewidth=0.5)
-ax.gridlines(linewidth=0.3, alpha=0.5)
-ax.scatter(
-    conv_df["lon"].values[::10],
-    conv_df["lat"].values[::10],
-    s=0.1,
-    alpha=0.3,
-    c="tab:blue",
-    transform=ccrs.PlateCarree(),
-)
-ax.set_title(f"Conventional obs (n={len(conv_df):,})", fontsize=13)
-
-# Satellite observations
-ax = axes[1]
-ax.set_global()
-ax.coastlines(linewidth=0.5)
-ax.gridlines(linewidth=0.3, alpha=0.5)
-ax.scatter(
-    sat_df["lon"].values[::10],
-    sat_df["lat"].values[::10],
-    s=0.1,
-    alpha=0.3,
-    c="tab:orange",
-    transform=ccrs.PlateCarree(),
-)
-ax.set_title(f"Satellite obs (n={len(sat_df):,})", fontsize=13)
-fig.suptitle(
-    f"Observation Locations {str(analysis_time[0])[:16]} UTC",
-    fontsize=15,
-)
-plt.tight_layout()
-plt.savefig("outputs/22_healda_obs_locations.jpg", dpi=150)
-
 # %%
 # DA models can be called directly for stateless inference or via
 # :py:meth:`~earth2studio.models.da.HealDA.create_generator` for stateful (iterative)
@@ -206,19 +192,9 @@ logger.info(f"Conv-only analysis shape: {result_conv.shape}")
 # (z500). Each row shows a different observation configuration.
 
 # %%
-plt.close("all")
 plot_vars = ["t2m", "z500"]
 titles = ["Conv + Sat", "Sat only", "Conv only"]
 results = [result_both, result_sat, result_conv]
-projection = ccrs.Robinson()
-
-fig, axes = plt.subplots(
-    len(results),
-    len(plot_vars),
-    subplot_kw={"projection": projection},
-    figsize=(14, 8),
-)
-fig.subplots_adjust(wspace=0.02, hspace=0.08, left=0.1, right=0.9)
 
 lat = results[0].coords["lat"].values
 lon = results[0].coords["lon"].values
@@ -230,39 +206,27 @@ def to_numpy(arr):
     return arr.get() if hasattr(arr, "get") else arr
 
 
-for row, (title, da) in enumerate(zip(titles, results)):
-    for col, var in enumerate(plot_vars):
-        ax = axes[row, col]
+panels = []
+for title, da in zip(titles, results):
+    for var, cmap in zip(plot_vars, cmaps):
         field = to_numpy(da.sel(variable=var).data[0])
-        im = ax.pcolormesh(
-            lon,
-            lat,
-            field,
-            transform=ccrs.PlateCarree(),
-            cmap=cmaps[col],
-        )
-        ax.coastlines(linewidth=0.5)
-        ax.gridlines(linewidth=0.3, alpha=0.5)
-        fig.colorbar(im, ax=ax, shrink=0.6)
-        if row == 0:
-            ax.set_title(var, fontsize=14)
-        if col == 0:
-            ax.text(
-                -0.05,
-                0.5,
-                title,
-                fontsize=12,
-                va="bottom",
-                ha="center",
-                rotation="vertical",
-                rotation_mode="anchor",
-                transform=ax.transAxes,
+        panels.append(
+            viz.raster_panel(
+                viz.raster_dataarray(field, lat=lat, lon=lon, name=var),
+                title=f"{title} - {var}",
+                colormap=cmap,
+                colorbar_label=var,
             )
+        )
 
-fig.suptitle(f"HealDA Analysis {str(analysis_time[0])[:16]} UTC", fontsize=18, y=0.97)
-plt.tight_layout()
-plt.savefig("outputs/22_healda_analysis.jpg", dpi=150)
-
+viz.save_raster_grid(
+    panels,
+    "outputs/22_healda_analysis.jpg",
+    ncols=len(plot_vars),
+    figsize=(14, 8),
+    title=f"HealDA Analysis {str(analysis_time[0])[:16]} UTC",
+    dpi=150,
+)
 # %%
 # HealDA vs ERA5
 # --------------
@@ -288,54 +252,30 @@ for title, da_pred in zip(diff_titles, diff_results):
         logger.info(f"{title} | {var} MAE: {mae:.4f}")
 
 # %%
-plt.close("all")
-
 diff_ranges = {"t2m": (-10, 10), "z500": (-500, 500)}
-fig, axes = plt.subplots(
-    len(diff_results),
-    len(plot_vars),
-    subplot_kw={"projection": projection},
-    figsize=(14, 8),
-)
-fig.subplots_adjust(wspace=0.02, hspace=0.08, left=0.1, right=0.9)
-
-for row, (title, da_pred) in enumerate(zip(diff_titles, diff_results)):
-    for col, var in enumerate(plot_vars):
-        ax = axes[row, col]
+panels = []
+for title, da_pred in zip(diff_titles, diff_results):
+    for var in plot_vars:
         field_pred = to_numpy(da_pred.sel(variable=var).data[0])
         field_era5 = to_numpy(era5_interp.sel(variable=var).data[0])
         diff = field_pred - field_era5
-        im = ax.pcolormesh(
-            lon,
-            lat,
-            diff,
-            transform=ccrs.PlateCarree(),
-            cmap="RdBu_r",
-            vmin=diff_ranges[var][0],
-            vmax=diff_ranges[var][1],
-        )
-        ax.coastlines(linewidth=0.5)
-        ax.gridlines(linewidth=0.3, alpha=0.5)
-        fig.colorbar(im, ax=ax, shrink=0.6)
-        if row == 0:
-            ax.set_title(var, fontsize=14)
-        if col == 0:
-            bbox = ax.get_position()
-            ax.text(
-                -0.05,
-                0.5,
-                title,
-                fontsize=12,
-                va="bottom",
-                ha="center",
-                rotation="vertical",
-                rotation_mode="anchor",
-                transform=ax.transAxes,
+        panels.append(
+            viz.raster_panel(
+                viz.raster_dataarray(diff, lat=lat, lon=lon, name=f"{var}_diff"),
+                title=f"{title} - {var}",
+                colormap="RdBu_r",
+                vmin=diff_ranges[var][0],
+                vmax=diff_ranges[var][1],
+                colorbar_label=f"{var} difference",
             )
+        )
 
-fig.suptitle(
-    f"HealDA Analysis Error {str(analysis_time[0])[:16]} UTC",
-    fontsize=18,
-    y=0.97,
+viz.save_raster_grid(
+    panels,
+    "outputs/22_healda_differences.jpg",
+    ncols=len(plot_vars),
+    figsize=(14, 8),
+    title=f"HealDA Analysis Error {str(analysis_time[0])[:16]} UTC",
+    dpi=150,
+    bbox_inches="tight",
 )
-plt.savefig("outputs/22_healda_differences.jpg", dpi=150, bbox_inches="tight")

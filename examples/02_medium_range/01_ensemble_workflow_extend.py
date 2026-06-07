@@ -33,11 +33,11 @@ In this example you will learn:
 - Extend a built-in method using custom code.
 - Post-processing results
 """
+
 # /// script
 # dependencies = [
 #   "torch==2.11.0", # Match lock file to avoid torch-harmonics issue
-#   "earth2studio[dlwp,perturbation] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "matplotlib",
+#   "earth2studio[dlwp,perturbation,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -166,49 +166,41 @@ io = ensemble(
 # Notice that the Zarr IO function has additional APIs to interact with the stored data.
 
 # %%
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
 forecast = "2024-01-01"
 
 
-def plot_(axi, data, title, cmap):
-    """Simple plot util function"""
-    im = axi.imshow(data, cmap=cmap)
-    plt.colorbar(im, ax=axi, shrink=0.5, pad=0.04)
-    axi.set_title(title)
-
-
 step = 0  # lead time = 24 hrs
-plt.close("all")
-
-# Create a figure and axes with the specified projection
-fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(10, 6))
-plot_(
-    ax[0, 0],
-    np.mean(io["t2m"][:, 0, step], axis=0),
-    f"{forecast} - t2m - Lead time: {6*step}hrs - Mean",
-    "coolwarm",
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            viz.raster_dataarray(np.mean(io["t2m"][:, 0, step], axis=0), name="t2m"),
+            title=f"{forecast} - t2m - Lead time: {6*step}hrs - Mean",
+            colormap="coolwarm",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(np.std(io["t2m"][:, 0, step], axis=0), name="t2m_std"),
+            title=f"{forecast} - t2m - Lead time: {6*step}hrs - Std",
+            colormap="coolwarm",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(np.mean(io["tcwv"][:, 0, step], axis=0), name="tcwv"),
+            title=f"{forecast} - tcwv - Lead time: {6*step}hrs - Mean",
+            colormap="Blues",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                np.std(io["tcwv"][:, 0, step], axis=0), name="tcwv_std"
+            ),
+            title=f"{forecast} - tcwv - Lead time: {6*step}hrs - Std",
+            colormap="Blues",
+        ),
+    ],
+    f"outputs/05_{forecast}_{step}_ensemble.jpg",
+    ncols=2,
+    figsize=(10, 6),
 )
-plot_(
-    ax[0, 1],
-    np.std(io["t2m"][:, 0, step], axis=0),
-    f"{forecast} - t2m - Lead time: {6*step}hrs - Std",
-    "coolwarm",
-)
-plot_(
-    ax[1, 0],
-    np.mean(io["tcwv"][:, 0, step], axis=0),
-    f"{forecast} - tcwv - Lead time: {6*step}hrs - Mean",
-    "Blues",
-)
-plot_(
-    ax[1, 1],
-    np.std(io["tcwv"][:, 0, step], axis=0),
-    f"{forecast} - tcwv - Lead time: {6*step}hrs - Std",
-    "Blues",
-)
-
-plt.savefig(f"outputs/05_{forecast}_{step}_ensemble.jpg")
 
 # %%
 # Due to the intrinsic coupling between all fields, we should expect all variables to
@@ -218,21 +210,22 @@ plt.savefig(f"outputs/05_{forecast}_{step}_ensemble.jpg")
 
 # %%
 step = 4  # lead time = 24 hrs
-plt.close("all")
-
-# Create a figure and axes with the specified projection
-fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 3))
-plot_(
-    ax[0],
-    np.mean(io["tcwv"][:, 0, step], axis=0),
-    f"{forecast} - tcwv - Lead time: {6*step}hrs - Mean",
-    "Blues",
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            viz.raster_dataarray(np.mean(io["tcwv"][:, 0, step], axis=0), name="tcwv"),
+            title=f"{forecast} - tcwv - Lead time: {6*step}hrs - Mean",
+            colormap="Blues",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                np.std(io["tcwv"][:, 0, step], axis=0), name="tcwv_std"
+            ),
+            title=f"{forecast} - tcwv - Lead time: {6*step}hrs - Std",
+            colormap="Blues",
+        ),
+    ],
+    f"outputs/05_{forecast}_{step}_ensemble.jpg",
+    ncols=2,
+    figsize=(10, 3),
 )
-plot_(
-    ax[1],
-    np.std(io["tcwv"][:, 0, step], axis=0),
-    f"{forecast} - tcwv - Lead time: {6*step}hrs - Std",
-    "Blues",
-)
-
-plt.savefig(f"outputs/05_{forecast}_{step}_ensemble.jpg")

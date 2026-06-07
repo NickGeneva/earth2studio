@@ -14,6 +14,7 @@ datasources_analysis.rst
 datasources_forecast.rst
 datasources_dataframe.rst
 io.rst
+viz.rst
 perturbation.rst
 statistics.rst
 workflows.rst

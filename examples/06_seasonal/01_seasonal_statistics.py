@@ -34,10 +34,10 @@ In this example you will learn:
 - Running a simple built in workflow
 - Post-processing results
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[pangu,statistics] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "matplotlib",
+#   "earth2studio[pangu,statistics,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -361,15 +361,14 @@ io = run_stats(["2022-01-01"], nsteps, nensemble, model, soi, data, io)
 # Notice that the NetCDF IO function has additional APIs to interact with the stored data.
 
 # %%
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
 times = io["time"][:].flatten() + io["lead_time"][:].flatten()
 
-fig = plt.figure(figsize=(12, 4))
-ax = fig.add_subplot(1, 1, 1)
-ax.plot(times, io["soi"][:].flatten())
-ax.set_title("Southern Oscillation Index")
-ax.grid("on")
-
-plt.savefig("outputs/07_southern_oscillation_index_prediction_2022.png")
+viz.save_series(
+    [viz.series_panel(times, io["soi"][:].flatten(), label="soi")],
+    "outputs/07_southern_oscillation_index_prediction_2022.png",
+    title="Southern Oscillation Index",
+    figsize=(12, 4),
+)
 io.close()

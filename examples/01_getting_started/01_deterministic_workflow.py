@@ -32,10 +32,10 @@ In this example you will learn:
 - Running a simple built in workflow
 - Post-processing results
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[dlwp] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[dlwp,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -103,40 +103,34 @@ print(io.root.tree())
 # %%
 # Post Processing
 # ---------------
-# The last step is to post process our results. Cartopy is a great library for plotting
-# fields on projections of a sphere. Here we will just plot the temperature at 2 meters
-# (t2m) 1 day into the forecast.
+# The last step is to post process our results. The viz module accepts xarray-native
+# fields and owns the static plotting backend. Here we will plot the temperature at
+# 2 meters (t2m) 1 day into the forecast.
 #
 # Notice that the Zarr IO function has additional APIs to interact with the stored data.
 
 # %%
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
 forecast = "2024-01-01"
 variable = "t2m"
 step = 4  # lead time = 24 hrs
 
-plt.close("all")
-# Create a Robinson projection
-projection = ccrs.Robinson()
-
-# Create a figure and axes with the specified projection
-fig, ax = plt.subplots(subplot_kw={"projection": projection}, figsize=(10, 6))
-
-# Plot the field using pcolormesh
-im = ax.pcolormesh(
-    io["lon"][:],
-    io["lat"][:],
+field = viz.raster_dataarray(
     io[variable][0, step],
-    transform=ccrs.PlateCarree(),
-    cmap="Spectral_r",
+    lat=io["lat"][:],
+    lon=io["lon"][:],
+    name=variable,
 )
-
-# Set title
-ax.set_title(f"{forecast} - Lead time: {6*step}hrs")
-
-# Add coastlines and gridlines
-ax.coastlines()
-ax.gridlines()
-plt.savefig("outputs/01_t2m_prediction.jpg")
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            field,
+            title=f"{forecast} - Lead time: {6*step}hrs",
+            colormap="Spectral_r",
+            colorbar_label=variable,
+        )
+    ],
+    "outputs/01_t2m_prediction.jpg",
+    ncols=1,
+)

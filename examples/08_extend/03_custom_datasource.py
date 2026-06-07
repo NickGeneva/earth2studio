@@ -29,10 +29,10 @@ In this example you will learn:
 - API requirements of data soruces
 - Implementing a custom data soruce
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[fcn] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[fcn,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 #   "scipy",
 # ]
 # ///
@@ -219,34 +219,30 @@ da_gfs = ds_gfs(time=datetime(2022, 1, 1, hour=0), variable=["r500"])
 print(da_custom)
 
 # %%
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
-fig, ax = plt.subplots(
-    1,
-    2,
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            da_custom.sel(variable="r500").isel(time=0),
+            title="Custom ARCO",
+            vmin=0,
+            vmax=100,
+            colorbar_label="r500",
+        ),
+        viz.raster_panel(
+            da_gfs.sel(variable="r500").isel(time=0),
+            title="GFS",
+            vmin=0,
+            vmax=100,
+            colorbar_label="r500",
+        ),
+    ],
+    "outputs/03_custom_datasource_gfs_versus_custom.jpg",
+    ncols=2,
     figsize=(10, 3),
-    subplot_kw={"projection": ccrs.Mollweide()},
-    constrained_layout=True,
+    title="r500",
 )
-
-ax[0].imshow(
-    da_custom.sel(variable="r500")[0], transform=ccrs.PlateCarree(), vmin=0, vmax=100
-)
-ax[1].imshow(
-    da_gfs.sel(variable="r500")[0], transform=ccrs.PlateCarree(), vmin=0, vmax=100
-)
-
-ax[0].set_title("Custom ARCO")
-ax[1].set_title("GFS")
-plt.suptitle("r500", fontsize=24)
-cbar = plt.cm.ScalarMappable()
-cbar.set_array(da_custom.sel(variable="r500")[0])
-cbar.set_clim(0, 100)
-cbar = fig.colorbar(cbar, ax=ax[-1], orientation="vertical", shrink=0.8)
-
-plt.savefig("outputs/03_custom_datasource_gfs_versus_custom.jpg")
-
 
 # %%
 # Execute Workflow
@@ -294,25 +290,24 @@ print(io.root.tree())
 forecast = "1993-04-05"
 variable = "tcwv"
 
-plt.close("all")
-
-# Create a figure and axes with the specified projection
-fig, ax = plt.subplots(2, 2, figsize=(6, 4))
-
-# Plot tcwv every 6 hours
-ax[0, 0].imshow(io[variable][0, 0], vmin=0, vmax=80, cmap="magma")
-ax[0, 1].imshow(io[variable][0, 1], vmin=0, vmax=80, cmap="magma")
-ax[1, 0].imshow(io[variable][0, 2], vmin=0, vmax=80, cmap="magma")
-ax[1, 1].imshow(io[variable][0, 3], vmin=0, vmax=80, cmap="magma")
-
-# Set title
-plt.suptitle(f"{variable} - {forecast}")
 times = (
     io["lead_time"][:].astype("timedelta64[ns]").astype("timedelta64[h]").astype(int)
 )
-ax[0, 0].set_title(f"Lead time: {times[0]}hrs")
-ax[0, 1].set_title(f"Lead time: {times[1]}hrs")
-ax[1, 0].set_title(f"Lead time: {times[2]}hrs")
-ax[1, 1].set_title(f"Lead time: {times[3]}hrs")
-
-plt.savefig("outputs/03_custom_datasource_prediction.jpg", bbox_inches="tight")
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            viz.raster_dataarray(io[variable][0, step], name=variable),
+            title=f"Lead time: {times[step]}hrs",
+            colormap="magma",
+            vmin=0,
+            vmax=80,
+            colorbar_label=variable,
+        )
+        for step in range(4)
+    ],
+    "outputs/03_custom_datasource_prediction.jpg",
+    ncols=2,
+    figsize=(6, 4),
+    title=f"{variable} - {forecast}",
+    bbox_inches="tight",
+)

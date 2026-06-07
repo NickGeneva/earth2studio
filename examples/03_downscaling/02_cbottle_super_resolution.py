@@ -35,10 +35,10 @@ In this example you will learn:
 - Performing super resolution on ERA5 data after infilling with cBottle
 - Post-processing and visualizing super-resolution results
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[cbottle] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[cbottle,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -171,88 +171,75 @@ sr_infill_x, sr_infill_coords = cbottle_sr(infill_x, infill_coords)
 # water (tclw) variable as an example.
 
 # %%
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
-plt.close("all")
 
-# Create projection focused on a region of interest (North Atlantic/Europe)
-projection = ccrs.PlateCarree()
-fig = plt.figure(figsize=(24, 24))
+def _as_numpy(value):
+    return value.cpu().numpy() if hasattr(value, "cpu") else value
 
-# Plot synthetic data
-ax0 = fig.add_subplot(2, 2, 1, projection=projection)
-extent = [
-    super_resolution_window[1] - 10,
-    super_resolution_window[3] + 10,
-    super_resolution_window[0] - 10,
-    super_resolution_window[2] + 10,
-]
-ax0.set_extent(extent, crs=ccrs.PlateCarree())
-c = ax0.pcolormesh(
-    synth_coords["lon"],
-    synth_coords["lat"],
-    synth_x[0, 0, 3, :, :].cpu().numpy(),  # u10m (variable index 3)
-    transform=ccrs.PlateCarree(),
-    cmap="RdBu_r",
-    vmin=-20,
-    vmax=20,
+
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            viz.raster_dataarray(
+                synth_x[0, 0, 3, :, :].cpu().numpy(),
+                lat=_as_numpy(synth_coords["lat"]),
+                lon=_as_numpy(synth_coords["lon"]),
+                name="u10m",
+                attrs={"units": "m/s"},
+            ),
+            title="Synthetic Data (cBottle3D, low resolution)",
+            colormap="RdBu_r",
+            vmin=-20,
+            vmax=20,
+            colorbar_label="u10m (m/s)",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                sr_synth_x[0, 0, 3, :, :].cpu().numpy(),
+                lat=_as_numpy(sr_synth_coords["lat"]),
+                lon=_as_numpy(sr_synth_coords["lon"]),
+                name="u10m",
+                attrs={"units": "m/s"},
+            ),
+            title="Synthetic Data Super Resolution (cBottle3D to CBottleSR)",
+            colormap="RdBu_r",
+            vmin=-20,
+            vmax=20,
+            colorbar_label="u10m (m/s)",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                era5_x[0, 0, 0, :, :].cpu().numpy(),
+                lat=_as_numpy(era5_coords["lat"]),
+                lon=_as_numpy(era5_coords["lon"]),
+                name="u10m",
+                attrs={"units": "m/s"},
+            ),
+            title="ERA5 Data (low resolution)",
+            colormap="RdBu_r",
+            vmin=-20,
+            vmax=20,
+            colorbar_label="u10m (m/s)",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                sr_infill_x[0, 0, 3, :, :].cpu().numpy(),
+                lat=_as_numpy(sr_infill_coords["lat"]),
+                lon=_as_numpy(sr_infill_coords["lon"]),
+                name="u10m",
+                attrs={"units": "m/s"},
+            ),
+            title="ERA5 Infilled Super Resolution (ERA5 to CBottleInfill to CBottleSR)",
+            colormap="RdBu_r",
+            vmin=-20,
+            vmax=20,
+            colorbar_label="u10m (m/s)",
+        ),
+    ],
+    "outputs/16_cbottle_super_resolution.jpg",
+    ncols=2,
+    figsize=(24, 24),
+    dpi=150,
+    bbox_inches="tight",
 )
-plt.colorbar(c, ax=ax0, shrink=0.6, label="u10m (m/s)")
-ax0.coastlines()
-ax0.gridlines(draw_labels=True)
-ax0.set_title("Synthetic Data (cBottle3D, low resolution)")
-
-# Plot the synthetic super resolution data
-ax1 = fig.add_subplot(2, 2, 2, projection=projection)
-ax1.set_extent(extent, crs=ccrs.PlateCarree())
-c = ax1.pcolormesh(
-    sr_synth_coords["lon"],
-    sr_synth_coords["lat"],
-    sr_synth_x[0, 0, 3, :, :].cpu().numpy(),  # u10m (variable index 3)
-    transform=ccrs.PlateCarree(),
-    cmap="RdBu_r",
-    vmin=-20,
-    vmax=20,
-)
-plt.colorbar(c, ax=ax1, shrink=0.6, label="u10m (m/s)")
-ax1.coastlines()
-ax1.gridlines(draw_labels=True)
-ax1.set_title("Synthetic Data Super Resolution (cBottle3D → CBottleSR)")
-
-# Plot the ERA5 data
-ax2 = fig.add_subplot(2, 2, 3, projection=projection)
-ax2.set_extent(extent, crs=ccrs.PlateCarree())
-c = ax2.pcolormesh(
-    era5_coords["lon"],
-    era5_coords["lat"],
-    era5_x[0, 0, 0, :, :].cpu().numpy(),  # u10m (variable index 0)
-    transform=ccrs.PlateCarree(),
-    cmap="RdBu_r",
-    vmin=-20,
-    vmax=20,
-)
-plt.colorbar(c, ax=ax2, shrink=0.6, label="u10m (m/s)")
-ax2.coastlines()
-ax2.gridlines(draw_labels=True)
-ax2.set_title("ERA5 Data (low resolution)")
-
-# Plot the ERA5 infilled super resolution data
-ax3 = fig.add_subplot(2, 2, 4, projection=projection)
-ax3.set_extent(extent, crs=ccrs.PlateCarree())
-c = ax3.pcolormesh(
-    sr_infill_coords["lon"],
-    sr_infill_coords["lat"],
-    sr_infill_x[0, 0, 3, :, :].cpu().numpy(),  # u10m (variable index 3)
-    transform=ccrs.PlateCarree(),
-    cmap="RdBu_r",
-    vmin=-20,
-    vmax=20,
-)
-plt.colorbar(c, ax=ax3, shrink=0.6, label="u10m (m/s)")
-ax3.coastlines()
-ax3.gridlines(draw_labels=True)
-ax3.set_title("ERA5 Infilled Super Resolution (ERA5 → CBottleInfill → CBottleSR)")
-
-plt.tight_layout()
-plt.savefig("outputs/16_cbottle_super_resolution.jpg", dpi=150, bbox_inches="tight")

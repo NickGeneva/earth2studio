@@ -34,10 +34,10 @@ In this example you will learn:
 - Running the model iteratively with and without observation assimilation
 - Comparing assimilated and non-assimilated forecasts
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[da-stormcast] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[da-stormcast,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -162,34 +162,25 @@ isd = ISD(stations=stations, time_tolerance=timedelta(minutes=15), verbose=False
 # Visualise the ISD stations that will provide observations for assimilation.
 
 # %%
-import cartopy
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
 # Fetch a sample to get station locations
 sample_df = isd(init_time, ["t2m", "u10m", "v10m"])
 station_lats = sample_df["lat"].values
 station_lons = sample_df["lon"].values
 
-plt.close("all")
-fig, ax = plt.subplots(subplot_kw={"projection": ccrs.PlateCarree()}, figsize=(8, 6))
-ax.set_extent([-110, -85, 30, 47], crs=ccrs.PlateCarree())
-ax.add_feature(
-    cartopy.feature.STATES.with_scale("50m"), linewidth=0.5, edgecolor="black"
+viz.save_points(
+    sample_df,
+    "outputs/21_isd_stations.jpg",
+    lat="lat",
+    lon="lon",
+    fields=(),
+    color="black",
+    title="ISD Station Locations - Central United States",
+    figsize=(8, 6),
+    dpi=150,
+    bbox_inches="tight",
 )
-ax.add_feature(cartopy.feature.LAND, facecolor="lightyellow")
-ax.gridlines(draw_labels=True, linewidth=0.3, alpha=0.5)
-ax.scatter(
-    station_lons,
-    station_lats,
-    s=20,
-    marker="x",
-    transform=ccrs.PlateCarree(),
-    zorder=3,
-)
-ax.set_title("ISD Station Locations - Central United States")
-plt.savefig("outputs/21_isd_stations.jpg", dpi=150, bbox_inches="tight")
-
 # %%
 # Run Inference With Streaming Observations
 # ------------------------------------------
@@ -234,7 +225,6 @@ obs_np.to_dataset(name="prediction").to_zarr("outputs/21_with_obs.zarr", mode="w
 # difference (assimilated minus baseline).
 
 # %%
-plt.close("all")
 variable = "u10m"
 
 # Load saved forecasts from Zarr stores
@@ -244,138 +234,73 @@ obs_ds = xr.open_zarr("outputs/21_with_obs.zarr")
 no_obs_vals = no_obs_ds["prediction"].sel(variable=variable).values
 obs_vals = obs_ds["prediction"].sel(variable=variable).values
 
-# Lambert Conformal projection matching HRRR
-projection = ccrs.LambertConformal(
-    central_longitude=262.5,
-    central_latitude=38.5,
-    standard_parallels=(38.5, 38.5),
-    globe=ccrs.Globe(semimajor_axis=6371229, semiminor_axis=6371229),
-)
-
-fig, axes = plt.subplots(
-    3,
-    nsteps,
-    subplot_kw={"projection": projection},
-    figsize=(4 * nsteps, 8),
-)
-fig.subplots_adjust(wspace=0.02, hspace=0.08, left=0.1, right=0.9)
-
+panels = []
 for step in range(nsteps):
     lead_hr = step + 1
     no_obs_field = no_obs_vals[0, step]
+    panels.append(
+        viz.raster_panel(
+            viz.raster_dataarray(
+                no_obs_field,
+                lat=model.lat,
+                lon=model.lon,
+                name=variable,
+                attrs={"units": "m/s"},
+            ),
+            title=f"No Obs +{lead_hr}h",
+            colormap="PRGn",
+            vmin=-10,
+            vmax=10,
+            colorbar_label=f"{variable} (m/s)",
+        )
+    )
+for step in range(nsteps):
+    lead_hr = step + 1
     obs_field = obs_vals[0, step]
-    diff_field = obs_field - no_obs_field
-
-    vmin = -10
-    vmax = 10
-    # Row 0: No-obs forecast
-    ax = axes[0, step]
-    im0 = ax.pcolormesh(
-        model.lon,
-        model.lat,
-        no_obs_field,
-        transform=ccrs.PlateCarree(),
-        cmap="PRGn",
-        vmin=vmin,
-        vmax=vmax,
+    panels.append(
+        viz.raster_panel(
+            viz.raster_dataarray(
+                obs_field,
+                lat=model.lat,
+                lon=model.lon,
+                name=variable,
+                attrs={"units": "m/s"},
+            ),
+            title=f"Obs +{lead_hr}h",
+            colormap="PRGn",
+            vmin=-10,
+            vmax=10,
+            colorbar_label=f"{variable} (m/s)",
+        )
     )
-    ax.add_feature(
-        cartopy.feature.STATES.with_scale("50m"),
-        linewidth=0.5,
-        edgecolor="black",
-        zorder=2,
-    )
-    ax.set_title(f"+{lead_hr}h")
-
-    # Row 1: With-obs forecast + station locations
-    ax = axes[1, step]
-    im1 = ax.pcolormesh(
-        model.lon,
-        model.lat,
-        obs_field,
-        transform=ccrs.PlateCarree(),
-        cmap="PRGn",
-        vmin=vmin,
-        vmax=vmax,
-    )
-    ax.scatter(
-        station_lons,
-        station_lats,
-        s=8,
-        facecolors="none",
-        edgecolors="black",
-        linewidths=0.8,
-        transform=ccrs.PlateCarree(),
-        zorder=3,
-        label="Stations",
-    )
-    ax.add_feature(
-        cartopy.feature.STATES.with_scale("50m"),
-        linewidth=0.5,
-        edgecolor="black",
-        zorder=2,
+for step in range(nsteps):
+    lead_hr = step + 1
+    diff_field = obs_vals[0, step] - no_obs_vals[0, step]
+    panels.append(
+        viz.raster_panel(
+            viz.raster_dataarray(
+                diff_field,
+                lat=model.lat,
+                lon=model.lon,
+                name=f"{variable}_diff",
+                attrs={"units": "m/s"},
+            ),
+            title=f"Obs - No Obs +{lead_hr}h",
+            colormap="RdBu_r",
+            vmin=-3,
+            vmax=3,
+            colorbar_label=f"{variable} difference (m/s)",
+        )
     )
 
-    # Row 2: Difference (assimilated - baseline)
-    ax = axes[2, step]
-    im2 = ax.pcolormesh(
-        model.lon,
-        model.lat,
-        diff_field,
-        transform=ccrs.PlateCarree(),
-        cmap="RdBu_r",
-        vmin=-3,
-        vmax=3,
-    )
-    ax.add_feature(
-        cartopy.feature.STATES.with_scale("50m"),
-        linewidth=0.5,
-        edgecolor="black",
-        zorder=2,
-    )
-
-axes[0, 0].text(
-    -0.07,
-    0.5,
-    "No Obs",
-    va="bottom",
-    ha="center",
-    rotation="vertical",
-    rotation_mode="anchor",
-    fontsize=12,
-    transform=axes[0, 0].transAxes,
+viz.save_raster_grid(
+    panels,
+    "outputs/21_stormcast_sda_comparison.jpg",
+    ncols=nsteps,
+    figsize=(4 * nsteps, 8),
+    title="StormCast SDA comparison",
+    dpi=150,
 )
-axes[1, 0].text(
-    -0.07,
-    0.5,
-    "Obs",
-    va="bottom",
-    ha="center",
-    rotation="vertical",
-    rotation_mode="anchor",
-    fontsize=12,
-    transform=axes[1, 0].transAxes,
-)
-axes[2, 0].text(
-    -0.07,
-    0.5,
-    "Difference",
-    va="bottom",
-    ha="center",
-    rotation="vertical",
-    rotation_mode="anchor",
-    fontsize=12,
-    transform=axes[2, 0].transAxes,
-)
-
-# Add colour bars
-plt.colorbar(im0, ax=axes[0, -1], shrink=0.6, label=f"{variable} (m/s)")
-plt.colorbar(im1, ax=axes[1, -1], shrink=0.6, label=f"{variable} (m/s)")
-plt.colorbar(im2, ax=axes[2, -1], shrink=0.6, label=f"{variable} (m/s)")
-
-plt.tight_layout()
-plt.savefig("outputs/21_stormcast_sda_comparison.jpg", dpi=150)
-
 # %%
 # Ground Truth Comparison
 # -----------------------
@@ -409,80 +334,49 @@ obs_err = np.abs(obs_vals[0] - truth_vals[0])
 # observations has improved accuracy over the vanilla stormcast prediction.
 
 # %%
-plt.close("all")
-fig, axes = plt.subplots(
-    2,
-    nsteps,
-    subplot_kw={"projection": projection},
-    figsize=(4 * nsteps, 6),
-)
-fig.subplots_adjust(wspace=0.02, hspace=0.08, left=0.1, right=0.9)
-
 err_max = 5
+panels = []
 for step in range(nsteps):
     lead_hr = step + 1
-
-    # Row 0: No-obs absolute error
-    ax = axes[0, step]
-    im0 = ax.pcolormesh(
-        model.lon,
-        model.lat,
-        no_obs_err[step],
-        transform=ccrs.PlateCarree(),
-        cmap="viridis",
-        vmin=0,
-        vmax=err_max,
+    panels.append(
+        viz.raster_panel(
+            viz.raster_dataarray(
+                no_obs_err[step],
+                lat=model.lat,
+                lon=model.lon,
+                name=f"abs_no_obs_{variable}",
+                attrs={"units": "m/s"},
+            ),
+            title=f"|No Obs - Truth| +{lead_hr}h",
+            colormap="viridis",
+            vmin=0,
+            vmax=err_max,
+            colorbar_label=f"abs({variable}) (m/s)",
+        )
     )
-    ax.add_feature(
-        cartopy.feature.STATES.with_scale("50m"),
-        linewidth=0.5,
-        edgecolor="grey",
-        zorder=2,
-    )
-    ax.set_title(f"+{lead_hr}h")
-
-    # Row 1: Obs absolute error
-    ax = axes[1, step]
-    im1 = ax.pcolormesh(
-        model.lon,
-        model.lat,
-        obs_err[step],
-        transform=ccrs.PlateCarree(),
-        cmap="viridis",
-        vmin=0,
-        vmax=err_max,
-    )
-    ax.add_feature(
-        cartopy.feature.STATES.with_scale("50m"),
-        linewidth=0.5,
-        edgecolor="grey",
-        zorder=2,
+for step in range(nsteps):
+    lead_hr = step + 1
+    panels.append(
+        viz.raster_panel(
+            viz.raster_dataarray(
+                obs_err[step],
+                lat=model.lat,
+                lon=model.lon,
+                name=f"abs_obs_{variable}",
+                attrs={"units": "m/s"},
+            ),
+            title=f"|Obs - Truth| +{lead_hr}h",
+            colormap="viridis",
+            vmin=0,
+            vmax=err_max,
+            colorbar_label=f"abs({variable}) (m/s)",
+        )
     )
 
-axes[0, 0].text(
-    -0.07,
-    0.5,
-    "|No Obs - Truth|",
-    va="bottom",
-    ha="center",
-    rotation="vertical",
-    rotation_mode="anchor",
-    fontsize=12,
-    transform=axes[0, 0].transAxes,
+viz.save_raster_grid(
+    panels,
+    "outputs/21_stormcast_sda_gt_comparison.jpg",
+    ncols=nsteps,
+    figsize=(4 * nsteps, 6),
+    title="StormCast SDA absolute error",
 )
-axes[1, 0].text(
-    -0.07,
-    0.5,
-    "|Obs - Truth|",
-    va="bottom",
-    ha="center",
-    rotation="vertical",
-    rotation_mode="anchor",
-    fontsize=12,
-    transform=axes[1, 0].transAxes,
-)
-
-plt.colorbar(im0, ax=axes[0, -1], shrink=0.6, label=f"|Δ{variable}| (m/s)")
-plt.colorbar(im1, ax=axes[1, -1], shrink=0.6, label=f"|Δ{variable}| (m/s)")
-plt.tight_layout()
-plt.savefig("outputs/21_stormcast_sda_gt_comparison.jpg")

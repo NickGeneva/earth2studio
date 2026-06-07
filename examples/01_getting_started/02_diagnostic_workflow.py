@@ -33,10 +33,10 @@ In this example you will learn:
 - Running the built in diagnostic workflow
 - Post-processing results
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[dlwp] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[dlwp,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -121,43 +121,30 @@ print(io.root.tree())
 # %%
 from datetime import datetime
 
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
-import numpy as np
+from earth2studio import viz
 
 forecast = datetime(2021, 6, 1)
 variable = "tp"
 step = 8  # lead time = 48 hrs
 
-plt.close("all")
-# Create a Orthographic projection of USA
-projection = ccrs.Orthographic(-100, 40)
-
-# Create a figure and axes with the specified projection
-fig, ax = plt.subplots(subplot_kw={"projection": projection}, figsize=(10, 6))
-
-# Plot the field using pcolormesh
-levels = np.arange(0.0, 0.01, 0.001)
-im = ax.contourf(
-    io["lon"][:],
-    io["lat"][:],
+field = viz.raster_dataarray(
     io[variable][0, step],
-    levels,
-    transform=ccrs.PlateCarree(),
-    vmax=0.01,
-    vmin=0.00,
-    cmap="terrain",
+    lat=io["lat"][:],
+    lon=io["lon"][:],
+    name=variable,
+    attrs={"units": "m"},
 )
-
-# Set title
-ax.set_title(f"{forecast.strftime('%Y-%m-%d')} - Lead time: {6*step}hrs")
-
-# Add coastlines and gridlines6
-ax.set_extent([220, 340, 20, 70])  # [lat min, lat max, lon min, lon max]
-ax.coastlines()
-ax.gridlines()
-plt.colorbar(
-    im, ax=ax, ticks=levels, shrink=0.75, pad=0.04, label="Total precipitation (m)"
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            field,
+            title=f"{forecast.strftime('%Y-%m-%d')} - Lead time: {6*step}hrs",
+            colormap="terrain",
+            vmin=0.0,
+            vmax=0.01,
+            colorbar_label="Total precipitation (m)",
+        )
+    ],
+    "outputs/02_tp_prediction.jpg",
+    ncols=1,
 )
-
-plt.savefig("outputs/02_tp_prediction.jpg")

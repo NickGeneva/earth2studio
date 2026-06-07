@@ -40,10 +40,10 @@ In this example you will learn:
 - Choose a subselection of coordinates to save to an IO object.
 - Post-processing results
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[dlwp] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[dlwp,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -194,138 +194,65 @@ io_perturbed = ensemble(
 # Notice that the Zarr IO function has additional APIs to interact with the stored data.
 
 # %%
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
-
-levels_unperturbed = np.linspace(0, io_unperturbed["tcwv"][:].max())
-levels_perturbed = np.linspace(0, io_perturbed["tcwv"][:].max())
-
-
-std_levels_perturbed = np.linspace(0, io_perturbed["tcwv"][:].std(axis=0).max())
-
-plt.close("all")
-fig = plt.figure(figsize=(20, 10), tight_layout=True)
-ax0 = fig.add_subplot(2, 2, 1, projection=ccrs.PlateCarree())
-ax1 = fig.add_subplot(2, 2, 2, projection=ccrs.PlateCarree())
-ax2 = fig.add_subplot(2, 2, 3, projection=ccrs.PlateCarree())
-ax3 = fig.add_subplot(2, 2, 4, projection=ccrs.PlateCarree())
-
-
-def update(frame):
-    """This function updates the frame with a new lead time for animation."""
-    import warnings
-
-    warnings.filterwarnings("ignore")
-    ax0.clear()
-    ax1.clear()
-    ax2.clear()
-    ax3.clear()
-
-    ## Update unperturbed image
-    im0 = ax0.contourf(
-        io_unperturbed["lon"][:],
-        io_unperturbed["lat"][:],
-        io_unperturbed["tcwv"][:, 0, frame].mean(axis=0),
-        transform=ccrs.PlateCarree(),
-        cmap="Blues",
-        levels=levels_unperturbed,
-    )
-    ax0.coastlines()
-    ax0.gridlines()
-
-    im1 = ax1.contourf(
-        io_unperturbed["lon"][:],
-        io_unperturbed["lat"][:],
-        io_unperturbed["tcwv"][:, 0, frame].std(axis=0),
-        transform=ccrs.PlateCarree(),
-        cmap="RdPu",
-        levels=std_levels_perturbed,
-        norm=LogNorm(vmin=1e-1, vmax=std_levels_perturbed[-1]),
-    )
-    ax1.coastlines()
-    ax1.gridlines()
-
-    im2 = ax2.contourf(
-        io_perturbed["lon"][:],
-        io_perturbed["lat"][:],
-        io_perturbed["tcwv"][:, 0, frame].mean(axis=0),
-        transform=ccrs.PlateCarree(),
-        cmap="Blues",
-        levels=levels_perturbed,
-    )
-    ax2.coastlines()
-    ax2.gridlines()
-
-    im3 = ax3.contourf(
-        io_perturbed["lon"][:],
-        io_perturbed["lat"][:],
-        io_perturbed["tcwv"][:, 0, frame].std(axis=0),
-        transform=ccrs.PlateCarree(),
-        cmap="RdPu",
-        levels=std_levels_perturbed,
-        norm=LogNorm(vmin=1e-1, vmax=std_levels_perturbed[-1]),
-    )
-    ax3.coastlines()
-    ax3.gridlines()
-
-    for i in range(16):
-        ax0.contour(
-            io_unperturbed["lon"][:],
-            io_unperturbed["lat"][:],
-            io_unperturbed["z500"][i, 0, frame] / 100.0,
-            transform=ccrs.PlateCarree(),
-            levels=np.arange(485, 580, 15),
-            colors="black",
-            linestyle="dashed",
-        )
-
-        ax2.contour(
-            io_perturbed["lon"][:],
-            io_perturbed["lat"][:],
-            io_perturbed["z500"][i, 0, frame] / 100.0,
-            transform=ccrs.PlateCarree(),
-            levels=np.arange(485, 580, 15),
-            colors="black",
-            linestyle="dashed",
-        )
-    plt.suptitle(
-        f'Forecast Starting on {forecast_date} - Lead Time - {io_perturbed["lead_time"][frame]}'
-    )
-
-    ax0.set_title("Unperturbed Ensemble Mean - tcwv + z500 countors")
-    ax1.set_title("Unperturbed Ensemble Std - tcwv")
-    ax2.set_title("Perturbed Ensemble Mean - tcwv + z500 contours")
-    ax3.set_title("Perturbed Ensemble Std - tcwv")
-
-    if frame == 0:
-        plt.colorbar(
-            im0, ax=ax0, shrink=0.75, pad=0.04, label="kg m^-2", format="%2.1f"
-        )
-        plt.colorbar(
-            im1, ax=ax1, shrink=0.75, pad=0.04, label="kg m^-2", format="%1.2e"
-        )
-        plt.colorbar(
-            im2, ax=ax2, shrink=0.75, pad=0.04, label="kg m^-2", format="%2.1f"
-        )
-        plt.colorbar(
-            im3, ax=ax3, shrink=0.75, pad=0.04, label="kg m^-2", format="%1.2e"
-        )
-
-
-# Uncomment this for animation
-# import matplotlib.animation as animation
-# update(0)
-# ani = animation.FuncAnimation(
-# fig=fig, func=update, frames=range(1, nsteps), cache_frame_data=False
-# )
-# ani.save(f"outputs/05_model_perturbation_{forecast_date}.gif", dpi=300)
-
+from earth2studio import viz
 
 for lt in [10, 20, 30, 40]:
-    update(lt)
-    plt.savefig(
+    panels = [
+        viz.raster_panel(
+            viz.raster_dataarray(
+                io_unperturbed["tcwv"][:, 0, lt].mean(axis=0),
+                lat=io_unperturbed["lat"][:],
+                lon=io_unperturbed["lon"][:],
+                name="tcwv",
+                attrs={"units": "kg m^-2"},
+            ),
+            title="Unperturbed ensemble mean - tcwv",
+            colormap="Blues",
+            colorbar_label="kg m^-2",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                io_unperturbed["tcwv"][:, 0, lt].std(axis=0),
+                lat=io_unperturbed["lat"][:],
+                lon=io_unperturbed["lon"][:],
+                name="tcwv_std",
+                attrs={"units": "kg m^-2"},
+            ),
+            title="Unperturbed ensemble std - tcwv",
+            colormap="RdPu",
+            colorbar_label="kg m^-2",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                io_perturbed["tcwv"][:, 0, lt].mean(axis=0),
+                lat=io_perturbed["lat"][:],
+                lon=io_perturbed["lon"][:],
+                name="tcwv",
+                attrs={"units": "kg m^-2"},
+            ),
+            title="Perturbed ensemble mean - tcwv",
+            colormap="Blues",
+            colorbar_label="kg m^-2",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                io_perturbed["tcwv"][:, 0, lt].std(axis=0),
+                lat=io_perturbed["lat"][:],
+                lon=io_perturbed["lon"][:],
+                name="tcwv_std",
+                attrs={"units": "kg m^-2"},
+            ),
+            title="Perturbed ensemble std - tcwv",
+            colormap="RdPu",
+            colorbar_label="kg m^-2",
+        ),
+    ]
+    viz.save_raster_grid(
+        panels,
         f"outputs/05_model_perturbation_{forecast_date}_leadtime_{lt}.png",
+        ncols=2,
+        figsize=(20, 10),
+        title=f'Forecast Starting on {forecast_date} - Lead Time - {io_perturbed["lead_time"][lt]}',
         dpi=300,
         bbox_inches="tight",
     )

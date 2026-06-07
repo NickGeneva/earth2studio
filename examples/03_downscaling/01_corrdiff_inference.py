@@ -37,10 +37,10 @@ In this example you will learn:
 - Initializing and running CorrDiff diagnostic model
 - Post-processing results.
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[corrdiff] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[corrdiff,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -198,52 +198,48 @@ io = run(["2023-10-04T18:00:00"], corrdiff, data, io, number_of_samples=1)
 # Notice that the Zarr IO function has additional APIs to interact with the stored data.
 
 # %%
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
-projection = ccrs.LambertConformal(
-    central_longitude=io["lon"][:].mean(),
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            viz.raster_dataarray(
+                io["mrr"][0, 0],
+                lat=io["lat"],
+                lon=io["lon"],
+                name="mrr",
+                attrs={"units": "dBz"},
+            ),
+            title="Radar Reflectivity",
+            colormap="inferno",
+            colorbar_label="mrr dBz",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                io["t2m"][0, 0],
+                lat=io["lat"],
+                lon=io["lon"],
+                name="t2m",
+                attrs={"units": "K"},
+            ),
+            title="2-meter Temperature",
+            colormap="RdBu_r",
+            colorbar_label="K",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                np.sqrt(io["u10m"][0, 0] ** 2 + io["v10m"][0, 0] ** 2),
+                lat=io["lat"],
+                lon=io["lon"],
+                name="ws10m",
+                attrs={"units": "m s^-1"},
+            ),
+            title="10-meter Wind Speed",
+            colormap="Greens",
+            colorbar_label="ws10m m s^-1",
+        ),
+    ],
+    "outputs/04_corr_diff_prediction.jpg",
+    ncols=3,
+    figsize=(4 * 8, 8),
 )
-
-fig = plt.figure(figsize=(4 * 8, 8))
-
-ax0 = fig.add_subplot(1, 3, 1, projection=projection)
-c = ax0.pcolormesh(
-    io["lon"],
-    io["lat"],
-    io["mrr"][0, 0],
-    transform=ccrs.PlateCarree(),
-    cmap="inferno",
-)
-plt.colorbar(c, ax=ax0, shrink=0.6, label="mrr dBz")
-ax0.coastlines()
-ax0.gridlines()
-ax0.set_title("Radar Reflectivity")
-
-ax1 = fig.add_subplot(1, 3, 2, projection=projection)
-c = ax1.pcolormesh(
-    io["lon"],
-    io["lat"],
-    io["t2m"][0, 0],
-    transform=ccrs.PlateCarree(),
-    cmap="RdBu_r",
-)
-plt.colorbar(c, ax=ax1, shrink=0.6, label="K")
-ax1.coastlines()
-ax1.gridlines()
-ax1.set_title("2-meter Temperature")
-
-ax2 = fig.add_subplot(1, 3, 3, projection=projection)
-c = ax2.pcolormesh(
-    io["lon"],
-    io["lat"],
-    np.sqrt(io["u10m"][0, 0] ** 2 + io["v10m"][0, 0] ** 2),
-    transform=ccrs.PlateCarree(),
-    cmap="Greens",
-)
-plt.colorbar(c, ax=ax2, shrink=0.6, label="w10m m s^-1")
-ax2.coastlines()
-ax2.gridlines()
-ax2.set_title("10-meter Wind Speed")
-
-plt.savefig("outputs/04_corr_diff_prediction.jpg")

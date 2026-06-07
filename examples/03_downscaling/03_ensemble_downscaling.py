@@ -34,12 +34,12 @@ In this example you will learn:
 - Saving output ensemble data to a Zarr store
 - Post-process results
 """
+
 # /// script
 # dependencies = [
 #   "torch==2.11.0", # Match lock file to avoid torch-harmonics issue
-#   "earth2studio[sfno] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "earth2studio[corrdiff] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[sfno,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
+#   "earth2studio[corrdiff,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -285,52 +285,42 @@ corrdiff_on_hens_ensemble(
 # lead times.
 
 # %%
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
 import xarray as xr
+
+from earth2studio import viz
 
 ds = xr.open_zarr("outputs/18_ensemble_corrdiff.zarr")
 lead_time = 4
 arr = np.sqrt(ds["u10m"] ** 2 + ds["v10m"] ** 2)
 mean_field = arr.mean(dim=["ensemble", "sample"])
 std_field = arr.std(dim=["ensemble", "sample"])
-fig, ax = plt.subplots(
-    2, lead_time, figsize=(12, 5), subplot_kw={"projection": ccrs.PlateCarree()}
-)
-
+panels = []
 for i in range(lead_time):
-    p1 = ax[0, i].contourf(
-        ds["lon"],
-        ds["lat"],
-        mean_field.isel(time=0, lead_time=i),
-        levels=20,
-        vmin=0,
-        vmax=40,
-        transform=ccrs.PlateCarree(),
-        cmap="nipy_spectral",
+    panels.append(
+        viz.raster_panel(
+            mean_field.isel(time=0, lead_time=i),
+            title=f"ws10m mean, lead_time={6*i}hr",
+            colormap="nipy_spectral",
+            vmin=0,
+            vmax=40,
+            colorbar_label="wind speed mean",
+        )
     )
-    ax[0, i].coastlines()
-    ax[0, i].set_title(f"lead_time={6*i}hr")
-
-    p2 = ax[1, i].contourf(
-        ds["lon"],
-        ds["lat"],
-        std_field.isel(time=0, lead_time=i),
-        levels=20,
-        vmin=0,
-        vmax=4,
-        transform=ccrs.PlateCarree(),
-        cmap="magma",
+    panels.append(
+        viz.raster_panel(
+            std_field.isel(time=0, lead_time=i),
+            title=f"ws10m std, lead_time={6*i}hr",
+            colormap="magma",
+            vmin=0,
+            vmax=4,
+            colorbar_label="wind speed std",
+        )
     )
-    ax[1, i].coastlines()
 
-fig.colorbar(p1, ax=ax[0, -1], label="wind speed mean")
-fig.colorbar(p2, ax=ax[1, -1], label="wind speed std")
-fig.suptitle(
-    f"Start date: {np.datetime_as_string(ds['time'].values[0], unit='h')}", fontsize=12
+viz.save_raster_grid(
+    panels,
+    "outputs/18_ensemble_corrdiff_w10m.jpg",
+    ncols=lead_time,
+    figsize=(12, 5),
+    title=f"Start date: {np.datetime_as_string(ds['time'].values[0], unit='h')}",
 )
-
-# Leave room for suptitle
-plt.tight_layout(rect=[0, 0, 1, 0.95])
-plt.savefig("outputs/18_ensemble_corrdiff_w10m.jpg")
-plt.show()

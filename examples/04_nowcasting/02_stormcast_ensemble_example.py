@@ -28,10 +28,10 @@ see
  - https://arxiv.org/abs/2408.10958
 
 """
+
 # /// script
 # dependencies = [
-#   "earth2studio[data,stormcast] @ git+https://github.com/NVIDIA/earth2studio.git",
-#   "cartopy",
+#   "earth2studio[data,stormcast,viz] @ git+https://github.com/NVIDIA/earth2studio.git",
 # ]
 # ///
 
@@ -132,56 +132,16 @@ print(io.root.tree())
 # %%
 # Post Processing
 # ---------------
-# The last step is to post process our results. Cartopy is a great library for plotting
-# fields on projections of a sphere. Start with plotting the reflectivity.
+# The last step is to post process our results. The viz module accepts xarray-native
+# fields and owns the static plotting backend. Start with plotting the reflectivity.
 #
 # Notice that the Zarr IO function has additional APIs to interact with the stored data.
 
 # %%
-import cartopy
-import cartopy.crs as ccrs
-import matplotlib.pyplot as plt
+from earth2studio import viz
 
 forecast = f"{date}"
 step = nsteps  # 4 hours, since lead_time = 1 hr
-
-# Create a correct Lambert Conformal projection
-projection = ccrs.LambertConformal(
-    central_longitude=262.5,
-    central_latitude=38.5,
-    standard_parallels=(38.5, 38.5),
-    globe=ccrs.Globe(semimajor_axis=6371229, semiminor_axis=6371229),
-)
-
-
-# Get the lat lon arrays from the model
-def plot_(axi, data, title, cmap, vmin=None, vmax=None):
-    """Convenience function for plotting pcolormesh."""
-    # Plot the field using pcolormesh
-    im = axi.pcolormesh(
-        model.lon,
-        model.lat,
-        data,
-        transform=ccrs.PlateCarree(),
-        cmap=cmap,
-        vmin=vmin,
-        vmax=vmax,
-    )
-    plt.colorbar(im, ax=axi, shrink=0.6, pad=0.04)
-    # Set title
-    axi.set_title(title)
-
-    # Add coastlines and gridlines
-    axi.coastlines()
-    axi.gridlines()
-
-    # Set state lines
-    axi.add_feature(
-        cartopy.feature.STATES.with_scale("50m"),
-        linewidth=0.5,
-        edgecolor="black",
-        zorder=2,
-    )
 
 
 # Plot refc
@@ -189,35 +149,57 @@ variable = "refc"
 cmap = "gist_ncar"
 x = io[variable]
 
-plt.close("all")
-fig, (ax1, ax2, ax3) = plt.subplots(
-    nrows=1, ncols=3, subplot_kw={"projection": projection}, figsize=(20, 6)
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            viz.raster_dataarray(
+                np.where(x[0, 0, step] > 0, x[0, 0, step], np.nan),
+                lat=model.lat,
+                lon=model.lon,
+                name=variable,
+                attrs={"units": "dBZ"},
+            ),
+            title=f"{forecast} - Lead time: {step}hrs - Member: 0",
+            colormap=cmap,
+            vmin=0,
+            vmax=60,
+            colorbar_label="dBZ",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                np.where(x[1, 0, step] > 0, x[1, 0, step], np.nan),
+                lat=model.lat,
+                lon=model.lon,
+                name=variable,
+                attrs={"units": "dBZ"},
+            ),
+            title=f"{forecast} - Lead time: {step}hrs - Member: 1",
+            colormap=cmap,
+            vmin=0,
+            vmax=60,
+            colorbar_label="dBZ",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                np.where(
+                    x[:, 0, step].mean(axis=0) > 0, x[:, 0, step].std(axis=0), np.nan
+                ),
+                lat=model.lat,
+                lon=model.lon,
+                name=f"{variable}_std",
+                attrs={"units": "dBZ"},
+            ),
+            title=f"{forecast} - Lead time: {step}hrs - Std",
+            colormap=cmap,
+            vmin=0,
+            vmax=60,
+            colorbar_label="dBZ",
+        ),
+    ],
+    f"outputs/10_{date}_{variable}_{step}_ensemble.jpg",
+    ncols=3,
+    figsize=(20, 6),
 )
-plot_(
-    ax1,
-    np.where(x[0, 0, step] > 0, x[0, 0, step], np.nan),
-    f"{forecast} - Lead time: {step}hrs - Member: {0}",
-    cmap,
-    vmin=0,
-    vmax=60,
-)
-plot_(
-    ax2,
-    np.where(x[1, 0, step] > 0, x[1, 0, step], np.nan),
-    f"{forecast} - Lead time: {step}hrs - Member: {1}",
-    cmap,
-    vmin=0,
-    vmax=60,
-)
-plot_(
-    ax3,
-    np.where(x[:, 0, step].mean(axis=0) > 0, x[:, 0, step].std(axis=0), np.nan),
-    f"{forecast} - Lead time: {step}hrs - Std",
-    cmap,
-    vmin=0,
-    vmax=60,
-)
-plt.savefig(f"outputs/10_{date}_{variable}_{step}_ensemble.jpg")
 
 # %%
 # Lets also plot the surface temperature field.
@@ -228,26 +210,46 @@ variable = "t2m"
 cmap = "Spectral_r"
 x = io[variable]
 
-plt.close("all")
-fig, (ax1, ax2, ax3) = plt.subplots(
-    nrows=1, ncols=3, subplot_kw={"projection": projection}, figsize=(20, 6)
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            viz.raster_dataarray(
+                x[0, 0, step],
+                lat=model.lat,
+                lon=model.lon,
+                name=variable,
+                attrs={"units": "K"},
+            ),
+            title=f"{forecast} - Lead time: {step}hrs - Member: 0",
+            colormap=cmap,
+            colorbar_label="K",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                io[variable][1, 0, step],
+                lat=model.lat,
+                lon=model.lon,
+                name=variable,
+                attrs={"units": "K"},
+            ),
+            title=f"{forecast} - Lead time: {step}hrs - Member: 1",
+            colormap=cmap,
+            colorbar_label="K",
+        ),
+        viz.raster_panel(
+            viz.raster_dataarray(
+                x[:, 0, step].std(axis=0),
+                lat=model.lat,
+                lon=model.lon,
+                name=f"{variable}_std",
+                attrs={"units": "K"},
+            ),
+            title=f"{forecast} - Lead time: {step}hrs - Std",
+            colormap=cmap,
+            colorbar_label="K",
+        ),
+    ],
+    f"outputs/10_{date}_{variable}_{step}_ensemble.jpg",
+    ncols=3,
+    figsize=(20, 6),
 )
-plot_(
-    ax1,
-    x[0, 0, step],
-    f"{forecast} - Lead time: {step}hrs - Member: {0}",
-    cmap,
-)
-plot_(
-    ax2,
-    io[variable][1, 0, step],
-    f"{forecast} - Lead time: {step}hrs - Member: {1}",
-    cmap,
-)
-plot_(
-    ax3,
-    x[:, 0, step].std(axis=0),
-    f"{forecast} - Lead time: {step}hrs - Std",
-    cmap,
-)
-plt.savefig(f"outputs/10_{date}_{variable}_{step}_ensemble.jpg")
