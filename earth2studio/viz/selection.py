@@ -26,7 +26,7 @@ from typing import Any
 
 import xarray as xr
 
-X_COORD_ALIASES = ("x", "lon", "longitude")
+X_COORD_ALIASES = ("x", "lon", "long", "lng", "longitude")
 Y_COORD_ALIASES = ("y", "lat", "latitude")
 
 

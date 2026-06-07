@@ -142,6 +142,7 @@ backend delegates, texture managers, and exporters.
 | Timeline playback | Partial | Playback rate, loop policy, UTC-to-playback mapping, frame-change events. | `timeline.py`, backend sessions |
 | Dynamic texture streaming | Partial | Concrete OVRTX texture manager, async decode/upload queues, CPU staging cache, GPU residency cache, mosaic/tile/LOD loaders. | `textures.py`, `base.py`, renderer backend |
 | Default global textures | Implemented | Actual packaged/pre-populated optimized assets. | `domains.py`, deployment packaging |
+| Grid/projection support | Partial | Regular lat/lon, curvilinear lat/lon, projected/native, HPX/HEALPix, diamond, GOES, and geohash-indexed grid intent are represented. Backend payload builders still need concrete lowering for HPX/geohash/tiled mosaics. | `grids.py`, adapters, backend payload builders |
 | Regional terrain | Partial | Tiled terrain mesh generation, OpenUSD export, renderer-backed local scene session, vertical datum transforms. | `regional.py`, terrain builders, exporters |
 | Vector/flow objects | Partial | Scene-level track adapter, streamline generation, 3D glyph instancing, backend flow-object lowering. | `layers.py`, vector payload builders |
 | Application session | Missing | Backend-owned session lifecycle, renderer delegate subscriptions, camera sync, cleanup, picking/selection. | `backends/` |
@@ -250,6 +251,7 @@ earth2studio/viz/
   timeline.py
   camera.py
   base.py
+  grids.py
   selection.py
   styles.py
   regional.py
@@ -343,6 +345,37 @@ Initial layer types:
   scenario data.
 - `VolumeLayer`: volumetric scalar fields represented as slice stacks, transfer
   functions, or OpenUSD `UsdVol` / OpenVDB assets when a renderer supports them.
+
+### Grid and Projection Support
+
+Command Center uses image projection strings such as `latlong`, tiled
+`latlong_u_v`, `diamond`, `hpx`, and `goes`, plus affine mappings for
+rectangular lat/lon subsets. Earth2 Studio should not expose those as a large
+scene API. Instead, each layer should carry a backend-neutral `GridSpec` through
+its adapter and projection metadata.
+
+Supported grid intents:
+
+- `regular_latlon`: 1D latitude and longitude coordinates.
+- `curvilinear_latlon`: 2D latitude/longitude coordinate arrays.
+- `projected`: x/y coordinates with CRS or grid mapping metadata.
+- `native`: model-native grids that need backend-specific lowering.
+- `healpix`: HPX/HEALPix-style indexed or tiled spherical grids.
+- `diamond`: Command Center ICON/diamond-style globe texture grids.
+- `goes`: geostationary satellite projection intent.
+- `geohash`: geohash-indexed regions or trigger cells.
+
+For xarray raster layers, the adapter infers the grid descriptor and stores it
+in `RasterView.grid`; `Scene` mirrors that into `ProjectionSpec.metadata["grid"]`
+so it is visible in summaries and backend routing. For sparse dataframe trigger
+data, static plotting should still use decoded lat/lon or x/y columns today,
+while future backend payload builders can lower geohash cells into polygons or
+instanced geometry.
+
+The rule is: every grid should be representable, but only backends that know how
+to lower that grid should claim full rendering support. This avoids silently
+pretending that all grids are regular lat/lon while keeping the public layer API
+stable.
 
 ### Timeline
 

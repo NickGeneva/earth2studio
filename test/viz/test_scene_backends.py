@@ -60,6 +60,7 @@ def test_scene_adds_raster_points_and_summary(
     assert points.id == "points-002"
     assert raster.style.colormap == "turbo"
     assert raster.style.alpha == 0.75
+    assert raster.projection.metadata["grid"]["kind"] == "regular_latlon"
     assert len(scene.timeline.frames) == 4
 
     result = scene.render("summary")

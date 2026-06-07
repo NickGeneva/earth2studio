@@ -140,6 +140,27 @@ The same scene description can later route to OpenUSD or OVRTX-style local
 renderers as those backends mature. The core layer API does not require users to
 rewrite xarray or dataframe ingestion code when a backend changes.
 
+## Grids and Projections
+
+Raster layers infer a grid descriptor from xarray dimensions, coordinates, and
+attributes:
+
+```python
+scene = viz.Scene()
+layer = scene.add_raster(forecast, variable="t2m")
+grid = layer.projection.metadata["grid"]
+```
+
+The descriptor makes the spatial representation visible to backends and tests.
+Current grid intents include regular lat/lon, curvilinear lat/lon, projected
+x/y grids, model-native grids, HPX/HEALPix, diamond-style globe grids, GOES, and
+geohash-indexed data.
+
+Static Matplotlib rendering is strongest for regular raster-like arrays. For
+geohash trigger tables, provide decoded `lat`/`lon` or `x`/`y` columns for
+static plotting today; future renderer payload builders can lower geohash cells
+into polygons or instanced geometry without changing the scene API.
+
 ## External Assets
 
 The core forecast path should stay xarray-native, but the scene model can also

@@ -26,6 +26,7 @@ import xarray as xr
 
 from earth2studio.viz.adapters.dataframe import DataFrameAdapter
 from earth2studio.viz.adapters.xarray import XarrayAdapter
+from earth2studio.viz.grids import GridSpec, infer_grid_spec_from_xarray
 from earth2studio.viz.selection import infer_spatial_reference, select_xarray
 
 
@@ -92,6 +93,9 @@ def test_xarray_adapter_regular_grid(sample_dataarray: xr.DataArray) -> None:
     assert view.x_coord == "lon"
     assert view.variable == "t2m"
     assert view.device == "cpu"
+    assert view.grid is not None
+    assert view.grid.kind == "regular_latlon"
+    assert view.grid.projection == "latlon"
     assert view.as_2d().dims == ("lat", "lon")
 
 
@@ -106,6 +110,49 @@ def test_xarray_adapter_curvilinear_grid() -> None:
     assert infer_spatial_reference(data) == ("y", "x", "lat", "lon")
     view = XarrayAdapter(data).to_raster_view()
     assert view.shape_2d == (2, 3)
+    assert view.grid is not None
+    assert view.grid.kind == "curvilinear_latlon"
+
+
+def test_grid_spec_detects_hpx_diamond_goes_and_geohash() -> None:
+    raster = xr.DataArray(np.ones((2, 3), dtype=np.float32), dims=("y", "x"))
+
+    hpx = raster.assign_attrs(projection="hpx")
+    diamond = raster.assign_attrs(projection="diamond")
+    goes = raster.assign_attrs(projection="goes")
+    geohash = xr.DataArray(
+        np.ones((2,), dtype=np.float32),
+        dims=("geohash",),
+        coords={"geohash": ["9q8yy", "9q8yz"]},
+    )
+
+    assert infer_grid_spec_from_xarray(hpx).kind == "healpix"
+    assert infer_grid_spec_from_xarray(hpx).projection == "hpx"
+    assert infer_grid_spec_from_xarray(diamond).kind == "diamond"
+    assert infer_grid_spec_from_xarray(goes).kind == "goes"
+    assert infer_grid_spec_from_xarray(geohash).kind == "geohash"
+    assert infer_grid_spec_from_xarray(geohash).index_coord == "geohash"
+
+
+def test_grid_spec_projected_and_serializable() -> None:
+    data = xr.DataArray(
+        np.ones((2, 3), dtype=np.float32),
+        dims=("y", "x"),
+        coords={"y": [0.0, 1.0], "x": [10.0, 11.0, 12.0]},
+        attrs={"crs": "EPSG:3857"},
+    )
+    grid = infer_grid_spec_from_xarray(
+        data,
+        y_dim="y",
+        x_dim="x",
+        y_coord="y",
+        x_coord="x",
+    )
+
+    assert isinstance(grid, GridSpec)
+    assert grid.kind == "projected"
+    assert grid.crs == "epsg:3857"
+    assert grid.as_dict()["x_dim"] == "x"
 
 
 def test_infer_spatial_reference_explicit_xy(terrain_dataarray: xr.DataArray) -> None:

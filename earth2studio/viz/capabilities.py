@@ -149,6 +149,23 @@ def default_capability_inventory() -> tuple[VizCapability, ...]:
             summary="Default global texture domain resolves readable assets under EARTH2STUDIO_CACHE/viz/v5/default_textures.",
         ),
         VizCapability(
+            id="grid-projection-support",
+            command_center_concept="latlong, tiled latlong, diamond, hpx, goes projections",
+            earth2studio_area="grids.py/adapters/xarray.py/styles.py",
+            status="partial",
+            public_api_required=False,
+            summary="GridSpec records regular lat/lon, curvilinear lat/lon, projected/native, HPX/HEALPix, diamond, GOES, and geohash-indexed grid intent.",
+            missing=(
+                "Concrete backend lowering for geohash cells",
+                "Concrete backend lowering for HPX/HEALPix textures",
+                "Tiled latlong mosaic loader integration",
+            ),
+            next_steps=(
+                "Route GridSpec metadata into backend payload builders.",
+                "Keep projection-specific rendering logic in backend adapters.",
+            ),
+        ),
+        VizCapability(
             id="regional-terrain",
             command_center_concept="Local/regional terrain and projected overlays",
             earth2studio_area="regional.py/scene.py/layers.py",

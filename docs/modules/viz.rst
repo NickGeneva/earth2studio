@@ -42,6 +42,7 @@ data frames, regional terrain scenes, and backend-neutral scene descriptions.
     viz.viz_cache_root
     viz.readable_cache_filename
     viz.default_texture_domain
+    viz.infer_grid_spec_from_xarray
     viz.LayerProtocol
     viz.SceneProtocol
     viz.BackendProtocol
@@ -66,6 +67,7 @@ data frames, regional terrain scenes, and backend-neutral scene descriptions.
     viz.TextureCachePolicy
     viz.TextureDomain
     viz.TextureDomainAsset
+    viz.GridSpec
     viz.infer_asset_kind
     viz.LayerStyle
     viz.ProjectionSpec

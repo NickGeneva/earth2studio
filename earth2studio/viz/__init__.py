@@ -56,6 +56,7 @@ from earth2studio.viz.domains import (
     TextureDomainAsset,
     default_texture_domain,
 )
+from earth2studio.viz.grids import GridSpec, infer_grid_spec_from_xarray
 from earth2studio.viz.layers import (
     DrapedRasterLayer,
     GeoTiffLayer,
@@ -111,6 +112,7 @@ __all__ = [
     "DEFAULT_VIZ_CACHE_VERSION",
     "DrapedRasterLayer",
     "GeoTiffLayer",
+    "GridSpec",
     "ImageLayer",
     "Layer",
     "LayerProtocol",
@@ -147,6 +149,7 @@ __all__ = [
     "default_texture_domain",
     "get_backend",
     "infer_asset_kind",
+    "infer_grid_spec_from_xarray",
     "point_panel",
     "plot",
     "plot_points",

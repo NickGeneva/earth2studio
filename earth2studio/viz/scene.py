@@ -35,6 +35,7 @@ from earth2studio.viz.assets import AssetSource, MeshSource, TextureSource
 from earth2studio.viz.backends.base import RenderResult, get_backend
 from earth2studio.viz.camera import Camera
 from earth2studio.viz.domains import TextureDomain, default_texture_domain
+from earth2studio.viz.grids import GridSpec
 from earth2studio.viz.layers import (
     DrapedRasterLayer,
     GeoTiffLayer,
@@ -109,7 +110,7 @@ class Scene:
             name=name or view.variable or "Raster",
             data=view,
             style=_style(style, **style_kwargs),
-            projection=projection or ProjectionSpec(kind="latlon"),
+            projection=projection or _projection_for_grid(view.grid),
             time_extent=self.timeline.range(),
         )
         return self.add_layer(layer)  # type: ignore[return-value]
@@ -197,8 +198,10 @@ class Scene:
             data=view,
             style=_style(style, **style_kwargs),
             projection=projection
-            or ProjectionSpec(
-                kind="local", crs=self.region.crs if self.region else None
+            or _projection_for_grid(
+                view.grid,
+                fallback_kind="local",
+                fallback_crs=self.region.crs if self.region else None,
             ),
             metadata={
                 "texture": texture,
@@ -232,8 +235,10 @@ class Scene:
             data=view,
             style=_style(style, **style_kwargs),
             projection=projection
-            or ProjectionSpec(
-                kind="local", crs=self.region.crs if self.region else None
+            or _projection_for_grid(
+                view.grid,
+                fallback_kind="local",
+                fallback_crs=self.region.crs if self.region else None,
             ),
             time_extent=self.timeline.range(),
         )
@@ -479,6 +484,21 @@ class Scene:
 def _style(style: LayerStyle | None = None, **style_kwargs: Any) -> LayerStyle:
     base = LayerStyle() if style is None else style
     return base.merged(**style_kwargs)
+
+
+def _projection_for_grid(
+    grid: GridSpec | None,
+    *,
+    fallback_kind: str = "latlon",
+    fallback_crs: str | None = None,
+) -> ProjectionSpec:
+    if grid is None:
+        return ProjectionSpec(kind=fallback_kind, crs=fallback_crs)
+    return ProjectionSpec(
+        kind=grid.projection,
+        crs=grid.crs or fallback_crs,
+        metadata={"grid": grid.as_dict()},
+    )
 
 
 def _texture_source(

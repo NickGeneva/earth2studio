@@ -16,8 +16,8 @@
 """Agent-friendly summary: xarray-to-raster view adapter.
 
 Key APIs: `XarrayAdapter.to_raster_view` selects variables/time/lead_time,
-infers spatial axes, preserves attributes, and returns `RasterView` for scenes
-and backends.
+infers spatial axes and grid descriptors, preserves attributes, and returns
+`RasterView` for scenes and backends.
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ from typing import Any
 
 import xarray as xr
 
+from earth2studio.viz.grids import GridSpec, infer_grid_spec_from_xarray
 from earth2studio.viz.selection import (
     infer_spatial_reference,
     select_xarray,
@@ -47,6 +48,7 @@ class RasterView:
     time_coord: str | None = None
     lead_time_coord: str | None = None
     device: str = "cpu"
+    grid: GridSpec | None = None
     attrs: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -83,6 +85,13 @@ class XarrayAdapter:
         )
         y_dim, x_dim, y_coord, x_coord = infer_spatial_reference(selected, x=x, y=y)
         selected = squeeze_non_spatial_singletons(selected, y_dim, x_dim)
+        grid = infer_grid_spec_from_xarray(
+            selected,
+            y_dim=y_dim,
+            x_dim=x_dim,
+            y_coord=y_coord,
+            x_coord=x_coord,
+        )
         return RasterView(
             data=selected,
             y_dim=y_dim,
@@ -93,6 +102,7 @@ class XarrayAdapter:
             time_coord="time" if "time" in selected.coords else None,
             lead_time_coord="lead_time" if "lead_time" in selected.coords else None,
             device=_device_for_array(selected.data),
+            grid=grid,
             attrs=dict(selected.attrs),
         )
 
