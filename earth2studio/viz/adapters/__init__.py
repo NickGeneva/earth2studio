@@ -15,12 +15,22 @@
 # limitations under the License.
 """Agent-friendly summary: adapters normalize user data into viz views.
 
-Key APIs: `XarrayAdapter` produces `RasterView` objects and `DataFrameAdapter`
-produces `FrameView` objects. These adapters are lightweight and avoid renderer
-dependencies.
+Key APIs: `XarrayAdapter` produces `RasterView` and `RasterSequenceView`
+objects and `DataFrameAdapter` produces `FrameView` objects. These adapters are
+lightweight and avoid renderer dependencies.
 """
 
 from earth2studio.viz.adapters.dataframe import DataFrameAdapter, FrameView
-from earth2studio.viz.adapters.xarray import RasterView, XarrayAdapter
+from earth2studio.viz.adapters.xarray import (
+    RasterSequenceView,
+    RasterView,
+    XarrayAdapter,
+)
 
-__all__ = ["DataFrameAdapter", "FrameView", "RasterView", "XarrayAdapter"]
+__all__ = [
+    "DataFrameAdapter",
+    "FrameView",
+    "RasterSequenceView",
+    "RasterView",
+    "XarrayAdapter",
+]

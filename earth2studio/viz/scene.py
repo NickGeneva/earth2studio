@@ -23,6 +23,7 @@ dispatch to registered backends lazily.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Sequence
@@ -89,6 +90,7 @@ class Scene:
         variable: str | None = None,
         time: Any | None = None,
         lead_time: Any | None = None,
+        select: Mapping[str, Any] | None = None,
         x: str | None = None,
         y: str | None = None,
         name: str | None = None,
@@ -96,11 +98,12 @@ class Scene:
         projection: ProjectionSpec | None = None,
         **style_kwargs: Any,
     ) -> RasterLayer:
-        """Add a dense xarray raster layer."""
-        view = XarrayAdapter(data).to_raster_view(
+        """Add a dense xarray raster layer or selected raster time series."""
+        view = XarrayAdapter(data).to_raster_layer_view(
             variable=variable,
             time=time,
             lead_time=lead_time,
+            selectors=select,
             x=x,
             y=y,
         )

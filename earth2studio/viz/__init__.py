@@ -15,10 +15,11 @@
 # limitations under the License.
 """Agent-friendly summary: public entrypoint for Earth2 Studio visualization.
 
-Key APIs: `Scene`, `plot`, quick plot panels, native-grid heatmap helpers,
-layer dataclasses, `Timeline`, `Camera`, `RegionSpec`, asset and texture
-descriptors, and backend registry helpers. Importing this module does not
-import heavy renderer dependencies; backend factories are resolved lazily.
+Key APIs: `Scene`, `plot`, layer dataclasses, `Timeline`, `Camera`,
+`RegionSpec`, asset and texture descriptors, native-grid heatmap helpers,
+one-off quick plot helpers, and backend registry helpers. Importing this module
+does not import heavy renderer dependencies; backend factories are resolved
+lazily.
 """
 
 from earth2studio.viz.api import plot

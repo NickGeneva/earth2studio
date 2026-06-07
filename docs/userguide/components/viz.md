@@ -54,39 +54,33 @@ summary = viz.plot(
 )
 ```
 
-## Example-Oriented Helpers
+## Layer Time Series
 
-Example scripts often start from model output arrays and coordinate vectors.
-Use {func}`earth2studio.viz.raster_dataarray` to make the xarray boundary
-explicit, then pass panels to {func}`earth2studio.viz.save_raster_grid`:
+Example scripts often start from model output stores. Open those stores with
+xarray, select the variable and timesteps you want to visualize, then add those
+arrays directly as scene layers. For regular global rasters, the Matplotlib
+backend renders each raster layer as a row and each `time` or `lead_time` frame
+as a column:
 
 ```python
+import xarray as xr
 from earth2studio import viz
 
-field = viz.raster_dataarray(
-    io["t2m"][0, 4],
-    lat=io["lat"][:],
-    lon=io["lon"][:],
-    name="t2m",
-    attrs={"units": "K"},
-)
+ds = xr.open_zarr("outputs/forecast.zarr")
+field = ds["tcwv"].isel(time=0, lead_time=[0, 2, 4, 6])
 
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            field,
-            title="t2m - lead_time=24h",
-            colormap="Spectral_r",
-            colorbar_label="K",
-        )
-    ],
-    "outputs/t2m_prediction.jpg",
-    ncols=1,
-)
+scene = viz.Scene(title="tcwv ensemble")
+scene.add_raster(field, select={"ensemble": 0}, name="Member 0", colormap="Blues")
+scene.add_raster(field.std(dim="ensemble"), name="Ensemble std", colormap="Blues")
+scene.save("outputs/tcwv_ensemble.jpg", backend="matplotlib")
 ```
 
-The same helper family covers scalar diagnostics, station locations, and
-trajectory-style data:
+Any additional non-spatial dimensions must be explicitly selected or reduced in
+the layer call. This keeps the layer API simple while making hidden ambiguity
+fail loudly.
+
+Quick helper functions remain available for small one-off artifacts where a
+scene would be unnecessary:
 
 - {func}`earth2studio.viz.save_series` for one-dimensional diagnostics such as
   `soi`.
@@ -157,23 +151,16 @@ x/y grids, model-native grids, cubed-sphere face stacks, HPX/HEALPix,
 diamond-style globe grids, GOES, and geohash-indexed data.
 
 Native indexed grids can still be plotted without hand-written Matplotlib code.
-For example, cBottle can return `hpx` instead of lat/lon coordinates; the quick
-plot helpers tile that HEALPix vector into a native heatmap:
+For example, cBottle can return `hpx` instead of lat/lon coordinates; the layer
+adapter tiles that HEALPix vector into a native heatmap:
 
 ```python
 cbottle_ds.lat_lon = False
 sample = cbottle_ds([timestamp], ["tcwv"])
 
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            sample.sel(variable="tcwv").isel(time=0),
-            title="Native HEALPix heatmap",
-            colormap="cubehelix",
-        )
-    ],
-    "outputs/tcwv_hpx_heatmap.png",
-)
+scene = viz.Scene(title="Native HEALPix heatmap")
+scene.add_raster(sample.sel(variable="tcwv").isel(time=0), colormap="cubehelix")
+scene.save("outputs/tcwv_hpx_heatmap.png", backend="matplotlib")
 ```
 
 The heatmap is a native grid diagnostic, not a map reprojection. Use lat/lon

@@ -44,8 +44,9 @@ Recipe plotting code that should be evaluated after the examples:
 
 1. Replace single-field global map examples with `viz.plot` or
    `Scene.add_raster`.
-2. Replace multi-panel examples after adding a simple `viz.grid` or
-   `SceneGrid` helper.
+2. Replace time-step and ensemble comparison examples with repeated
+   `Scene.add_raster` calls. The Matplotlib backend owns the default layout:
+   raster layers become rows and `time` or `lead_time` frames become columns.
 3. Replace ensemble mean/std maps after standardizing xarray reduction examples.
 4. Replace vector examples after `VectorLayer` supports quiver/barb lowering.
 5. Replace track and cyclone examples after `TrackLayer` supports grouped line
@@ -68,17 +69,16 @@ When an example already has an Earth2 Studio IO backend in memory, convert or
 open it as xarray before calling `viz`. Avoid teaching `viz` about concrete IO
 backend classes.
 
-cBottle native `hpx` arrays can be passed directly to `viz.raster_panel` or
-`viz.plot_raster_grid`; the adapter renders them as native HEALPix heatmap
-mosaics. That is separate from future Cartopy/earth2grid geographic
+cBottle native `hpx` arrays can be passed directly to `Scene.add_raster`; the
+adapter renders them as native HEALPix heatmap mosaics when the Matplotlib
+backend is used. That is separate from future Cartopy/earth2grid geographic
 reprojection support.
 
 ## API Gaps To Close Before Full Migration
 
 - `CartopyBackend`: projection-aware maps, coastlines, state/country features,
   and `pcolormesh`/`contourf` choices.
-- `SceneGrid`: small multiples for lead-time panels, ensemble panels, and
-  comparison rows.
+- CartoPy-native raster sequence lowering once projection-aware maps are added.
 - `TrackLayer`: grouped line rendering for cyclone tracks and object paths.
 - `LineLayer`: scalar time-series plots for statistics examples.
 - `VectorLayer`: quiver/barb rendering from `u10m`/`v10m` and derived `ws10m`.

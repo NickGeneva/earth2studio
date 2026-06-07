@@ -14,7 +14,24 @@ data frames, regional terrain scenes, and backend-neutral scene descriptions.
     :nosignatures:
     :toctree: generated/viz/
 
+    viz.Scene
     viz.plot
+    viz.Layer
+    viz.RasterLayer
+    viz.PointLayer
+    viz.VectorLayer
+    viz.TerrainLayer
+    viz.DrapedRasterLayer
+    viz.ImageLayer
+    viz.GeoTiffLayer
+    viz.MeshLayer
+    viz.RegionCubeLayer
+    viz.VolumeLayer
+    viz.Camera
+    viz.Timeline
+    viz.RegionSpec
+    viz.LayerStyle
+    viz.ProjectionSpec
     viz.raster_dataarray
     viz.raster_panel
     viz.plot_raster_grid
@@ -30,10 +47,6 @@ data frames, regional terrain scenes, and backend-neutral scene descriptions.
     viz.track_panel
     viz.plot_tracks
     viz.save_tracks
-    viz.Scene
-    viz.Camera
-    viz.Timeline
-    viz.RegionSpec
     viz.RasterPanel
     viz.SeriesPanel
     viz.PointPanel
@@ -51,17 +64,6 @@ data frames, regional terrain scenes, and backend-neutral scene descriptions.
     viz.BackendProtocol
     viz.AssetSourceProtocol
     viz.TextureManagerProtocol
-    viz.Layer
-    viz.RasterLayer
-    viz.PointLayer
-    viz.VectorLayer
-    viz.TerrainLayer
-    viz.DrapedRasterLayer
-    viz.ImageLayer
-    viz.GeoTiffLayer
-    viz.MeshLayer
-    viz.RegionCubeLayer
-    viz.VolumeLayer
     viz.AssetSource
     viz.TextureSource
     viz.MeshSource
@@ -72,8 +74,6 @@ data frames, regional terrain scenes, and backend-neutral scene descriptions.
     viz.TextureDomainAsset
     viz.GridSpec
     viz.infer_asset_kind
-    viz.LayerStyle
-    viz.ProjectionSpec
     viz.BackendCapabilities
     viz.RenderResult
     viz.VizDependencyError

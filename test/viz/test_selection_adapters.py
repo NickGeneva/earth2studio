@@ -25,7 +25,7 @@ import pytest
 import xarray as xr
 
 from earth2studio.viz.adapters.dataframe import DataFrameAdapter
-from earth2studio.viz.adapters.xarray import XarrayAdapter
+from earth2studio.viz.adapters.xarray import RasterSequenceView, XarrayAdapter
 from earth2studio.viz.grids import GridSpec, infer_grid_spec_from_xarray
 from earth2studio.viz.selection import infer_spatial_reference, select_xarray
 
@@ -97,6 +97,45 @@ def test_xarray_adapter_regular_grid(sample_dataarray: xr.DataArray) -> None:
     assert view.grid.kind == "regular_latlon"
     assert view.grid.projection == "latlon"
     assert view.as_2d().dims == ("lat", "lon")
+
+
+def test_xarray_adapter_sequence_view_over_lead_time(
+    sample_dataarray: xr.DataArray,
+) -> None:
+    view = XarrayAdapter(sample_dataarray).to_raster_layer_view(
+        variable="t2m",
+        time=0,
+    )
+
+    assert isinstance(view, RasterSequenceView)
+    assert view.frame_dims == ("lead_time",)
+    assert view.frame_count == 2
+    frames = list(view.iter_frames())
+    assert frames[0][0] == "lead_time=0 h"
+    assert frames[0][1].shape_2d == (3, 4)
+    assert frames[1][0] == "lead_time=6 h"
+
+
+def test_xarray_adapter_sequence_requires_non_time_selection() -> None:
+    data = xr.DataArray(
+        np.ones((2, 2, 3, 4), dtype=np.float32),
+        dims=("ensemble", "lead_time", "lat", "lon"),
+        coords={
+            "ensemble": [0, 1],
+            "lead_time": [np.timedelta64(0, "h"), np.timedelta64(6, "h")],
+            "lat": [0.0, 1.0, 2.0],
+            "lon": [10.0, 11.0, 12.0, 13.0],
+        },
+        name="tcwv",
+    )
+
+    with pytest.raises(ValueError, match="ensemble"):
+        XarrayAdapter(data).to_raster_layer_view()
+
+    view = XarrayAdapter(data).to_raster_layer_view(selectors={"ensemble": 0})
+
+    assert isinstance(view, RasterSequenceView)
+    assert view.frame_count == 2
 
 
 def test_xarray_adapter_curvilinear_grid() -> None:

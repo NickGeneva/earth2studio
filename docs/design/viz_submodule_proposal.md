@@ -237,6 +237,12 @@ ETL, dashboard schema work, or another runtime.
    decode queues, CPU staging buffers, GPU texture caches, or timeline/camera
    prefetch.
 
+8. Let simple layer calls express common time-series products. If a raster has
+   selected `time` or `lead_time` frames, `Scene.add_raster` should preserve
+   those frames as a raster sequence. The Matplotlib backend can then apply an
+   opinionated default layout with layers as rows and frames as columns, without
+   requiring examples to build bespoke subplot grids.
+
 ## Proposed Package Layout
 
 ```text
@@ -322,8 +328,10 @@ Layer(
 Initial layer types:
 
 - `RasterLayer`: dense gridded `xr.DataArray` or selected variable from
-  `xr.Dataset`; supports regular `lat/lon`, `y/x` with 2D lat/lon coords, and
-  future curvilinear grids.
+  `xr.Dataset`; supports regular `lat/lon`, `y/x` with 2D lat/lon coords,
+  future curvilinear grids, and selected `time` or `lead_time` raster
+  sequences. Extra non-spatial dimensions such as `ensemble` should be selected
+  with layer-level selectors or reduced before rendering.
 - `ContourLayer`: derived from raster data but rendered as isolines or filled
   contours.
 - `PointLayer`: pandas or cuDF points with lat/lon/time columns and scalar

@@ -22,6 +22,7 @@ coordinate names for regular or 2D lat/lon grids.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 import xarray as xr
@@ -36,11 +37,14 @@ def select_xarray(
     variable: str | None = None,
     time: Any | None = None,
     lead_time: Any | None = None,
+    selectors: Mapping[str, Any] | None = None,
 ) -> xr.DataArray:
     """Select a renderable DataArray from an xarray object."""
     array = _select_variable(data, variable)
     array = _select_named_coordinate(array, "time", time)
     array = _select_named_coordinate(array, "lead_time", lead_time)
+    for coord, value in (selectors or {}).items():
+        array = _select_named_coordinate(array, coord, value)
     return array
 
 
@@ -124,7 +128,7 @@ def _select_named_coordinate(
         return data
     if coord not in data.coords and coord not in data.dims:
         raise KeyError(f"Coordinate {coord!r} was not found")
-    if isinstance(value, int):
+    if _is_integer_indexer(value):
         return data.isel({coord: value})
     return data.sel({coord: value})
 
@@ -150,3 +154,13 @@ def _dim_for_coord(data: xr.DataArray, coord: str, *, prefer_axis: int) -> str:
             f"Coordinate {coord!r} is scalar and cannot define a spatial axis"
         )
     return dims[prefer_axis]
+
+
+def _is_integer_indexer(value: Any) -> bool:
+    if isinstance(value, int):
+        return True
+    if isinstance(value, (list, tuple)):
+        return bool(value) and all(isinstance(item, int) for item in value)
+    if hasattr(value, "dtype") and hasattr(value, "ndim"):
+        return value.ndim > 0 and str(value.dtype).startswith("int")
+    return False

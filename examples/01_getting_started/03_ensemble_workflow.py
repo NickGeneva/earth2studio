@@ -75,6 +75,7 @@ from dotenv import load_dotenv
 load_dotenv()  # TODO: make common example prep function
 
 import numpy as np
+import xarray as xr
 
 from earth2studio.data import GFS
 from earth2studio.io import ZarrBackend
@@ -140,45 +141,30 @@ io = ensemble(
 from earth2studio import viz
 
 forecast = "2024-01-01"
+variable = "tcwv"
+lead_steps = [0, 2, 4, 6, 8]
+dataset = xr.open_zarr("outputs/03_ensemble_sg.zarr")
+field = dataset[variable].isel(time=0, lead_time=lead_steps)
 
-
-for variable, cmap in zip(["tcwv"], ["Blues"]):
-    step = 4  # lead time = 24 hrs
-    panels = [
-        viz.raster_panel(
-            viz.raster_dataarray(
-                io[variable][0, 0, step],
-                lat=io["lat"][:],
-                lon=io["lon"][:],
-                name=variable,
-            ),
-            title=f"{forecast} - Lead time: {6*step}hrs - Member: 0",
-            colormap=cmap,
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                io[variable][1, 0, step],
-                lat=io["lat"][:],
-                lon=io["lon"][:],
-                name=variable,
-            ),
-            title=f"{forecast} - Lead time: {6*step}hrs - Member: 1",
-            colormap=cmap,
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                np.std(io[variable][:, 0, step], axis=0),
-                lat=io["lat"][:],
-                lon=io["lon"][:],
-                name=f"{variable}_std",
-            ),
-            title=f"{forecast} - Lead time: {6*step}hrs - Std",
-            colormap=cmap,
-        ),
-    ]
-    viz.save_raster_grid(
-        panels,
-        f"outputs/03_{forecast}_{variable}_{step}_ensemble.jpg",
-        ncols=3,
-        figsize=(16, 3),
-    )
+scene = viz.Scene(title=f"{forecast} {variable} ensemble")
+scene.add_raster(
+    field,
+    select={"ensemble": 0},
+    name="Member 0",
+    colormap="Blues",
+)
+scene.add_raster(
+    field,
+    select={"ensemble": 1},
+    name="Member 1",
+    colormap="Blues",
+)
+scene.add_raster(
+    field.std(dim="ensemble"),
+    name="Ensemble std",
+    colormap="Blues",
+)
+scene.save(
+    f"outputs/03_{forecast}_{variable}_ensemble.jpg",
+    backend="matplotlib",
+)
