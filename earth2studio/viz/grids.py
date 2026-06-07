@@ -17,8 +17,9 @@
 
 Key APIs: `GridSpec` records how an xarray/dataframe layer is spatially indexed;
 `infer_grid_spec_from_xarray` detects regular lat/lon, curvilinear lat/lon,
-projected/native grids, HPX/HEALPix-style grids, Command Center diamond/GOES
-projection hints, and geohash-indexed data without importing renderer packages.
+projected/native grids, cubed-sphere/face-tiled grids, HPX/HEALPix-style grids,
+Command Center diamond/GOES projection hints, and geohash-indexed data without
+importing renderer packages.
 """
 
 from __future__ import annotations
@@ -30,6 +31,15 @@ import xarray as xr
 
 _GEOHASH_NAMES = {"geohash", "geo_hash", "geohashes", "gh"}
 _HEALPIX_NAMES = {"hpx", "healpix", "healpix_index", "nside"}
+_CUBED_SPHERE_NAMES = {
+    "cubed_sphere",
+    "cube_sphere",
+    "cubesphere",
+    "cubed-sphere",
+}
+_FACE_NAMES = {"face", "faces"}
+_FACE_Y_NAMES = {"height", "row", "rows", "tile_y", "y"}
+_FACE_X_NAMES = {"width", "col", "cols", "tile_x", "x"}
 _DIAMOND_NAMES = {"diamond", "diamond_idx", "diamond_subidx"}
 _GOES_NAMES = {"goes", "geostationary", "geos"}
 _LAT_NAMES = {"lat", "latitude"}
@@ -85,7 +95,21 @@ def infer_grid_spec_from_xarray(
 
     if _matches(projection, _HEALPIX_NAMES) or _matches(grid, _HEALPIX_NAMES):
         return _indexed_grid("healpix", "hpx", data, _HEALPIX_NAMES, crs=crs)
-    if _matches(projection, _DIAMOND_NAMES) or _matches(grid, _DIAMOND_NAMES):
+    if names & _HEALPIX_NAMES or _contains_any(names, _HEALPIX_NAMES):
+        return _indexed_grid("healpix", "hpx", data, _HEALPIX_NAMES, crs=crs)
+    if _matches(projection, _CUBED_SPHERE_NAMES) or _matches(grid, _CUBED_SPHERE_NAMES):
+        return _face_tiled_grid("cubed_sphere", "cubed_sphere", data, crs=crs)
+    if names & _FACE_NAMES and (names & _FACE_Y_NAMES) and (names & _FACE_X_NAMES):
+        face_dim = _first_matching_name(data, _FACE_NAMES)
+        face_count = data.sizes.get(face_dim, 0) if face_dim is not None else 0
+        if face_count == 12:
+            return _face_tiled_grid("healpix", "hpx", data, crs=crs)
+        return _face_tiled_grid("cubed_sphere", "cubed_sphere", data, crs=crs)
+    if (
+        _matches(projection, _DIAMOND_NAMES)
+        or _matches(grid, _DIAMOND_NAMES)
+        or names & _DIAMOND_NAMES
+    ):
         return _indexed_grid("diamond", "diamond", data, _DIAMOND_NAMES, crs=crs)
     if _matches(projection, _GOES_NAMES) or _matches(grid, _GOES_NAMES):
         return GridSpec(
@@ -145,12 +169,45 @@ def _indexed_grid(
     crs: str | None,
 ) -> GridSpec:
     index_coord = _first_matching_name(data, candidates)
+    tile_shape, metadata = _indexed_metadata(kind, data, index_coord, projection)
     return GridSpec(
         kind=kind,
         projection=projection,
         crs=crs,
         index_coord=index_coord,
-        metadata={"index_family": projection},
+        tile_shape=tile_shape,
+        metadata=metadata,
+    )
+
+
+def _face_tiled_grid(
+    kind: str,
+    projection: str,
+    data: xr.DataArray,
+    *,
+    crs: str | None,
+) -> GridSpec:
+    face_dim = _first_matching_name(data, _FACE_NAMES)
+    y_dim = _first_matching_name(data, _FACE_Y_NAMES)
+    x_dim = _first_matching_name(data, _FACE_X_NAMES)
+    tile_shape = None
+    if y_dim is not None and x_dim is not None:
+        tile_shape = (data.sizes[y_dim], data.sizes[x_dim])
+    metadata: dict[str, Any] = {"index_family": projection}
+    if face_dim is not None:
+        metadata["face_dim"] = face_dim
+        metadata["face_count"] = data.sizes[face_dim]
+    return GridSpec(
+        kind=kind,
+        projection=projection,
+        crs=crs,
+        y_dim=y_dim,
+        x_dim=x_dim,
+        y_coord=y_dim,
+        x_coord=x_dim,
+        index_coord=face_dim,
+        tile_shape=tile_shape,
+        metadata=metadata,
     )
 
 
@@ -165,6 +222,36 @@ def _first_matching_name(data: xr.DataArray, candidates: set[str]) -> str | None
     return None
 
 
+def _indexed_metadata(
+    kind: str,
+    data: xr.DataArray,
+    index_coord: str | None,
+    projection: str,
+) -> tuple[tuple[int, int] | None, dict[str, Any]]:
+    metadata: dict[str, Any] = {"index_family": projection}
+    if index_coord is None or index_coord not in data.sizes:
+        return None, metadata
+    index_size = data.sizes[index_coord]
+    metadata["index_size"] = index_size
+    if kind == "healpix":
+        tile_shape = _healpix_tile_shape(index_size)
+        if tile_shape is not None:
+            nside = tile_shape[0]
+            metadata["nside"] = nside
+            metadata["level"] = nside.bit_length() - 1
+        return tile_shape, metadata
+    return None, metadata
+
+
+def _healpix_tile_shape(index_size: int) -> tuple[int, int] | None:
+    if index_size <= 0 or index_size % 12:
+        return None
+    nside = int((index_size // 12) ** 0.5)
+    if nside * nside * 12 != index_size:
+        return None
+    return nside, nside
+
+
 def _attr_text(data: xr.DataArray, key: str) -> str | None:
     value = data.attrs.get(key)
     if value is None:
@@ -176,6 +263,10 @@ def _matches(value: str | None, candidates: set[str]) -> bool:
     if value is None:
         return False
     return any(candidate in value for candidate in candidates)
+
+
+def _contains_any(names: set[str], candidates: set[str]) -> bool:
+    return any(candidate in name for name in names for candidate in candidates)
 
 
 def _coord_ndim(data: xr.DataArray, coord: str | None) -> int:

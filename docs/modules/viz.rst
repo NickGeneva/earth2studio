@@ -43,6 +43,9 @@ data frames, regional terrain scenes, and backend-neutral scene descriptions.
     viz.readable_cache_filename
     viz.default_texture_domain
     viz.infer_grid_spec_from_xarray
+    viz.native_grid_heatmap
+    viz.can_native_heatmap
+    viz.supports_native_heatmap
     viz.LayerProtocol
     viz.SceneProtocol
     viz.BackendProtocol

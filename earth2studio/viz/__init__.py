@@ -15,10 +15,10 @@
 # limitations under the License.
 """Agent-friendly summary: public entrypoint for Earth2 Studio visualization.
 
-Key APIs: `Scene`, `plot`, layer dataclasses, `Timeline`, `Camera`,
-`RegionSpec`, asset and texture descriptors, and backend registry helpers.
-Importing this module does not import heavy renderer dependencies; backend
-factories are resolved lazily.
+Key APIs: `Scene`, `plot`, quick plot panels, native-grid heatmap helpers,
+layer dataclasses, `Timeline`, `Camera`, `RegionSpec`, asset and texture
+descriptors, and backend registry helpers. Importing this module does not
+import heavy renderer dependencies; backend factories are resolved lazily.
 """
 
 from earth2studio.viz.api import plot
@@ -70,6 +70,11 @@ from earth2studio.viz.layers import (
     TrackLayer,
     VectorLayer,
     VolumeLayer,
+)
+from earth2studio.viz.native import (
+    can_native_heatmap,
+    native_grid_heatmap,
+    supports_native_heatmap,
 )
 from earth2studio.viz.quick import (
     PointPanel,
@@ -145,11 +150,13 @@ __all__ = [
     "VizDependencyError",
     "VolumeLayer",
     "available_backends",
+    "can_native_heatmap",
     "common_cache_root",
     "default_texture_domain",
     "get_backend",
     "infer_asset_kind",
     "infer_grid_spec_from_xarray",
+    "native_grid_heatmap",
     "point_panel",
     "plot",
     "plot_points",
@@ -167,6 +174,7 @@ __all__ = [
     "save_series",
     "save_tracks",
     "series_panel",
+    "supports_native_heatmap",
     "track_panel",
     "viz_cache_root",
 ]

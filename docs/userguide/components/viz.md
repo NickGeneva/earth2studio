@@ -153,8 +153,32 @@ grid = layer.projection.metadata["grid"]
 
 The descriptor makes the spatial representation visible to backends and tests.
 Current grid intents include regular lat/lon, curvilinear lat/lon, projected
-x/y grids, model-native grids, HPX/HEALPix, diamond-style globe grids, GOES, and
-geohash-indexed data.
+x/y grids, model-native grids, cubed-sphere face stacks, HPX/HEALPix,
+diamond-style globe grids, GOES, and geohash-indexed data.
+
+Native indexed grids can still be plotted without hand-written Matplotlib code.
+For example, cBottle can return `hpx` instead of lat/lon coordinates; the quick
+plot helpers tile that HEALPix vector into a native heatmap:
+
+```python
+cbottle_ds.lat_lon = False
+sample = cbottle_ds([timestamp], ["tcwv"])
+
+viz.save_raster_grid(
+    [
+        viz.raster_panel(
+            sample.sel(variable="tcwv").isel(time=0),
+            title="Native HEALPix heatmap",
+            colormap="cubehelix",
+        )
+    ],
+    "outputs/tcwv_hpx_heatmap.png",
+)
+```
+
+The heatmap is a native grid diagnostic, not a map reprojection. Use lat/lon
+output or a future backend-specific payload builder when geographic coastlines
+and projected overlays are required.
 
 Static Matplotlib rendering is strongest for regular raster-like arrays. For
 geohash trigger tables, provide decoded `lat`/`lon` or `x`/`y` columns for

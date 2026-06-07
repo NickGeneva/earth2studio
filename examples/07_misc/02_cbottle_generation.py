@@ -97,14 +97,25 @@ from datetime import datetime
 
 n_samples = 5
 timestamp = datetime(2022, 9, 5)
+variable = "tcwv"
 
 # Fetch the ground truth
-era5_da = era5_ds([timestamp], ["msl", "tcwv"])
+era5_da = era5_ds([timestamp], ["msl", variable])
 # Generate some samples from cBottle
-cbottle_da = cbottle_ds([timestamp for i in range(n_samples)], ["msl", "tcwv"])
+cbottle_da = cbottle_ds([timestamp for i in range(n_samples)], ["msl", variable])
+
+# The default cBottle source returns lat/lon fields. Native HEALPix output can
+# also be requested and plotted directly; viz renders it as a face-tiled heatmap.
+original_lat_lon = cbottle_ds.lat_lon
+try:
+    cbottle_ds.lat_lon = False
+    cbottle_native_da = cbottle_ds([timestamp], [variable])
+finally:
+    cbottle_ds.lat_lon = original_lat_lon
 
 print(era5_da)
 print(cbottle_da)
+print(cbottle_native_da)
 
 # %%
 # Post Processing CBottle Data
@@ -124,7 +135,6 @@ def _as_numpy(value):
     return value.cpu().numpy() if hasattr(value, "cpu") else value
 
 
-variable = "tcwv"
 panels = [
     viz.raster_panel(
         era5_da.sel(variable=variable).isel(time=0),
@@ -145,13 +155,21 @@ panels = [
         )
         for i in range(n_samples)
     ],
+    viz.raster_panel(
+        cbottle_native_da.sel(variable=variable).isel(time=0),
+        title="CBottle Native HEALPix Heatmap",
+        colormap="cubehelix",
+        vmin=0,
+        vmax=90,
+        colorbar_label=variable,
+    ),
 ]
 
 viz.save_raster_grid(
     panels,
     "outputs/15_tcwv_cbottle_datasource.jpg",
     ncols=3,
-    figsize=(11, 6),
+    figsize=(12, 8),
 )
 # %%
 # Variable Infilling with CBottleInfill Diagnostic

@@ -68,6 +68,11 @@ When an example already has an Earth2 Studio IO backend in memory, convert or
 open it as xarray before calling `viz`. Avoid teaching `viz` about concrete IO
 backend classes.
 
+cBottle native `hpx` arrays can be passed directly to `viz.raster_panel` or
+`viz.plot_raster_grid`; the adapter renders them as native HEALPix heatmap
+mosaics. That is separate from future Cartopy/earth2grid geographic
+reprojection support.
+
 ## API Gaps To Close Before Full Migration
 
 - `CartopyBackend`: projection-aware maps, coastlines, state/country features,

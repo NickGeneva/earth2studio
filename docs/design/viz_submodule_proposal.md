@@ -142,7 +142,7 @@ backend delegates, texture managers, and exporters.
 | Timeline playback | Partial | Playback rate, loop policy, UTC-to-playback mapping, frame-change events. | `timeline.py`, backend sessions |
 | Dynamic texture streaming | Partial | Concrete OVRTX texture manager, async decode/upload queues, CPU staging cache, GPU residency cache, mosaic/tile/LOD loaders. | `textures.py`, `base.py`, renderer backend |
 | Default global textures | Implemented | Actual packaged/pre-populated optimized assets. | `domains.py`, deployment packaging |
-| Grid/projection support | Partial | Regular lat/lon, curvilinear lat/lon, projected/native, HPX/HEALPix, diamond, GOES, and geohash-indexed grid intent are represented. Backend payload builders still need concrete lowering for HPX/geohash/tiled mosaics. | `grids.py`, adapters, backend payload builders |
+| Grid/projection support | Partial | Regular lat/lon, curvilinear lat/lon, projected/native, cubed-sphere, HPX/HEALPix, diamond, GOES, and geohash-indexed grid intent are represented. Native HEALPix/cubed face stacks can render as heatmap mosaics; backend payload builders still need concrete geographic lowering for HPX/geohash/tiled mosaics. | `grids.py`, `native.py`, adapters, backend payload builders |
 | Regional terrain | Partial | Tiled terrain mesh generation, OpenUSD export, renderer-backed local scene session, vertical datum transforms. | `regional.py`, terrain builders, exporters |
 | Vector/flow objects | Partial | Scene-level track adapter, streamline generation, 3D glyph instancing, backend flow-object lowering. | `layers.py`, vector payload builders |
 | Application session | Missing | Backend-owned session lifecycle, renderer delegate subscriptions, camera sync, cleanup, picking/selection. | `backends/` |
@@ -360,6 +360,7 @@ Supported grid intents:
 - `curvilinear_latlon`: 2D latitude/longitude coordinate arrays.
 - `projected`: x/y coordinates with CRS or grid mapping metadata.
 - `native`: model-native grids that need backend-specific lowering.
+- `cubed_sphere`: six-face cubed-sphere arrays, typically `(face, height, width)`.
 - `healpix`: HPX/HEALPix-style indexed or tiled spherical grids.
 - `diamond`: Command Center ICON/diamond-style globe texture grids.
 - `goes`: geostationary satellite projection intent.
@@ -371,6 +372,14 @@ so it is visible in summaries and backend routing. For sparse dataframe trigger
 data, static plotting should still use decoded lat/lon or x/y columns today,
 while future backend payload builders can lower geohash cells into polygons or
 instanced geometry.
+
+For immediate static diagnostics, `native_grid_heatmap` lowers cBottle-style
+`hpx` vectors, HEALPix PAD_XY face stacks, cubed-sphere arrays, and diamond face
+stacks into a 2D heatmap mosaic. This is deliberately not a geographic
+reprojection; it is a native-grid view that lets examples and tests inspect the
+collected model values without carrying bespoke Matplotlib code. A later
+CartoPy/earth2grid or renderer payload builder can turn the same `GridSpec` into
+lat/lon textures, projected meshes, or globe-native tiles.
 
 The rule is: every grid should be representable, but only backends that know how
 to lower that grid should claim full rendering support. This avoids silently

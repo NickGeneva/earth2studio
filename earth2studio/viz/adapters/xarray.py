@@ -16,8 +16,9 @@
 """Agent-friendly summary: xarray-to-raster view adapter.
 
 Key APIs: `XarrayAdapter.to_raster_view` selects variables/time/lead_time,
-infers spatial axes and grid descriptors, preserves attributes, and returns
-`RasterView` for scenes and backends.
+infers spatial axes and grid descriptors, converts native indexed grids to
+heatmap rasters when needed, preserves attributes, and returns `RasterView` for
+scenes and backends.
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ from typing import Any
 import xarray as xr
 
 from earth2studio.viz.grids import GridSpec, infer_grid_spec_from_xarray
+from earth2studio.viz.native import can_native_heatmap, native_grid_heatmap
 from earth2studio.viz.selection import (
     infer_spatial_reference,
     select_xarray,
@@ -83,6 +85,23 @@ class XarrayAdapter:
             time=time,
             lead_time=lead_time,
         )
+        grid = infer_grid_spec_from_xarray(selected)
+        if can_native_heatmap(selected, grid):
+            selected = native_grid_heatmap(selected, grid)
+            y_dim, x_dim, y_coord, x_coord = infer_spatial_reference(selected, x=x, y=y)
+            return RasterView(
+                data=selected,
+                y_dim=y_dim,
+                x_dim=x_dim,
+                y_coord=y_coord,
+                x_coord=x_coord,
+                variable=variable or selected.name,
+                time_coord="time" if "time" in selected.coords else None,
+                lead_time_coord="lead_time" if "lead_time" in selected.coords else None,
+                device=_device_for_array(selected.data),
+                grid=grid,
+                attrs=dict(selected.attrs),
+            )
         y_dim, x_dim, y_coord, x_coord = infer_spatial_reference(selected, x=x, y=y)
         selected = squeeze_non_spatial_singletons(selected, y_dim, x_dim)
         grid = infer_grid_spec_from_xarray(

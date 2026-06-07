@@ -134,6 +134,21 @@ def test_grid_spec_detects_hpx_diamond_goes_and_geohash() -> None:
     assert infer_grid_spec_from_xarray(geohash).index_coord == "geohash"
 
 
+def test_grid_spec_detects_face_tiled_cubed_sphere() -> None:
+    data = xr.DataArray(
+        np.ones((6, 2, 3), dtype=np.float32),
+        dims=("face", "height", "width"),
+        attrs={"grid": "cubed_sphere"},
+    )
+
+    grid = infer_grid_spec_from_xarray(data)
+
+    assert grid.kind == "cubed_sphere"
+    assert grid.projection == "cubed_sphere"
+    assert grid.index_coord == "face"
+    assert grid.tile_shape == (2, 3)
+
+
 def test_grid_spec_projected_and_serializable() -> None:
     data = xr.DataArray(
         np.ones((2, 3), dtype=np.float32),

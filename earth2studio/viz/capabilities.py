@@ -151,17 +151,18 @@ def default_capability_inventory() -> tuple[VizCapability, ...]:
         VizCapability(
             id="grid-projection-support",
             command_center_concept="latlong, tiled latlong, diamond, hpx, goes projections",
-            earth2studio_area="grids.py/adapters/xarray.py/styles.py",
+            earth2studio_area="grids.py/native.py/adapters/xarray.py/styles.py",
             status="partial",
             public_api_required=False,
-            summary="GridSpec records regular lat/lon, curvilinear lat/lon, projected/native, HPX/HEALPix, diamond, GOES, and geohash-indexed grid intent.",
+            summary="GridSpec records regular lat/lon, curvilinear lat/lon, projected/native, cubed-sphere, HPX/HEALPix, diamond, GOES, and geohash-indexed grid intent; native HEALPix/cubed grids can plot as heatmap mosaics.",
             missing=(
                 "Concrete backend lowering for geohash cells",
-                "Concrete backend lowering for HPX/HEALPix textures",
+                "Concrete geographic backend lowering for HPX/HEALPix textures",
                 "Tiled latlong mosaic loader integration",
             ),
             next_steps=(
                 "Route GridSpec metadata into backend payload builders.",
+                "Use native-grid heatmaps for quick diagnostics and examples.",
                 "Keep projection-specific rendering logic in backend adapters.",
             ),
         ),
