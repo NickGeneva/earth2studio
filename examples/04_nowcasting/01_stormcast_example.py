@@ -120,29 +120,34 @@ print(io.root.tree())
 # Notice that the Zarr IO function has additional APIs to interact with the stored data.
 
 # %%
+import numpy as np
+import xarray as xr
+
 from earth2studio import viz
 
 forecast = f"{date}"
 variable = "t2m"
 step = 4  # lead time = 1 hr
 
-field = viz.raster_dataarray(
+spatial_dims = (
+    ("y", "x") if np.ndim(model.lat) == 2 or np.ndim(model.lon) == 2 else ("lat", "lon")
+)
+spatial_coords = (
+    {"lat": (spatial_dims, model.lat), "lon": (spatial_dims, model.lon)}
+    if spatial_dims == ("y", "x")
+    else {"lat": model.lat, "lon": model.lon}
+)
+field = xr.DataArray(
     io[variable][0, step],
-    lat=model.lat,
-    lon=model.lon,
+    dims=spatial_dims,
+    coords=spatial_coords,
     name=variable,
     attrs={"units": "K"},
 )
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            field,
-            title=f"{forecast} - Lead time: {step}hrs",
-            colormap="Spectral_r",
-            colorbar_label="K",
-        )
-    ],
+scene = viz.Scene(title=f"{forecast} - Lead time: {step}hrs")
+scene.add_raster(field, name=variable, colormap="Spectral_r")
+scene.save(
     f"outputs/09_{date}_t2m_prediction.jpg",
-    ncols=1,
+    backend="matplotlib",
     figsize=(10, 6),
 )

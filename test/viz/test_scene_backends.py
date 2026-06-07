@@ -286,6 +286,36 @@ def test_matplotlib_backend_renders_raster_sequences_as_layer_rows(
     assert axes[1][1].get_title() == "u10m | lead_time=6 h"
 
 
+def test_matplotlib_backend_renders_multiple_rasters_as_layer_rows(
+    sample_dataarray: xr.DataArray,
+) -> None:
+    if importlib.util.find_spec("matplotlib") is None:
+        pytest.skip("matplotlib not installed")
+
+    scene = Scene(title="Raster rows")
+    scene.add_raster(
+        sample_dataarray,
+        variable="t2m",
+        time=0,
+        lead_time=0,
+        name="t2m",
+    )
+    scene.add_raster(
+        sample_dataarray,
+        variable="u10m",
+        time=0,
+        lead_time=0,
+        name="u10m",
+    )
+
+    result = scene.render("matplotlib")
+
+    axes = result.metadata["axes"]
+    assert axes.shape == (2, 1)
+    assert axes[0][0].get_title() == "t2m"
+    assert axes[1][0].get_title() == "u10m"
+
+
 def test_matplotlib_backend_supports_and_guard_paths(
     sample_dataarray: xr.DataArray,
     cube_dataarray: xr.DataArray,

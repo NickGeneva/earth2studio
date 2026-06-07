@@ -169,17 +169,19 @@ sample_df = isd(init_time, ["t2m", "u10m", "v10m"])
 station_lats = sample_df["lat"].values
 station_lons = sample_df["lon"].values
 
-viz.save_points(
+station_scene = viz.Scene(title="ISD Station Locations - Central United States")
+station_scene.add_points(
     sample_df,
-    "outputs/21_isd_stations.jpg",
     lat="lat",
     lon="lon",
     fields=(),
+    name="ISD stations",
     color="black",
-    title="ISD Station Locations - Central United States",
+)
+station_scene.save(
+    "outputs/21_isd_stations.jpg",
+    backend="matplotlib",
     figsize=(8, 6),
-    dpi=150,
-    bbox_inches="tight",
 )
 # %%
 # Run Inference With Streaming Observations
@@ -231,75 +233,33 @@ variable = "u10m"
 no_obs_ds = xr.open_zarr("outputs/21_no_obs.zarr")
 obs_ds = xr.open_zarr("outputs/21_with_obs.zarr")
 
-no_obs_vals = no_obs_ds["prediction"].sel(variable=variable).values
-obs_vals = obs_ds["prediction"].sel(variable=variable).values
 
-panels = []
-for step in range(nsteps):
-    lead_hr = step + 1
-    no_obs_field = no_obs_vals[0, step]
-    panels.append(
-        viz.raster_panel(
-            viz.raster_dataarray(
-                no_obs_field,
-                lat=model.lat,
-                lon=model.lon,
-                name=variable,
-                attrs={"units": "m/s"},
-            ),
-            title=f"No Obs +{lead_hr}h",
-            colormap="PRGn",
-            vmin=-10,
-            vmax=10,
-            colorbar_label=f"{variable} (m/s)",
-        )
-    )
-for step in range(nsteps):
-    lead_hr = step + 1
-    obs_field = obs_vals[0, step]
-    panels.append(
-        viz.raster_panel(
-            viz.raster_dataarray(
-                obs_field,
-                lat=model.lat,
-                lon=model.lon,
-                name=variable,
-                attrs={"units": "m/s"},
-            ),
-            title=f"Obs +{lead_hr}h",
-            colormap="PRGn",
-            vmin=-10,
-            vmax=10,
-            colorbar_label=f"{variable} (m/s)",
-        )
-    )
-for step in range(nsteps):
-    lead_hr = step + 1
-    diff_field = obs_vals[0, step] - no_obs_vals[0, step]
-    panels.append(
-        viz.raster_panel(
-            viz.raster_dataarray(
-                diff_field,
-                lat=model.lat,
-                lon=model.lon,
-                name=f"{variable}_diff",
-                attrs={"units": "m/s"},
-            ),
-            title=f"Obs - No Obs +{lead_hr}h",
-            colormap="RdBu_r",
-            vmin=-3,
-            vmax=3,
-            colorbar_label=f"{variable} difference (m/s)",
-        )
+def _with_latlon(field: xr.DataArray) -> xr.DataArray:
+    y_dim, x_dim = field.dims[-2:]
+    return field.assign_coords(
+        lat=((y_dim, x_dim), model.lat),
+        lon=((y_dim, x_dim), model.lon),
     )
 
-viz.save_raster_grid(
-    panels,
+
+no_obs_field = _with_latlon(
+    no_obs_ds["prediction"]
+    .sel(variable=variable)
+    .isel(time=0, lead_time=slice(0, nsteps))
+)
+obs_field = _with_latlon(
+    obs_ds["prediction"].sel(variable=variable).isel(time=0, lead_time=slice(0, nsteps))
+)
+diff_field = (obs_field - no_obs_field).rename(f"{variable}_diff")
+
+scene = viz.Scene(title="StormCast SDA comparison")
+scene.add_raster(no_obs_field, name="No Obs", colormap="PRGn", vmin=-10, vmax=10)
+scene.add_raster(obs_field, name="Obs", colormap="PRGn", vmin=-10, vmax=10)
+scene.add_raster(diff_field, name="Obs - No Obs", colormap="RdBu_r", vmin=-3, vmax=3)
+scene.save(
     "outputs/21_stormcast_sda_comparison.jpg",
-    ncols=nsteps,
+    backend="matplotlib",
     figsize=(4 * nsteps, 8),
-    title="StormCast SDA comparison",
-    dpi=150,
 )
 # %%
 # Ground Truth Comparison
@@ -320,13 +280,12 @@ truth = fetch_data(
 ic["variable"] = np.array(plot_vars)
 
 truth = map_coords_xr(truth, {"hrrr_y": ic["hrrr_y"], "hrrr_x": ic["hrrr_x"]})
-truth_vals = truth.sel(variable=variable).values  # [nsteps, hrrr_y, hrrr_x]
-no_obs_vals = no_obs_ds["prediction"].sel(variable=variable).values
-obs_vals = obs_ds["prediction"].sel(variable=variable).values
+truth_field = _with_latlon(truth.sel(variable=variable))
+truth_field = truth_field.assign_coords(lead_time=no_obs_field["lead_time"])
 
 # Compute absolute errors against ground truth
-no_obs_err = np.abs(no_obs_vals[0] - truth_vals[0])
-obs_err = np.abs(obs_vals[0] - truth_vals[0])
+no_obs_err = np.abs(no_obs_field - truth_field).rename(f"abs_no_obs_{variable}")
+obs_err = np.abs(obs_field - truth_field).rename(f"abs_obs_{variable}")
 
 # %%
 # Plot absolute errors between the StormCast predictions and HRRR analysis ground truth.
@@ -335,48 +294,15 @@ obs_err = np.abs(obs_vals[0] - truth_vals[0])
 
 # %%
 err_max = 5
-panels = []
-for step in range(nsteps):
-    lead_hr = step + 1
-    panels.append(
-        viz.raster_panel(
-            viz.raster_dataarray(
-                no_obs_err[step],
-                lat=model.lat,
-                lon=model.lon,
-                name=f"abs_no_obs_{variable}",
-                attrs={"units": "m/s"},
-            ),
-            title=f"|No Obs - Truth| +{lead_hr}h",
-            colormap="viridis",
-            vmin=0,
-            vmax=err_max,
-            colorbar_label=f"abs({variable}) (m/s)",
-        )
-    )
-for step in range(nsteps):
-    lead_hr = step + 1
-    panels.append(
-        viz.raster_panel(
-            viz.raster_dataarray(
-                obs_err[step],
-                lat=model.lat,
-                lon=model.lon,
-                name=f"abs_obs_{variable}",
-                attrs={"units": "m/s"},
-            ),
-            title=f"|Obs - Truth| +{lead_hr}h",
-            colormap="viridis",
-            vmin=0,
-            vmax=err_max,
-            colorbar_label=f"abs({variable}) (m/s)",
-        )
-    )
-
-viz.save_raster_grid(
-    panels,
+scene = viz.Scene(title="StormCast SDA absolute error")
+scene.add_raster(
+    no_obs_err, name="|No Obs - Truth|", colormap="viridis", vmin=0, vmax=err_max
+)
+scene.add_raster(
+    obs_err, name="|Obs - Truth|", colormap="viridis", vmin=0, vmax=err_max
+)
+scene.save(
     "outputs/21_stormcast_sda_gt_comparison.jpg",
-    ncols=nsteps,
+    backend="matplotlib",
     figsize=(4 * nsteps, 6),
-    title="StormCast SDA absolute error",
 )

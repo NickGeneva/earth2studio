@@ -66,6 +66,7 @@ from dotenv import load_dotenv
 load_dotenv()  # TODO: make common example prep function
 
 import torch
+import xarray as xr
 
 from earth2studio.data import WB2ERA5, CBottle3D
 from earth2studio.models.dx import CBottleInfill
@@ -135,40 +136,32 @@ def _as_numpy(value):
     return value.cpu().numpy() if hasattr(value, "cpu") else value
 
 
-panels = [
-    viz.raster_panel(
-        era5_da.sel(variable=variable).isel(time=0),
-        title="ERA5",
+scene = viz.Scene(title="cBottle datasource")
+scene.add_raster(
+    era5_da.sel(variable=variable).isel(time=0),
+    name="ERA5",
+    colormap="cubehelix",
+    vmin=0,
+    vmax=90,
+)
+for i in range(n_samples):
+    scene.add_raster(
+        cbottle_da.sel(variable=variable).isel(time=i),
+        name=f"CBottle Sample {i}",
         colormap="cubehelix",
         vmin=0,
         vmax=90,
-        colorbar_label=variable,
-    ),
-    *[
-        viz.raster_panel(
-            cbottle_da.sel(variable=variable).isel(time=i),
-            title=f"CBottle Sample {i}",
-            colormap="cubehelix",
-            vmin=0,
-            vmax=90,
-            colorbar_label=variable,
-        )
-        for i in range(n_samples)
-    ],
-    viz.raster_panel(
-        cbottle_native_da.sel(variable=variable).isel(time=0),
-        title="CBottle Native HEALPix Heatmap",
-        colormap="cubehelix",
-        vmin=0,
-        vmax=90,
-        colorbar_label=variable,
-    ),
-]
-
-viz.save_raster_grid(
-    panels,
+    )
+scene.add_raster(
+    cbottle_native_da.sel(variable=variable).isel(time=0),
+    name="CBottle Native HEALPix Heatmap",
+    colormap="cubehelix",
+    vmin=0,
+    vmax=90,
+)
+scene.save(
     "outputs/15_tcwv_cbottle_datasource.jpg",
-    ncols=3,
+    backend="matplotlib",
     figsize=(12, 8),
 )
 # %%
@@ -256,77 +249,57 @@ variable = "tcwv"
 var_idx = np.where(output_coords["variable"] == "tcwv")[0][0]
 era5_data, _ = fetch_data(era5_ds, times[:1], [variable], device=device)
 
-panels = [
-    viz.raster_panel(
-        viz.raster_dataarray(
-            era5_data[0, 0, 0].cpu().numpy(),
-            lat=_as_numpy(output_coords["lat"]),
-            lon=_as_numpy(output_coords["lon"]),
-            name=variable,
-        ),
-        title="ERA5",
-        colormap="jet",
-        vmin=0,
-        vmax=90,
-        colorbar_label=variable,
-    ),
-    viz.raster_panel(
-        viz.raster_dataarray(
-            torch.mean(output_0[:, 0, var_idx], axis=0).cpu().numpy(),
-            lat=_as_numpy(output_coords["lat"]),
-            lon=_as_numpy(output_coords["lon"]),
-            name=variable,
-        ),
-        title="3 Input Variables Mean",
-        colormap="jet",
-        vmin=0,
-        vmax=90,
-        colorbar_label=variable,
-    ),
-    viz.raster_panel(
-        viz.raster_dataarray(
-            torch.mean(output_1[:, 0, var_idx], axis=0).cpu().numpy(),
-            lat=_as_numpy(output_coords["lat"]),
-            lon=_as_numpy(output_coords["lon"]),
-            name=variable,
-        ),
-        title="13 Input Variables Mean",
-        colormap="jet",
-        vmin=0,
-        vmax=90,
-        colorbar_label=variable,
-    ),
-    viz.raster_panel(
-        viz.raster_dataarray(
-            torch.std(output_0[:, 0, var_idx], axis=0).cpu().numpy(),
-            lat=_as_numpy(output_coords["lat"]),
-            lon=_as_numpy(output_coords["lon"]),
-            name=f"{variable}_std",
-        ),
-        title="3 Input Variables Std",
-        colormap="inferno",
-        vmin=0,
-        vmax=10,
-        colorbar_label=f"{variable} std",
-    ),
-    viz.raster_panel(
-        viz.raster_dataarray(
-            torch.std(output_1[:, 0, var_idx], axis=0).cpu().numpy(),
-            lat=_as_numpy(output_coords["lat"]),
-            lon=_as_numpy(output_coords["lon"]),
-            name=f"{variable}_std",
-        ),
-        title="13 Input Variables Std",
-        colormap="inferno",
-        vmin=0,
-        vmax=10,
-        colorbar_label=f"{variable} std",
-    ),
-]
 
-viz.save_raster_grid(
-    panels,
+def _tcwv_field(data, name: str) -> xr.DataArray:
+    return xr.DataArray(
+        _as_numpy(data),
+        dims=("lat", "lon"),
+        coords={
+            "lat": _as_numpy(output_coords["lat"]),
+            "lon": _as_numpy(output_coords["lon"]),
+        },
+        name=name,
+    )
+
+
+scene = viz.Scene(title="cBottle infill")
+scene.add_raster(
+    _tcwv_field(era5_data[0, 0, 0], variable),
+    name="ERA5",
+    colormap="jet",
+    vmin=0,
+    vmax=90,
+)
+scene.add_raster(
+    _tcwv_field(torch.mean(output_0[:, 0, var_idx], axis=0), variable),
+    name="3 Input Variables Mean",
+    colormap="jet",
+    vmin=0,
+    vmax=90,
+)
+scene.add_raster(
+    _tcwv_field(torch.mean(output_1[:, 0, var_idx], axis=0), variable),
+    name="13 Input Variables Mean",
+    colormap="jet",
+    vmin=0,
+    vmax=90,
+)
+scene.add_raster(
+    _tcwv_field(torch.std(output_0[:, 0, var_idx], axis=0), f"{variable}_std"),
+    name="3 Input Variables Std",
+    colormap="inferno",
+    vmin=0,
+    vmax=10,
+)
+scene.add_raster(
+    _tcwv_field(torch.std(output_1[:, 0, var_idx], axis=0), f"{variable}_std"),
+    name="13 Input Variables Std",
+    colormap="inferno",
+    vmin=0,
+    vmax=10,
+)
+scene.save(
     "outputs/15_tcwv_cbottle_infill.jpg",
-    ncols=3,
+    backend="matplotlib",
     figsize=(10, 6),
 )

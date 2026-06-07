@@ -71,6 +71,7 @@ load_dotenv()  # TODO: make common example prep function
 
 import numpy as np
 import torch
+import xarray as xr
 
 from earth2studio.data import ARCO
 from earth2studio.data.utils import fetch_data
@@ -166,39 +167,25 @@ from earth2studio import viz
 forecast = "2024-01-01"
 step = 2  # lead time = 12 hrs into the forecast
 
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            viz.raster_dataarray(
-                io["u10m"][0, step],
-                lat=io["lat"][:],
-                lon=io["lon"][:],
-                name="u10m",
-                attrs={"units": "m/s"},
-            ),
-            title=f"{forecast} - u10m - Lead time: {6*step}hrs",
-            colormap="RdBu_r",
-            vmin=-20,
-            vmax=20,
-            colorbar_label="m/s",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                io["tcwv"][0, step],
-                lat=io["lat"][:],
-                lon=io["lon"][:],
-                name="tcwv",
-                attrs={"units": "kg/m^2"},
-            ),
-            title=f"{forecast} - tcwv - Lead time: {6*step}hrs",
-            colormap="Blues",
-            vmin=0,
-            vmax=70,
-            colorbar_label="kg/m^2",
-        ),
-    ],
+u10m = xr.DataArray(
+    io["u10m"][0, step],
+    dims=("lat", "lon"),
+    coords={"lat": io["lat"][:], "lon": io["lon"][:]},
+    name="u10m",
+    attrs={"units": "m/s"},
+)
+tcwv = xr.DataArray(
+    io["tcwv"][0, step],
+    dims=("lat", "lon"),
+    coords={"lat": io["lat"][:], "lon": io["lon"][:]},
+    name="tcwv",
+    attrs={"units": "kg/m^2"},
+)
+scene = viz.Scene(title=f"{forecast} - Lead time: {6*step}hrs")
+scene.add_raster(u10m, name="u10m", colormap="RdBu_r", vmin=-20, vmax=20)
+scene.add_raster(tcwv, name="tcwv", colormap="Blues", vmin=0, vmax=70)
+scene.save(
     "outputs/06_atlas_u10m_tcwv.jpg",
-    ncols=2,
+    backend="matplotlib",
     figsize=(16, 5),
-    dpi=300,
 )

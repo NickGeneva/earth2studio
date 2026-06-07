@@ -221,27 +221,23 @@ print(da_custom)
 # %%
 from earth2studio import viz
 
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            da_custom.sel(variable="r500").isel(time=0),
-            title="Custom ARCO",
-            vmin=0,
-            vmax=100,
-            colorbar_label="r500",
-        ),
-        viz.raster_panel(
-            da_gfs.sel(variable="r500").isel(time=0),
-            title="GFS",
-            vmin=0,
-            vmax=100,
-            colorbar_label="r500",
-        ),
-    ],
+scene = viz.Scene(title="r500")
+scene.add_raster(
+    da_custom.sel(variable="r500").isel(time=0),
+    name="Custom ARCO",
+    vmin=0,
+    vmax=100,
+)
+scene.add_raster(
+    da_gfs.sel(variable="r500").isel(time=0),
+    name="GFS",
+    vmin=0,
+    vmax=100,
+)
+scene.save(
     "outputs/03_custom_datasource_gfs_versus_custom.jpg",
-    ncols=2,
+    backend="matplotlib",
     figsize=(10, 3),
-    title="r500",
 )
 
 # %%
@@ -290,24 +286,21 @@ print(io.root.tree())
 forecast = "1993-04-05"
 variable = "tcwv"
 
-times = (
-    io["lead_time"][:].astype("timedelta64[ns]").astype("timedelta64[h]").astype(int)
+steps = range(4)
+field = xr.DataArray(
+    np.stack([io[variable][0, step] for step in steps]),
+    dims=("lead_time", "lat", "lon"),
+    coords={
+        "lead_time": np.array([io["lead_time"][step] for step in steps]),
+        "lat": io["lat"][:],
+        "lon": io["lon"][:],
+    },
+    name=variable,
 )
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            viz.raster_dataarray(io[variable][0, step], name=variable),
-            title=f"Lead time: {times[step]}hrs",
-            colormap="magma",
-            vmin=0,
-            vmax=80,
-            colorbar_label=variable,
-        )
-        for step in range(4)
-    ],
+scene = viz.Scene(title=f"{variable} - {forecast}")
+scene.add_raster(field, name=variable, colormap="magma", vmin=0, vmax=80)
+scene.save(
     "outputs/03_custom_datasource_prediction.jpg",
-    ncols=2,
+    backend="matplotlib",
     figsize=(6, 4),
-    title=f"{variable} - {forecast}",
-    bbox_inches="tight",
 )

@@ -229,28 +229,24 @@ ocean_var, ocean_units = "sst", "K"
 # ocean_var_idx = list(x_ocean_coords["variable"]).index(ocean_var)
 lead_time = ds.lead_time.values[-1]
 
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            ds[atmos_var].sel(time=ic_date, lead_time=lead_time),
-            title=(
-                f"Initialization: {ic_date} - "
-                f"Lead time: {lead_time.astype('timedelta64[h]')}"
-            ),
-            colormap="cividis",
-            colorbar_label=f"{atmos_var} [{atmos_units}]",
-        ),
-        viz.raster_panel(
-            ds[ocean_var].sel(time=ic_date, lead_time=lead_time),
-            title=(
-                f"Initialization: {ic_date} - "
-                f"Lead time: {lead_time.astype('timedelta64[h]')}"
-            ),
-            colormap="Spectral_r",
-            colorbar_label=f"{ocean_var} [{ocean_units}]",
-        ),
-    ],
+scene = viz.Scene(
+    title=(
+        f"Initialization: {ic_date} - "
+        f"Lead time: {lead_time.astype('timedelta64[h]')}"
+    )
+)
+scene.add_raster(
+    ds[atmos_var].sel(time=ic_date, lead_time=lead_time),
+    name=f"{atmos_var} [{atmos_units}]",
+    colormap="cividis",
+)
+scene.add_raster(
+    ds[ocean_var].sel(time=ic_date, lead_time=lead_time),
+    name=f"{ocean_var} [{ocean_units}]",
+    colormap="Spectral_r",
+)
+scene.save(
     "outputs/14_ws10m_sst_prediction.png",
-    ncols=2,
+    backend="matplotlib",
     figsize=(15, 6),
 )

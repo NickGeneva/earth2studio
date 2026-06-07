@@ -69,6 +69,7 @@ from datetime import timedelta
 
 import numpy as np
 import torch
+import xarray as xr
 from loguru import logger
 from tqdm import tqdm
 
@@ -128,34 +129,31 @@ from earth2studio import viz
 
 conv_plot = conv_df.iloc[::10]
 sat_plot = sat_df.iloc[::10]
-viz.save_point_sets(
-    [
-        viz.point_panel(
-            conv_plot,
-            lat="lat",
-            lon="lon",
-            fields=(),
-            title=f"Conventional obs (n={len(conv_df):,})",
-            color="tab:blue",
-            size=0.1,
-            alpha=0.3,
-        ),
-        viz.point_panel(
-            sat_plot,
-            lat="lat",
-            lon="lon",
-            fields=(),
-            title=f"Satellite obs (n={len(sat_df):,})",
-            color="tab:orange",
-            size=0.1,
-            alpha=0.3,
-        ),
-    ],
+scene = viz.Scene(title=f"Observation Locations {str(analysis_time[0])[:16]} UTC")
+scene.add_points(
+    conv_plot,
+    lat="lat",
+    lon="lon",
+    fields=(),
+    name=f"Conventional obs (n={len(conv_df):,})",
+    color="tab:blue",
+    size=0.1,
+    alpha=0.3,
+)
+scene.add_points(
+    sat_plot,
+    lat="lat",
+    lon="lon",
+    fields=(),
+    name=f"Satellite obs (n={len(sat_df):,})",
+    color="tab:orange",
+    size=0.1,
+    alpha=0.3,
+)
+scene.save(
     "outputs/22_healda_obs_locations.jpg",
-    ncols=2,
-    title=f"Observation Locations {str(analysis_time[0])[:16]} UTC",
+    backend="matplotlib",
     figsize=(16, 4),
-    dpi=150,
 )
 # %%
 # DA models can be called directly for stateless inference or via
@@ -206,26 +204,25 @@ def to_numpy(arr):
     return arr.get() if hasattr(arr, "get") else arr
 
 
-panels = []
+scene = viz.Scene(title=f"HealDA Analysis {str(analysis_time[0])[:16]} UTC")
 for title, da in zip(titles, results):
     for var, cmap in zip(plot_vars, cmaps):
         field = to_numpy(da.sel(variable=var).data[0])
-        panels.append(
-            viz.raster_panel(
-                viz.raster_dataarray(field, lat=lat, lon=lon, name=var),
-                title=f"{title} - {var}",
-                colormap=cmap,
-                colorbar_label=var,
-            )
+        scene.add_raster(
+            xr.DataArray(
+                field,
+                dims=("lat", "lon"),
+                coords={"lat": lat, "lon": lon},
+                name=var,
+            ),
+            name=f"{title} - {var}",
+            colormap=cmap,
         )
 
-viz.save_raster_grid(
-    panels,
+scene.save(
     "outputs/22_healda_analysis.jpg",
-    ncols=len(plot_vars),
+    backend="matplotlib",
     figsize=(14, 8),
-    title=f"HealDA Analysis {str(analysis_time[0])[:16]} UTC",
-    dpi=150,
 )
 # %%
 # HealDA vs ERA5
@@ -253,29 +250,27 @@ for title, da_pred in zip(diff_titles, diff_results):
 
 # %%
 diff_ranges = {"t2m": (-10, 10), "z500": (-500, 500)}
-panels = []
+scene = viz.Scene(title=f"HealDA Analysis Error {str(analysis_time[0])[:16]} UTC")
 for title, da_pred in zip(diff_titles, diff_results):
     for var in plot_vars:
         field_pred = to_numpy(da_pred.sel(variable=var).data[0])
         field_era5 = to_numpy(era5_interp.sel(variable=var).data[0])
         diff = field_pred - field_era5
-        panels.append(
-            viz.raster_panel(
-                viz.raster_dataarray(diff, lat=lat, lon=lon, name=f"{var}_diff"),
-                title=f"{title} - {var}",
-                colormap="RdBu_r",
-                vmin=diff_ranges[var][0],
-                vmax=diff_ranges[var][1],
-                colorbar_label=f"{var} difference",
-            )
+        scene.add_raster(
+            xr.DataArray(
+                diff,
+                dims=("lat", "lon"),
+                coords={"lat": lat, "lon": lon},
+                name=f"{var}_diff",
+            ),
+            name=f"{title} - {var}",
+            colormap="RdBu_r",
+            vmin=diff_ranges[var][0],
+            vmax=diff_ranges[var][1],
         )
 
-viz.save_raster_grid(
-    panels,
+scene.save(
     "outputs/22_healda_differences.jpg",
-    ncols=len(plot_vars),
+    backend="matplotlib",
     figsize=(14, 8),
-    title=f"HealDA Analysis Error {str(analysis_time[0])[:16]} UTC",
-    dpi=150,
-    bbox_inches="tight",
 )

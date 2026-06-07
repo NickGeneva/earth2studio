@@ -72,6 +72,7 @@ from datetime import datetime
 
 import numpy as np
 import torch
+import xarray as xr
 
 from earth2studio.models.dx import CBottleTCGuidance
 
@@ -130,25 +131,18 @@ lon_carib = lon_coords[lon_mask]
 # Convert to -180..180 for plotting
 lon_carib_deg = ((lon_carib + 180.0) % 360.0) - 180.0
 
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            viz.raster_dataarray(
-                u_carib,
-                lat=lat_carib,
-                lon=lon_carib_deg,
-                name=u_var,
-                attrs={"units": "m/s"},
-            ),
-            title="Guided TC Sample: 10m Zonal Wind",
-            colormap="RdBu_r",
-            vmin=-30,
-            vmax=30,
-            colorbar_label=f"{u_var} (m/s)",
-        )
-    ],
+field = xr.DataArray(
+    u_carib,
+    dims=("lat", "lon"),
+    coords={"lat": lat_carib, "lon": lon_carib_deg},
+    name=u_var,
+    attrs={"units": "m/s"},
+)
+scene = viz.Scene(title="Guided TC Sample: 10m Zonal Wind")
+scene.add_raster(field, name=u_var, colormap="RdBu_r", vmin=-30, vmax=30)
+scene.save(
     "outputs/05_cbottle_tc_guided_sample.jpg",
-    ncols=1,
+    backend="matplotlib",
     figsize=(8, 4.5),
 )
 
@@ -194,21 +188,16 @@ latent_u = forward_latents[0, u_latent_idx].detach().cpu().numpy()
 
 latent_u_carib = latent_u[np.ix_(lat_mask, lon_mask)]
 
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            viz.raster_dataarray(
-                latent_u_carib,
-                lat=lat_carib,
-                lon=lon_carib_deg,
-                name=f"{u_var}_latent",
-            ),
-            title=f"Forward Latents: {u_var} Channel",
-            colormap="viridis",
-            colorbar_label=f"Forward Latent ({u_var})",
-        )
-    ],
+field = xr.DataArray(
+    latent_u_carib,
+    dims=("lat", "lon"),
+    coords={"lat": lat_carib, "lon": lon_carib_deg},
+    name=f"{u_var}_latent",
+)
+scene = viz.Scene(title=f"Forward Latents: {u_var} Channel")
+scene.add_raster(field, name=f"{u_var}_latent", colormap="viridis")
+scene.save(
     "outputs/05_cbottle_tc_forward_latents.jpg",
-    ncols=1,
+    backend="matplotlib",
     figsize=(8, 4.5),
 )

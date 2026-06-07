@@ -64,6 +64,7 @@ load_dotenv()
 
 import numpy as np
 import torch
+import xarray as xr
 
 from earth2studio import viz
 from earth2studio.data import GFS_FX, GOES, MRMS, fetch_data
@@ -247,41 +248,43 @@ field_mrms = np.where(field_mrms <= 0, np.nan, field_mrms)
 
 time = y_coords["time"][0].item()
 lead_time = y_coords["lead_time"][0]
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            viz.raster_dataarray(
-                field,
-                lat=lat_out,
-                lon=lon_out,
-                name=goes_channel,
-                attrs={"units": "K"},
-            ),
-            title=f"Predicted GOES {goes_channel}",
-            colormap="gray_r",
-            colorbar_label="GOES Clean IR 10.35um [K]",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                field_mrms,
-                lat=lat_out,
-                lon=lon_out,
-                name="refc",
-                attrs={"units": "dBZ"},
-            ),
-            title="Predicted MRMS refc",
-            colormap="inferno",
-            vmin=0.0,
-            vmax=55.0,
-            colorbar_label="MRMS Reflectivity [dBZ]",
-        ),
-    ],
-    "outputs/20_stormscope_goes_example.png",
-    ncols=2,
-    figsize=(12, 5),
+
+spatial_dims = ("y", "x") if lat_out.ndim == 2 or lon_out.ndim == 2 else ("lat", "lon")
+spatial_coords = (
+    {"lat": (spatial_dims, lat_out), "lon": (spatial_dims, lon_out)}
+    if spatial_dims == ("y", "x")
+    else {"lat": lat_out, "lon": lon_out}
+)
+goes = xr.DataArray(
+    field,
+    dims=spatial_dims,
+    coords=spatial_coords,
+    name=goes_channel,
+    attrs={"units": "K"},
+)
+refc = xr.DataArray(
+    field_mrms,
+    dims=spatial_dims,
+    coords=spatial_coords,
+    name="refc",
+    attrs={"units": "dBZ"},
+)
+scene = viz.Scene(
     title=(
         f"Predicted fields from {time} UTC initialization "
         f"(lead {lead_time.astype('timedelta64[m]').item()})"
-    ),
-    dpi=300,
+    )
+)
+scene.add_raster(goes, name=f"Predicted GOES {goes_channel}", colormap="gray_r")
+scene.add_raster(
+    refc,
+    name="Predicted MRMS refc",
+    colormap="inferno",
+    vmin=0.0,
+    vmax=55.0,
+)
+scene.save(
+    "outputs/20_stormscope_goes_example.png",
+    backend="matplotlib",
+    figsize=(12, 5),
 )

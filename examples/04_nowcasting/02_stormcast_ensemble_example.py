@@ -63,6 +63,7 @@ see
 
 # %%
 import numpy as np
+import xarray as xr
 from loguru import logger
 from tqdm import tqdm
 
@@ -144,60 +145,60 @@ forecast = f"{date}"
 step = nsteps  # 4 hours, since lead_time = 1 hr
 
 
+def _field(data, name: str, units: str) -> xr.DataArray:
+    spatial_dims = (
+        ("y", "x")
+        if np.ndim(model.lat) == 2 or np.ndim(model.lon) == 2
+        else ("lat", "lon")
+    )
+    spatial_coords = (
+        {"lat": (spatial_dims, model.lat), "lon": (spatial_dims, model.lon)}
+        if spatial_dims == ("y", "x")
+        else {"lat": model.lat, "lon": model.lon}
+    )
+    return xr.DataArray(
+        data,
+        dims=spatial_dims,
+        coords=spatial_coords,
+        name=name,
+        attrs={"units": units},
+    )
+
+
 # Plot refc
 variable = "refc"
 cmap = "gist_ncar"
 x = io[variable]
 
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            viz.raster_dataarray(
-                np.where(x[0, 0, step] > 0, x[0, 0, step], np.nan),
-                lat=model.lat,
-                lon=model.lon,
-                name=variable,
-                attrs={"units": "dBZ"},
-            ),
-            title=f"{forecast} - Lead time: {step}hrs - Member: 0",
-            colormap=cmap,
-            vmin=0,
-            vmax=60,
-            colorbar_label="dBZ",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                np.where(x[1, 0, step] > 0, x[1, 0, step], np.nan),
-                lat=model.lat,
-                lon=model.lon,
-                name=variable,
-                attrs={"units": "dBZ"},
-            ),
-            title=f"{forecast} - Lead time: {step}hrs - Member: 1",
-            colormap=cmap,
-            vmin=0,
-            vmax=60,
-            colorbar_label="dBZ",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                np.where(
-                    x[:, 0, step].mean(axis=0) > 0, x[:, 0, step].std(axis=0), np.nan
-                ),
-                lat=model.lat,
-                lon=model.lon,
-                name=f"{variable}_std",
-                attrs={"units": "dBZ"},
-            ),
-            title=f"{forecast} - Lead time: {step}hrs - Std",
-            colormap=cmap,
-            vmin=0,
-            vmax=60,
-            colorbar_label="dBZ",
-        ),
-    ],
+scene = viz.Scene(title=f"{forecast} - {variable} - Lead time: {step}hrs")
+scene.add_raster(
+    _field(np.where(x[0, 0, step] > 0, x[0, 0, step], np.nan), variable, "dBZ"),
+    name="Member 0",
+    colormap=cmap,
+    vmin=0,
+    vmax=60,
+)
+scene.add_raster(
+    _field(np.where(x[1, 0, step] > 0, x[1, 0, step], np.nan), variable, "dBZ"),
+    name="Member 1",
+    colormap=cmap,
+    vmin=0,
+    vmax=60,
+)
+scene.add_raster(
+    _field(
+        np.where(x[:, 0, step].mean(axis=0) > 0, x[:, 0, step].std(axis=0), np.nan),
+        f"{variable}_std",
+        "dBZ",
+    ),
+    name="Std",
+    colormap=cmap,
+    vmin=0,
+    vmax=60,
+)
+scene.save(
     f"outputs/10_{date}_{variable}_{step}_ensemble.jpg",
-    ncols=3,
+    backend="matplotlib",
     figsize=(20, 6),
 )
 
@@ -210,46 +211,20 @@ variable = "t2m"
 cmap = "Spectral_r"
 x = io[variable]
 
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            viz.raster_dataarray(
-                x[0, 0, step],
-                lat=model.lat,
-                lon=model.lon,
-                name=variable,
-                attrs={"units": "K"},
-            ),
-            title=f"{forecast} - Lead time: {step}hrs - Member: 0",
-            colormap=cmap,
-            colorbar_label="K",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                io[variable][1, 0, step],
-                lat=model.lat,
-                lon=model.lon,
-                name=variable,
-                attrs={"units": "K"},
-            ),
-            title=f"{forecast} - Lead time: {step}hrs - Member: 1",
-            colormap=cmap,
-            colorbar_label="K",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                x[:, 0, step].std(axis=0),
-                lat=model.lat,
-                lon=model.lon,
-                name=f"{variable}_std",
-                attrs={"units": "K"},
-            ),
-            title=f"{forecast} - Lead time: {step}hrs - Std",
-            colormap=cmap,
-            colorbar_label="K",
-        ),
-    ],
+scene = viz.Scene(title=f"{forecast} - {variable} - Lead time: {step}hrs")
+scene.add_raster(_field(x[0, 0, step], variable, "K"), name="Member 0", colormap=cmap)
+scene.add_raster(
+    _field(x[1, 0, step], variable, "K"),
+    name="Member 1",
+    colormap=cmap,
+)
+scene.add_raster(
+    _field(x[:, 0, step].std(axis=0), f"{variable}_std", "K"),
+    name="Std",
+    colormap=cmap,
+)
+scene.save(
     f"outputs/10_{date}_{variable}_{step}_ensemble.jpg",
-    ncols=3,
+    backend="matplotlib",
     figsize=(20, 6),
 )

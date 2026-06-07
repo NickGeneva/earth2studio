@@ -121,30 +121,24 @@ print(io.root.tree())
 # %%
 from datetime import datetime
 
+import xarray as xr
+
 from earth2studio import viz
 
 forecast = datetime(2021, 6, 1)
 variable = "tp"
 step = 8  # lead time = 48 hrs
 
-field = viz.raster_dataarray(
+field = xr.DataArray(
     io[variable][0, step],
-    lat=io["lat"][:],
-    lon=io["lon"][:],
+    dims=("lat", "lon"),
+    coords={"lat": io["lat"][:], "lon": io["lon"][:]},
     name=variable,
     attrs={"units": "m"},
 )
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            field,
-            title=f"{forecast.strftime('%Y-%m-%d')} - Lead time: {6*step}hrs",
-            colormap="terrain",
-            vmin=0.0,
-            vmax=0.01,
-            colorbar_label="Total precipitation (m)",
-        )
-    ],
+scene = viz.Scene(title=f"{forecast.strftime('%Y-%m-%d')} - Lead time: {6*step}hrs")
+scene.add_raster(field, name=variable, colormap="terrain", vmin=0.0, vmax=0.01)
+scene.save(
     "outputs/02_tp_prediction.jpg",
-    ncols=1,
+    backend="matplotlib",
 )

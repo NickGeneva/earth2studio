@@ -294,33 +294,26 @@ lead_time = 4
 arr = np.sqrt(ds["u10m"] ** 2 + ds["v10m"] ** 2)
 mean_field = arr.mean(dim=["ensemble", "sample"])
 std_field = arr.std(dim=["ensemble", "sample"])
-panels = []
-for i in range(lead_time):
-    panels.append(
-        viz.raster_panel(
-            mean_field.isel(time=0, lead_time=i),
-            title=f"ws10m mean, lead_time={6*i}hr",
-            colormap="nipy_spectral",
-            vmin=0,
-            vmax=40,
-            colorbar_label="wind speed mean",
-        )
-    )
-    panels.append(
-        viz.raster_panel(
-            std_field.isel(time=0, lead_time=i),
-            title=f"ws10m std, lead_time={6*i}hr",
-            colormap="magma",
-            vmin=0,
-            vmax=4,
-            colorbar_label="wind speed std",
-        )
-    )
 
-viz.save_raster_grid(
-    panels,
+scene = viz.Scene(
+    title=f"Start date: {np.datetime_as_string(ds['time'].values[0], unit='h')}"
+)
+scene.add_raster(
+    mean_field.isel(time=0, lead_time=slice(0, lead_time)),
+    name="ws10m mean",
+    colormap="nipy_spectral",
+    vmin=0,
+    vmax=40,
+)
+scene.add_raster(
+    std_field.isel(time=0, lead_time=slice(0, lead_time)),
+    name="ws10m std",
+    colormap="magma",
+    vmin=0,
+    vmax=4,
+)
+scene.save(
     "outputs/18_ensemble_corrdiff_w10m.jpg",
-    ncols=lead_time,
+    backend="matplotlib",
     figsize=(12, 5),
-    title=f"Start date: {np.datetime_as_string(ds['time'].values[0], unit='h')}",
 )

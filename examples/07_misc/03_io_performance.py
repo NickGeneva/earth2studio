@@ -461,40 +461,33 @@ ds_nonblocking = xr.open_zarr(
 ds_sync = xr.open_zarr("outputs/17_io_sync.zarr")
 ds_nc = xr.open_dataset("outputs/17_io_sync.nc")
 
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            ds_async.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
-            title="Async Zarr",
-            vmin=250,
-            vmax=320,
-            colorbar_label="t2m",
-        ),
-        viz.raster_panel(
-            ds_nonblocking.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
-            title="Non-blocking Async Zarr",
-            vmin=250,
-            vmax=320,
-            colorbar_label="t2m",
-        ),
-        viz.raster_panel(
-            ds_sync.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
-            title="Sync Zarr",
-            vmin=250,
-            vmax=320,
-            colorbar_label="t2m",
-        ),
-        viz.raster_panel(
-            ds_nc.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
-            title="NetCDF",
-            vmin=250,
-            vmax=320,
-            colorbar_label="t2m",
-        ),
-    ],
+scene = viz.Scene(title="Comparison of mean t2m across IO Backends")
+scene.add_raster(
+    ds_async.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
+    name="Async Zarr",
+    vmin=250,
+    vmax=320,
+)
+scene.add_raster(
+    ds_nonblocking.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
+    name="Non-blocking Async Zarr",
+    vmin=250,
+    vmax=320,
+)
+scene.add_raster(
+    ds_sync.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
+    name="Sync Zarr",
+    vmin=250,
+    vmax=320,
+)
+scene.add_raster(
+    ds_nc.t2m.isel(time=0, lead_time=8).mean(dim="ensemble"),
+    name="NetCDF",
+    vmin=250,
+    vmax=320,
+)
+scene.save(
     "outputs/17_io_performance.jpg",
-    ncols=2,
+    backend="matplotlib",
     figsize=(12, 8),
-    title="Comparison of mean t2m across IO Backends",
-    bbox_inches="tight",
 )

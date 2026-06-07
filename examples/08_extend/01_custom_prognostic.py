@@ -66,6 +66,7 @@ from collections.abc import Generator, Iterator
 
 import numpy as np
 import torch
+import xarray as xr
 
 from earth2studio.models.batch import batch_coords, batch_func
 from earth2studio.utils import handshake_coords, handshake_dim, handshake_size
@@ -304,24 +305,17 @@ from earth2studio import viz
 forecast = "2024-01-01"
 variable = "u10m"
 
-times = (
-    io["lead_time"][:].astype("timedelta64[ns]").astype("timedelta64[h]").astype(int)
-)
 steps = [0, 6, 12, 18]
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            viz.raster_dataarray(io[variable][0, step], name=variable),
-            title=f"Lead time: {times[step]}hrs",
-            vmin=-20,
-            vmax=20,
-            colorbar_label=variable,
-        )
-        for step in steps
-    ],
+field = xr.DataArray(
+    np.stack([io[variable][0, step] for step in steps]),
+    dims=("lead_time", "y", "x"),
+    coords={"lead_time": np.array([io["lead_time"][step] for step in steps])},
+    name=variable,
+)
+scene = viz.Scene(title=f"{variable} - {forecast}")
+scene.add_raster(field, name=variable, vmin=-20, vmax=20)
+scene.save(
     "outputs/01_custom_prognostic_prediction.jpg",
-    ncols=2,
+    backend="matplotlib",
     figsize=(6, 4),
-    title=f"{variable} - {forecast}",
-    bbox_inches="tight",
 )

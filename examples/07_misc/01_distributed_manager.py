@@ -180,24 +180,11 @@ if dist.rank == 0:
     import xarray as xr
 
     from earth2studio import viz
-    from earth2studio.utils.time import timearray_to_datetime
 
     paths = [f"outputs/08_output_{i}.zarr" for i in range(dist.world_size)]
     ds = xr.open_mfdataset(paths, combine="nested", concat_dim="time", engine="zarr")
     print(ds)
 
-    time = timearray_to_datetime(ds.coords["time"].values.astype("datetime64[ns]"))
-    panels = [
-        viz.raster_panel(
-            ds["tcwv"].isel(time=i, lead_time=-1),
-            title=time[i].strftime("%m/%d/%Y"),
-            colormap="gist_earth",
-            vmin=0,
-            vmax=100,
-            colorbar_label="tcwv",
-        )
-        for i in range(6)
-    ]
     lead_days = (
         ds.coords["lead_time"]
         .values[-1]
@@ -205,10 +192,16 @@ if dist.rank == 0:
         .astype("timedelta64[D]")
         .astype(int)
     )
-    viz.save_raster_grid(
-        panels,
+    scene = viz.Scene(title=f"TCWV Forecast Lead Time - {lead_days} days")
+    scene.add_raster(
+        ds["tcwv"].isel(time=slice(0, 6), lead_time=-1),
+        name="tcwv",
+        colormap="gist_earth",
+        vmin=0,
+        vmax=100,
+    )
+    scene.save(
         "outputs/08_tcwv_distributed_manager.jpg",
-        ncols=3,
+        backend="matplotlib",
         figsize=(12, 6),
-        title=f"TCWV Forecast Lead Time - {lead_days} days",
     )

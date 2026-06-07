@@ -74,6 +74,7 @@ wb2 = WB2ERA5(cache=False, verbose=False)
 from collections import OrderedDict
 
 import numpy as np
+import xarray as xr
 
 from earth2studio.io import ZarrBackend
 from earth2studio.utils.coords import split_coords
@@ -153,23 +154,20 @@ io = run.deterministic(
 from earth2studio import viz
 
 lead_steps = [1, 2, 3, 4]  # 6h, 12h, 18h, 24h
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            viz.raster_dataarray(
-                io["msl"][0, step],
-                lat=io["lat"][:],
-                lon=io["lon"][:],
-                name="msl",
-            ),
-            title=f"msl - Lead time: {6*step}h",
-            colormap="PiYG",
-            colorbar_label="msl",
-        )
-        for step in lead_steps
-    ],
+field = xr.DataArray(
+    np.stack([io["msl"][0, step] for step in lead_steps]),
+    dims=("lead_time", "lat", "lon"),
+    coords={
+        "lead_time": np.array([io["lead_time"][step] for step in lead_steps]),
+        "lat": io["lat"][:],
+        "lon": io["lon"][:],
+    },
+    name="msl",
+)
+scene = viz.Scene(title="msl")
+scene.add_raster(field, name="msl", colormap="PiYG")
+scene.save(
     "outputs/19_msl_1day.png",
-    ncols=2,
+    backend="matplotlib",
     figsize=(12, 7),
-    dpi=150,
 )

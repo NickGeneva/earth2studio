@@ -72,6 +72,7 @@ load_dotenv()  # TODO: make common example prep function
 
 import numpy as np
 import torch
+import xarray as xr
 
 from earth2studio.data import GFS
 from earth2studio.io import ZarrBackend
@@ -169,36 +170,25 @@ io = ensemble(
 from earth2studio import viz
 
 forecast = "2024-01-01"
+dataset = xr.open_zarr("outputs/05_ensemble_avsg.zarr")
 
 
 step = 0  # lead time = 24 hrs
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            viz.raster_dataarray(np.mean(io["t2m"][:, 0, step], axis=0), name="t2m"),
-            title=f"{forecast} - t2m - Lead time: {6*step}hrs - Mean",
-            colormap="coolwarm",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(np.std(io["t2m"][:, 0, step], axis=0), name="t2m_std"),
-            title=f"{forecast} - t2m - Lead time: {6*step}hrs - Std",
-            colormap="coolwarm",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(np.mean(io["tcwv"][:, 0, step], axis=0), name="tcwv"),
-            title=f"{forecast} - tcwv - Lead time: {6*step}hrs - Mean",
-            colormap="Blues",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                np.std(io["tcwv"][:, 0, step], axis=0), name="tcwv_std"
-            ),
-            title=f"{forecast} - tcwv - Lead time: {6*step}hrs - Std",
-            colormap="Blues",
-        ),
-    ],
+initial = dataset.isel(time=0, lead_time=step)
+scene = viz.Scene(title=f"{forecast} - Lead time: {6*step}hrs")
+scene.add_raster(
+    initial["t2m"].mean(dim="ensemble"), name="t2m mean", colormap="coolwarm"
+)
+scene.add_raster(
+    initial["t2m"].std(dim="ensemble"), name="t2m std", colormap="coolwarm"
+)
+scene.add_raster(
+    initial["tcwv"].mean(dim="ensemble"), name="tcwv mean", colormap="Blues"
+)
+scene.add_raster(initial["tcwv"].std(dim="ensemble"), name="tcwv std", colormap="Blues")
+scene.save(
     f"outputs/05_{forecast}_{step}_ensemble.jpg",
-    ncols=2,
+    backend="matplotlib",
     figsize=(10, 6),
 )
 
@@ -210,22 +200,12 @@ viz.save_raster_grid(
 
 # %%
 step = 4  # lead time = 24 hrs
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            viz.raster_dataarray(np.mean(io["tcwv"][:, 0, step], axis=0), name="tcwv"),
-            title=f"{forecast} - tcwv - Lead time: {6*step}hrs - Mean",
-            colormap="Blues",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                np.std(io["tcwv"][:, 0, step], axis=0), name="tcwv_std"
-            ),
-            title=f"{forecast} - tcwv - Lead time: {6*step}hrs - Std",
-            colormap="Blues",
-        ),
-    ],
+tcwv = dataset["tcwv"].isel(time=0, lead_time=step)
+scene = viz.Scene(title=f"{forecast} - tcwv - Lead time: {6*step}hrs")
+scene.add_raster(tcwv.mean(dim="ensemble"), name="tcwv mean", colormap="Blues")
+scene.add_raster(tcwv.std(dim="ensemble"), name="tcwv std", colormap="Blues")
+scene.save(
     f"outputs/05_{forecast}_{step}_ensemble.jpg",
-    ncols=2,
+    backend="matplotlib",
     figsize=(10, 3),
 )

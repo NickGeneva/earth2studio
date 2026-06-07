@@ -117,6 +117,7 @@ era5_ds = WB2ERA5()
 import datetime
 
 import numpy as np
+import xarray as xr
 
 from earth2studio.utils.coords import map_coords
 
@@ -178,68 +179,47 @@ def _as_numpy(value):
     return value.cpu().numpy() if hasattr(value, "cpu") else value
 
 
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            viz.raster_dataarray(
-                synth_x[0, 0, 3, :, :].cpu().numpy(),
-                lat=_as_numpy(synth_coords["lat"]),
-                lon=_as_numpy(synth_coords["lon"]),
-                name="u10m",
-                attrs={"units": "m/s"},
-            ),
-            title="Synthetic Data (cBottle3D, low resolution)",
-            colormap="RdBu_r",
-            vmin=-20,
-            vmax=20,
-            colorbar_label="u10m (m/s)",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                sr_synth_x[0, 0, 3, :, :].cpu().numpy(),
-                lat=_as_numpy(sr_synth_coords["lat"]),
-                lon=_as_numpy(sr_synth_coords["lon"]),
-                name="u10m",
-                attrs={"units": "m/s"},
-            ),
-            title="Synthetic Data Super Resolution (cBottle3D to CBottleSR)",
-            colormap="RdBu_r",
-            vmin=-20,
-            vmax=20,
-            colorbar_label="u10m (m/s)",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                era5_x[0, 0, 0, :, :].cpu().numpy(),
-                lat=_as_numpy(era5_coords["lat"]),
-                lon=_as_numpy(era5_coords["lon"]),
-                name="u10m",
-                attrs={"units": "m/s"},
-            ),
-            title="ERA5 Data (low resolution)",
-            colormap="RdBu_r",
-            vmin=-20,
-            vmax=20,
-            colorbar_label="u10m (m/s)",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                sr_infill_x[0, 0, 3, :, :].cpu().numpy(),
-                lat=_as_numpy(sr_infill_coords["lat"]),
-                lon=_as_numpy(sr_infill_coords["lon"]),
-                name="u10m",
-                attrs={"units": "m/s"},
-            ),
-            title="ERA5 Infilled Super Resolution (ERA5 to CBottleInfill to CBottleSR)",
-            colormap="RdBu_r",
-            vmin=-20,
-            vmax=20,
-            colorbar_label="u10m (m/s)",
-        ),
-    ],
+def _u10m_field(data, coords):
+    return xr.DataArray(
+        _as_numpy(data),
+        dims=("lat", "lon"),
+        coords={"lat": _as_numpy(coords["lat"]), "lon": _as_numpy(coords["lon"])},
+        name="u10m",
+        attrs={"units": "m/s"},
+    )
+
+
+scene = viz.Scene(title="cBottle super resolution")
+scene.add_raster(
+    _u10m_field(synth_x[0, 0, 3, :, :], synth_coords),
+    name="Synthetic Data (cBottle3D, low resolution)",
+    colormap="RdBu_r",
+    vmin=-20,
+    vmax=20,
+)
+scene.add_raster(
+    _u10m_field(sr_synth_x[0, 0, 3, :, :], sr_synth_coords),
+    name="Synthetic Data Super Resolution (cBottle3D to CBottleSR)",
+    colormap="RdBu_r",
+    vmin=-20,
+    vmax=20,
+)
+scene.add_raster(
+    _u10m_field(era5_x[0, 0, 0, :, :], era5_coords),
+    name="ERA5 Data (low resolution)",
+    colormap="RdBu_r",
+    vmin=-20,
+    vmax=20,
+)
+scene.add_raster(
+    _u10m_field(sr_infill_x[0, 0, 3, :, :], sr_infill_coords),
+    name="ERA5 Infilled Super Resolution (ERA5 to CBottleInfill to CBottleSR)",
+    colormap="RdBu_r",
+    vmin=-20,
+    vmax=20,
+)
+scene.save(
     "outputs/16_cbottle_super_resolution.jpg",
-    ncols=2,
+    backend="matplotlib",
     figsize=(24, 24),
-    dpi=150,
-    bbox_inches="tight",
 )

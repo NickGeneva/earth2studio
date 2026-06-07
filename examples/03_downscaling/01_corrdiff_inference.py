@@ -75,6 +75,7 @@ from datetime import datetime
 
 import numpy as np
 import torch
+import xarray as xr
 from loguru import logger
 
 from earth2studio.data import DataSource, prep_data_array
@@ -200,46 +201,39 @@ io = run(["2023-10-04T18:00:00"], corrdiff, data, io, number_of_samples=1)
 # %%
 from earth2studio import viz
 
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            viz.raster_dataarray(
-                io["mrr"][0, 0],
-                lat=io["lat"],
-                lon=io["lon"],
-                name="mrr",
-                attrs={"units": "dBz"},
-            ),
-            title="Radar Reflectivity",
-            colormap="inferno",
-            colorbar_label="mrr dBz",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                io["t2m"][0, 0],
-                lat=io["lat"],
-                lon=io["lon"],
-                name="t2m",
-                attrs={"units": "K"},
-            ),
-            title="2-meter Temperature",
-            colormap="RdBu_r",
-            colorbar_label="K",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                np.sqrt(io["u10m"][0, 0] ** 2 + io["v10m"][0, 0] ** 2),
-                lat=io["lat"],
-                lon=io["lon"],
-                name="ws10m",
-                attrs={"units": "m s^-1"},
-            ),
-            title="10-meter Wind Speed",
-            colormap="Greens",
-            colorbar_label="ws10m m s^-1",
-        ),
-    ],
+lat = io["lat"][:]
+lon = io["lon"][:]
+spatial_dims = ("y", "x") if lat.ndim == 2 or lon.ndim == 2 else ("lat", "lon")
+spatial_coords = (
+    {"lat": (spatial_dims, lat), "lon": (spatial_dims, lon)}
+    if spatial_dims == ("y", "x")
+    else {"lat": lat, "lon": lon}
+)
+
+
+def _field(data, name: str, units: str) -> xr.DataArray:
+    return xr.DataArray(
+        data,
+        dims=spatial_dims,
+        coords=spatial_coords,
+        name=name,
+        attrs={"units": units},
+    )
+
+
+mrr = _field(io["mrr"][0, 0], "mrr", "dBz")
+t2m = _field(io["t2m"][0, 0], "t2m", "K")
+ws10m = _field(
+    np.sqrt(io["u10m"][0, 0] ** 2 + io["v10m"][0, 0] ** 2),
+    "ws10m",
+    "m s^-1",
+)
+scene = viz.Scene(title="CorrDiff prediction")
+scene.add_raster(mrr, name="Radar Reflectivity", colormap="inferno")
+scene.add_raster(t2m, name="2-meter Temperature", colormap="RdBu_r")
+scene.add_raster(ws10m, name="10-meter Wind Speed", colormap="Greens")
+scene.save(
     "outputs/04_corr_diff_prediction.jpg",
-    ncols=3,
+    backend="matplotlib",
     figsize=(4 * 8, 8),
 )

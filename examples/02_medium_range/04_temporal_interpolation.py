@@ -60,6 +60,8 @@ In this example you will learn:
 # %%
 import os
 
+import xarray as xr
+
 from earth2studio import viz
 from earth2studio.data import GFS
 from earth2studio.io import ZarrBackend
@@ -109,27 +111,24 @@ print(io.root.tree())
 
 # %%
 
-# Get the number of time steps
 n_steps = io["tcwv"].shape[1]
+n_frames = min([n_steps, 6])
 
-panels = [
-    viz.raster_panel(
-        viz.raster_dataarray(
-            io["tcwv"][0, step],
-            name="tcwv",
-            attrs={"units": "kg/m^2"},
-        ),
-        title=f"Water Vapour - Step: {step} hrs",
-        colormap="twilight_shifted",
-        vmin=0,
-        vmax=85,
-        colorbar_label="kg/m^2",
-    )
-    for step in range(min([n_steps, 6]))
-]
-viz.save_raster_grid(
-    panels,
+field = xr.DataArray(
+    io["tcwv"][0, :n_frames],
+    dims=("lead_time", "lat", "lon"),
+    coords={
+        "lead_time": io["lead_time"][:n_frames],
+        "lat": io["lat"][:],
+        "lon": io["lon"][:],
+    },
+    name="tcwv",
+    attrs={"units": "kg/m^2"},
+)
+scene = viz.Scene(title="Water Vapour")
+scene.add_raster(field, name="tcwv", colormap="twilight_shifted", vmin=0, vmax=85)
+scene.save(
     "outputs/12_tcwv_steps.jpg",
-    ncols=3,
+    backend="matplotlib",
     figsize=(15, 6),
 )

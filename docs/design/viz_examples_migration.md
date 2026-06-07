@@ -17,18 +17,36 @@ The migration rule is intentionally narrow:
 - Use Earth2 Studio lexicon variable names such as `t2m`, `u10m`, `v10m`,
   `ws10m`, `msl`, `tcwv`, `q850`, `z500`, `tp`, and `refc`.
 
-## Example Inventory
+## Example Migration Status
 
-The current example tree has 27 Python examples with manual plotting code:
+The current example tree has been migrated away from manual Matplotlib raster
+grids and `raster_panel` descriptors for raster and point examples. Examples now
+prefer:
+
+- `Scene.add_raster(...)` for xarray-backed fields.
+- `Scene.add_points(...)` for dataframe-backed point observations.
+- xarray `.sel(...)`, `.isel(...)`, `.mean(...)`, `.std(...)`, and explicit
+  `xr.DataArray(...)` construction before calling `viz`.
+- Backend-owned raster layout for layer rows and `time` or `lead_time` columns.
+
+The remaining example quick helpers are intentionally limited to APIs that do
+not yet have a scene-layer equivalent:
+
+- `examples/02_medium_range/05_cyclone_tracking.py` uses `save_tracks` /
+  `track_panel`.
+- `examples/06_seasonal/01_seasonal_statistics.py` uses `save_series` /
+  `series_panel`.
+
+The migrated raster and point examples cover:
 
 | Area | Files |
 | --- | --- |
 | Getting started | `examples/01_getting_started/01_deterministic_workflow.py`, `02_diagnostic_workflow.py`, `03_ensemble_workflow.py` |
-| Medium range | `examples/02_medium_range/01_ensemble_workflow_extend.py`, `02_model_perturbation_hook.py`, `03_huge_ensembles.py`, `04_temporal_interpolation.py`, `05_cyclone_tracking.py`, `06_atlas_inference.py` |
+| Medium range | `examples/02_medium_range/01_ensemble_workflow_extend.py`, `02_model_perturbation_hook.py`, `03_huge_ensembles.py`, `04_temporal_interpolation.py`, `06_atlas_inference.py` |
 | Downscaling | `examples/03_downscaling/01_corrdiff_inference.py`, `02_cbottle_super_resolution.py`, `03_ensemble_downscaling.py` |
 | Nowcasting | `examples/04_nowcasting/01_stormcast_example.py`, `02_stormcast_ensemble_example.py`, `03_stormscope_goes_example.py` |
 | Data assimilation | `examples/05_data_assimilation/01_stormcast_sda.py`, `02_healda.py` |
-| Seasonal | `examples/06_seasonal/01_seasonal_statistics.py`, `02_dlesym_example.py` |
+| Seasonal | `examples/06_seasonal/02_dlesym_example.py` |
 | Misc | `examples/07_misc/01_distributed_manager.py`, `02_cbottle_generation.py`, `03_io_performance.py`, `04_local_datasource.py`, `05_cbottle_tc_guidance.py` |
 | Extend | `examples/08_extend/01_custom_prognostic.py`, `02_custom_diagnostic.py`, `03_custom_datasource.py` |
 
@@ -42,16 +60,13 @@ Recipe plotting code that should be evaluated after the examples:
 
 ## Migration Order
 
-1. Replace single-field global map examples with `viz.plot` or
-   `Scene.add_raster`.
-2. Replace time-step and ensemble comparison examples with repeated
-   `Scene.add_raster` calls. The Matplotlib backend owns the default layout:
-   raster layers become rows and `time` or `lead_time` frames become columns.
-3. Replace ensemble mean/std maps after standardizing xarray reduction examples.
-4. Replace vector examples after `VectorLayer` supports quiver/barb lowering.
-5. Replace track and cyclone examples after `TrackLayer` supports grouped line
+1. Keep raster examples on `Scene.add_raster` and xarray-native selection.
+2. Keep point examples on `Scene.add_points` and dataframe-native columns.
+3. Replace vector examples after `VectorLayer` supports quiver/barb lowering.
+4. Replace track and cyclone examples after `TrackLayer` supports grouped line
    rendering.
-6. Replace report-generation recipes only after the example API stabilizes.
+5. Replace scalar diagnostic examples after a scene-level line layer exists.
+6. Replace report-generation recipes after the example API stabilizes.
 
 ## Canonical Loading Pattern
 
@@ -62,7 +77,9 @@ import xarray as xr
 from earth2studio import viz
 
 ds = xr.open_zarr("outputs/forecast.zarr")
-viz.plot(ds, variable="t2m", time=0, lead_time=4, colormap="turbo")
+scene = viz.Scene(title="t2m forecast")
+scene.add_raster(ds["t2m"].isel(time=0, lead_time=[0, 2, 4]), colormap="turbo")
+scene.save("outputs/t2m_forecast.jpg", backend="matplotlib")
 ```
 
 When an example already has an Earth2 Studio IO backend in memory, convert or

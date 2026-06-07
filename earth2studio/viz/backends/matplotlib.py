@@ -68,10 +68,10 @@ class MatplotlibBackend:
 
     def render(self, scene: Any, **kwargs: Any) -> RenderResult:
         """Render visible scene layers to a Matplotlib figure."""
-        if _has_raster_sequence(scene):
+        if _should_render_raster_grid(scene):
             return self._render_raster_grid(scene, **kwargs)
         plt = _pyplot()
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=kwargs.get("figsize"))
         title = kwargs.get("title", scene.title)
         if title:
             ax.set_title(title)
@@ -230,12 +230,17 @@ def _color_norm(style: LayerStyle) -> Any:
     return PowerNorm(gamma=style.gamma, vmin=style.vmin, vmax=style.vmax)
 
 
-def _has_raster_sequence(scene: Any) -> bool:
-    return any(
-        isinstance(layer.data, RasterSequenceView)
+def _should_render_raster_grid(scene: Any) -> bool:
+    raster_layers = [
+        layer
         for layer in scene.visible_layers
         if isinstance(layer, (RasterLayer, TerrainLayer, DrapedRasterLayer))
-    )
+    ]
+    if not raster_layers:
+        return False
+    if any(isinstance(layer.data, RasterSequenceView) for layer in raster_layers):
+        return True
+    return len(raster_layers) > 1 and len(raster_layers) == len(scene.visible_layers)
 
 
 def _layer_frames(

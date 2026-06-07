@@ -216,25 +216,11 @@ wind_speed = np.sqrt(ds.u10m**2 + ds.v10m**2)
 mean_wind = wind_speed.isel(time=0, lead_time=lead_time).mean(dim="ensemble")
 std_wind = wind_speed.isel(time=0, lead_time=lead_time).std(dim="ensemble")
 
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            mean_wind,
-            title=f'Mean Wind Speed\n{plot_date.strftime("%Y-%m-%d %H:%M UTC")}',
-            colormap="nipy_spectral",
-            colorbar_label="m/s",
-        ),
-        viz.raster_panel(
-            std_wind,
-            title=(
-                "Wind Speed Standard Deviation\n"
-                f'{plot_date.strftime("%Y-%m-%d %H:%M UTC")}'
-            ),
-            colormap="viridis",
-            colorbar_label="m/s",
-        ),
-    ],
+scene = viz.Scene(title=plot_date.strftime("%Y-%m-%d %H:%M UTC"))
+scene.add_raster(mean_wind, name="ws10m mean", colormap="nipy_spectral")
+scene.add_raster(std_wind, name="ws10m std", colormap="viridis")
+scene.save(
     f"outputs/11_hens_step_{plot_date.strftime('%Y_%m_%d')}.jpg",
-    ncols=2,
+    backend="matplotlib",
     figsize=(15, 4),
 )

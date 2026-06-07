@@ -91,6 +91,7 @@ from dotenv import load_dotenv
 load_dotenv()  # TODO: make common example prep function
 
 import numpy as np
+import xarray as xr
 
 from earth2studio.data import GFS
 from earth2studio.io import ZarrBackend
@@ -196,63 +197,40 @@ io_perturbed = ensemble(
 # %%
 from earth2studio import viz
 
+ds_unperturbed = xr.open_zarr("outputs/05_ensemble.zarr")
+ds_perturbed = xr.open_zarr("outputs/05_ensemble_model_perturbation.zarr")
+
 for lt in [10, 20, 30, 40]:
-    panels = [
-        viz.raster_panel(
-            viz.raster_dataarray(
-                io_unperturbed["tcwv"][:, 0, lt].mean(axis=0),
-                lat=io_unperturbed["lat"][:],
-                lon=io_unperturbed["lon"][:],
-                name="tcwv",
-                attrs={"units": "kg m^-2"},
-            ),
-            title="Unperturbed ensemble mean - tcwv",
-            colormap="Blues",
-            colorbar_label="kg m^-2",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                io_unperturbed["tcwv"][:, 0, lt].std(axis=0),
-                lat=io_unperturbed["lat"][:],
-                lon=io_unperturbed["lon"][:],
-                name="tcwv_std",
-                attrs={"units": "kg m^-2"},
-            ),
-            title="Unperturbed ensemble std - tcwv",
-            colormap="RdPu",
-            colorbar_label="kg m^-2",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                io_perturbed["tcwv"][:, 0, lt].mean(axis=0),
-                lat=io_perturbed["lat"][:],
-                lon=io_perturbed["lon"][:],
-                name="tcwv",
-                attrs={"units": "kg m^-2"},
-            ),
-            title="Perturbed ensemble mean - tcwv",
-            colormap="Blues",
-            colorbar_label="kg m^-2",
-        ),
-        viz.raster_panel(
-            viz.raster_dataarray(
-                io_perturbed["tcwv"][:, 0, lt].std(axis=0),
-                lat=io_perturbed["lat"][:],
-                lon=io_perturbed["lon"][:],
-                name="tcwv_std",
-                attrs={"units": "kg m^-2"},
-            ),
-            title="Perturbed ensemble std - tcwv",
-            colormap="RdPu",
-            colorbar_label="kg m^-2",
-        ),
-    ]
-    viz.save_raster_grid(
-        panels,
+    unperturbed = ds_unperturbed["tcwv"].isel(time=0, lead_time=lt)
+    perturbed = ds_perturbed["tcwv"].isel(time=0, lead_time=lt)
+    scene = viz.Scene(
+        title=(
+            f"Forecast Starting on {forecast_date} - Lead Time - "
+            f"{ds_perturbed['lead_time'][lt].values}"
+        )
+    )
+    scene.add_raster(
+        unperturbed.mean(dim="ensemble"),
+        name="Unperturbed ensemble mean - tcwv",
+        colormap="Blues",
+    )
+    scene.add_raster(
+        unperturbed.std(dim="ensemble"),
+        name="Unperturbed ensemble std - tcwv",
+        colormap="RdPu",
+    )
+    scene.add_raster(
+        perturbed.mean(dim="ensemble"),
+        name="Perturbed ensemble mean - tcwv",
+        colormap="Blues",
+    )
+    scene.add_raster(
+        perturbed.std(dim="ensemble"),
+        name="Perturbed ensemble std - tcwv",
+        colormap="RdPu",
+    )
+    scene.save(
         f"outputs/05_model_perturbation_{forecast_date}_leadtime_{lt}.png",
-        ncols=2,
+        backend="matplotlib",
         figsize=(20, 10),
-        title=f'Forecast Starting on {forecast_date} - Lead Time - {io_perturbed["lead_time"][lt]}',
-        dpi=300,
-        bbox_inches="tight",
     )

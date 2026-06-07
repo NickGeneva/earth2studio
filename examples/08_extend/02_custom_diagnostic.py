@@ -63,6 +63,7 @@ from collections import OrderedDict
 
 import numpy as np
 import torch
+import xarray as xr
 
 from earth2studio.models.batch import batch_coords, batch_func
 from earth2studio.utils import handshake_coords, handshake_dim
@@ -232,30 +233,23 @@ from earth2studio import viz
 forecast = "2024-01-01"
 variable = "t2m_c"
 
-times = (
-    io["lead_time"][:].astype("timedelta64[ns]").astype("timedelta64[h]").astype(int)
-)
 step = 4  # 24hrs
-viz.save_raster_grid(
-    [
-        viz.raster_panel(
-            viz.raster_dataarray(
-                io[variable][0, t],
-                lat=io["lat"][:],
-                lon=io["lon"][:],
-                name=variable,
-                attrs={"units": "C"},
-            ),
-            title=f"{times[t]}hrs",
-            colormap="coolwarm",
-            vmin=-10,
-            vmax=30,
-            colorbar_label="C",
-        )
-        for t in range(0, 20, step)
-    ],
+steps = range(0, 20, step)
+field = xr.DataArray(
+    np.stack([io[variable][0, t] for t in steps]),
+    dims=("lead_time", "lat", "lon"),
+    coords={
+        "lead_time": np.array([io["lead_time"][t] for t in steps]),
+        "lat": io["lat"][:],
+        "lon": io["lon"][:],
+    },
+    name=variable,
+    attrs={"units": "C"},
+)
+scene = viz.Scene(title=f"{variable} - {forecast}")
+scene.add_raster(field, name=variable, colormap="coolwarm", vmin=-10, vmax=30)
+scene.save(
     "outputs/02_custom_diagnostic_dlwp_prediction.jpg",
-    ncols=5,
+    backend="matplotlib",
     figsize=(12, 4),
-    title=f"{variable} - {forecast}",
 )
