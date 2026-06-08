@@ -15,9 +15,9 @@
 # limitations under the License.
 """Agent-friendly summary: xarray selection and spatial inference helpers.
 
-Key APIs: `select_xarray` picks variables/time/lead_time from DataArray or
-Dataset inputs; `infer_spatial_reference` identifies y/x dimensions and
-coordinate names for regular or 2D lat/lon grids.
+Key APIs: `select_xarray` supports legacy quick raster helpers; core layer APIs
+expect already-selected xarray inputs. `infer_spatial_reference` identifies y/x
+dimensions and coordinate names for regular or 2D lat/lon grids.
 """
 
 from __future__ import annotations

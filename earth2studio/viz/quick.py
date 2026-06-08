@@ -37,6 +37,7 @@ import xarray as xr
 from earth2studio.viz.adapters.dataframe import DataFrameAdapter
 from earth2studio.viz.adapters.xarray import RasterView, XarrayAdapter
 from earth2studio.viz.backends.matplotlib import _pyplot
+from earth2studio.viz.selection import select_xarray
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -269,10 +270,13 @@ def plot_raster_grid(
     for axis in axes.ravel()[len(normalized) :]:
         axis.set_axis_off()
     for axis, panel in zip(axes.ravel(), normalized):
-        view = XarrayAdapter(panel.data).to_raster_view(
+        selected = select_xarray(
+            panel.data,
             variable=panel.variable,
             time=panel.time,
             lead_time=panel.lead_time,
+        )
+        view = XarrayAdapter(selected).to_raster_view(
             x=panel.x,
             y=panel.y,
         )

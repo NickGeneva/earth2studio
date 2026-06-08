@@ -15,8 +15,9 @@
 # limitations under the License.
 """Agent-friendly summary: tests for xarray and dataframe viz adapters.
 
-Key APIs under test: `select_xarray`, `infer_spatial_reference`,
-`XarrayAdapter.to_raster_view`, and `DataFrameAdapter.to_frame_view`.
+Key APIs under test: legacy `select_xarray`, `infer_spatial_reference`,
+selected-data `XarrayAdapter.to_raster_view`, and
+`DataFrameAdapter.to_frame_view`.
 """
 
 import numpy as np
@@ -80,18 +81,15 @@ def test_select_xarray_named_dataarray(sample_dataarray: xr.DataArray) -> None:
 
 
 def test_xarray_adapter_regular_grid(sample_dataarray: xr.DataArray) -> None:
-    view = XarrayAdapter(sample_dataarray).to_raster_view(
-        variable="t2m",
-        time=0,
-        lead_time=0,
-    )
+    field = sample_dataarray.sel(variable="t2m").isel(time=0, lead_time=0)
+    view = XarrayAdapter(field).to_raster_view()
 
     assert view.shape_2d == (3, 4)
     assert view.y_dim == "lat"
     assert view.x_dim == "lon"
     assert view.y_coord == "lat"
     assert view.x_coord == "lon"
-    assert view.variable == "t2m"
+    assert view.variable == "fields"
     assert view.device == "cpu"
     assert view.grid is not None
     assert view.grid.kind == "regular_latlon"
@@ -102,18 +100,16 @@ def test_xarray_adapter_regular_grid(sample_dataarray: xr.DataArray) -> None:
 def test_xarray_adapter_sequence_view_over_lead_time(
     sample_dataarray: xr.DataArray,
 ) -> None:
-    view = XarrayAdapter(sample_dataarray).to_raster_layer_view(
-        variable="t2m",
-        time=0,
-    )
+    field = sample_dataarray.sel(variable="t2m").isel(time=0)
+    view = XarrayAdapter(field).to_raster_layer_view()
 
     assert isinstance(view, RasterSequenceView)
     assert view.frame_dims == ("lead_time",)
     assert view.frame_count == 2
     frames = list(view.iter_frames())
-    assert frames[0][0] == "lead_time=0 h"
+    assert frames[0][0] == "time=2026-06-07T00:00:00"
     assert frames[0][1].shape_2d == (3, 4)
-    assert frames[1][0] == "lead_time=6 h"
+    assert frames[1][0] == "time=2026-06-07T06:00:00"
 
 
 def test_xarray_adapter_sequence_requires_non_time_selection() -> None:
@@ -253,7 +249,7 @@ def test_xarray_adapter_rejects_unselected_dimension(
     sample_dataarray: xr.DataArray,
 ) -> None:
     with pytest.raises(ValueError, match="needs an explicit selection"):
-        XarrayAdapter(sample_dataarray).to_raster_view(variable="t2m")
+        XarrayAdapter(sample_dataarray.sel(variable="t2m")).to_raster_view()
 
 
 def test_dataframe_adapter_infers_lon_lat(sample_frame: pd.DataFrame) -> None:

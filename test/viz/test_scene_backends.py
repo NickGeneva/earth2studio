@@ -157,16 +157,29 @@ class _FakePyplot:
         return _FakeFigure(), axes
 
 
+def _field(
+    data: xr.DataArray,
+    variable: str = "t2m",
+    *,
+    time: int | None = 0,
+    lead_time: int | None = None,
+) -> xr.DataArray:
+    selected = data.sel(variable=variable)
+    if time is not None:
+        selected = selected.isel(time=time)
+    if lead_time is not None:
+        selected = selected.isel(lead_time=lead_time)
+    return selected
+
+
 def test_scene_adds_raster_points_and_summary(
     sample_dataarray: xr.DataArray,
     sample_frame: pd.DataFrame,
 ) -> None:
     scene = Scene(title="Weather")
     raster = scene.add_raster(
-        sample_dataarray,
-        variable="t2m",
-        time=0,
-        lead_time=0,
+        _field(sample_dataarray, lead_time=0),
+        name="t2m",
         colormap="turbo",
         alpha=0.75,
     )
@@ -177,7 +190,7 @@ def test_scene_adds_raster_points_and_summary(
     assert raster.style.colormap == "turbo"
     assert raster.style.alpha == 0.75
     assert raster.projection.metadata["grid"]["kind"] == "regular_latlon"
-    assert len(scene.timeline.frames) == 4
+    assert len(scene.timeline.frames) == 3
 
     result = scene.render("summary")
     assert result.backend == "summary"
@@ -189,7 +202,7 @@ def test_scene_adds_raster_points_and_summary(
 
 def test_scene_layer_visibility_and_removal(sample_dataarray: xr.DataArray) -> None:
     scene = Scene()
-    raster = scene.add_raster(sample_dataarray, variable="t2m", time=0, lead_time=0)
+    raster = scene.add_raster(_field(sample_dataarray, lead_time=0), name="t2m")
     raster.hide()
 
     assert scene.visible_layers == []
@@ -231,7 +244,6 @@ def test_scene_adds_regional_layers(
     draped = scene.add_draped_raster(terrain_dataarray, colormap="viridis")
     cube = scene.add_region_cube(
         cube_dataarray,
-        variable="q850",
         vertical="height",
         mode="slices",
         levels=[100.0, 500.0],
@@ -277,7 +289,7 @@ def test_summary_backend_saves_json(
     tmp_path: Path, sample_dataarray: xr.DataArray
 ) -> None:
     scene = Scene(title="Save")
-    scene.add_raster(sample_dataarray, variable="t2m", time=0, lead_time=0)
+    scene.add_raster(_field(sample_dataarray, lead_time=0), name="t2m")
     path = scene.save(tmp_path / "scene.json", backend="summary")
 
     payload = json.loads(path.read_text())
@@ -291,7 +303,7 @@ def test_summary_backend_show_supports_and_animates(
     sample_frame: pd.DataFrame,
 ) -> None:
     scene = Scene(title="Animate")
-    raster = scene.add_raster(sample_dataarray, variable="t2m", time=0, lead_time=0)
+    raster = scene.add_raster(_field(sample_dataarray, lead_time=0), name="t2m")
     points = scene.add_points(sample_frame.iloc[:1].copy())
     backend = SummaryBackend()
 
@@ -345,16 +357,11 @@ def test_scene_streaming_updates_cover_raster_points_and_textures(
 ) -> None:
     scene = Scene(title="Streaming payloads")
     raster = scene.add_raster(
-        sample_dataarray,
-        variable="t2m",
-        time=0,
-        lead_time=0,
+        _field(sample_dataarray, lead_time=0),
         name="t2m",
     )
     sequence = scene.add_raster(
-        sample_dataarray,
-        variable="t2m",
-        time=0,
+        _field(sample_dataarray, lead_time=None),
         name="t2m lead times",
     )
     points = scene.add_points(sample_frame.iloc[:1].copy(), name="Stations")
@@ -456,8 +463,7 @@ def test_scene_asset_variants_region_cube_and_vector_payloads(
         material={"roughness": 0.5},
     )
     cube = scene.add_region_cube(
-        cube_dataarray.to_dataset(name="q850"),
-        variable="q850",
+        cube_dataarray.to_dataset(name="q850")["q850"],
         vertical="z",
         levels=[100.0],
     )
@@ -483,12 +489,10 @@ def test_scene_asset_variants_region_cube_and_vector_payloads(
 
 def test_plot_uses_summary_backend(sample_dataarray: xr.DataArray) -> None:
     output = plot(
-        sample_dataarray,
-        variable="t2m",
-        time=0,
-        lead_time=0,
+        _field(sample_dataarray, lead_time=0),
         backend="summary",
         title="Quick plot",
+        name="t2m",
     )
 
     assert output["title"] == "Quick plot"
@@ -526,10 +530,8 @@ def test_matplotlib_backend_installed_or_missing(
 ) -> None:
     scene = Scene()
     scene.add_raster(
-        sample_dataarray,
-        variable="t2m",
-        time=0,
-        lead_time=0,
+        _field(sample_dataarray, lead_time=0),
+        name="t2m",
         gamma=0.8,
         input_range=(0.0, 100.0),
         output_range=(0.0, 1.0),
@@ -566,9 +568,7 @@ def test_cartopy_backend_installed_or_missing(
     )
     scene = Scene(title="Cartopy")
     scene.add_raster(
-        sample_dataarray,
-        variable="t2m",
-        time=0,
+        _field(sample_dataarray, lead_time=None),
         name="t2m",
         projection=projection,
     )
@@ -656,9 +656,7 @@ def test_cartopy_backend_render_with_lightweight_plot_fakes(
     )
     scene = Scene(title="Projected")
     scene.add_raster(
-        sample_dataarray,
-        variable="t2m",
-        time=0,
+        _field(sample_dataarray, lead_time=None),
         name="t2m",
         projection=projection,
     )
@@ -677,7 +675,7 @@ def test_cartopy_backend_render_with_lightweight_plot_fakes(
     assert result.backend == "cartopy"
     assert result.output.title == "Projected"
     assert result.output.colorbars == 2
-    assert axes[0][0].title == "t2m | lead_time=0 h"
+    assert axes[0][0].title == "t2m | time=2026-06-07T00:00:00"
     assert axes[1][0].title == "Points"
     assert axes[1][1].axis_off
     assert axes[0][0].calls[0][0] == "pcolormesh"
@@ -701,9 +699,7 @@ def test_ovrtx_backend_browser_session_and_dependency_gate(
     scene = Scene(title="OVRTX globe")
     scene.add_default_texture()
     raster = scene.add_raster(
-        sample_dataarray,
-        variable="t2m",
-        time=0,
+        _field(sample_dataarray, lead_time=None),
         name="t2m",
         alpha=0.8,
     )
@@ -807,9 +803,7 @@ def test_anari_backend_sdk_viewer_handoff_and_dependency_gate(
 ) -> None:
     scene = Scene(title="ANARI native")
     raster = scene.add_raster(
-        sample_dataarray,
-        variable="t2m",
-        time=0,
+        _field(sample_dataarray, lead_time=None),
         name="t2m",
         alpha=0.8,
     )
@@ -914,16 +908,12 @@ def test_matplotlib_backend_renders_raster_sequences_as_layer_rows(
 
     scene = Scene(title="Layer rows")
     scene.add_raster(
-        sample_dataarray,
-        variable="t2m",
-        time=0,
+        _field(sample_dataarray, lead_time=None),
         name="t2m",
         colormap="viridis",
     )
     scene.add_raster(
-        sample_dataarray,
-        variable="u10m",
-        time=0,
+        _field(sample_dataarray, "u10m", lead_time=None),
         name="u10m",
         colormap="plasma",
     )
@@ -934,8 +924,8 @@ def test_matplotlib_backend_renders_raster_sequences_as_layer_rows(
     assert result.output is not None
     axes = result.metadata["axes"]
     assert axes.shape == (2, 2)
-    assert axes[0][0].get_title() == "t2m | lead_time=0 h"
-    assert axes[1][1].get_title() == "u10m | lead_time=6 h"
+    assert axes[0][0].get_title() == "t2m | time=2026-06-07T00:00:00"
+    assert axes[1][1].get_title() == "u10m | time=2026-06-07T06:00:00"
 
 
 def test_matplotlib_backend_renders_multiple_rasters_as_layer_rows(
@@ -946,17 +936,11 @@ def test_matplotlib_backend_renders_multiple_rasters_as_layer_rows(
 
     scene = Scene(title="Raster rows")
     scene.add_raster(
-        sample_dataarray,
-        variable="t2m",
-        time=0,
-        lead_time=0,
+        _field(sample_dataarray, lead_time=0),
         name="t2m",
     )
     scene.add_raster(
-        sample_dataarray,
-        variable="u10m",
-        time=0,
-        lead_time=0,
+        _field(sample_dataarray, "u10m", lead_time=0),
         name="u10m",
     )
 
@@ -974,7 +958,7 @@ def test_matplotlib_backend_supports_and_guard_paths(
 ) -> None:
     backend = MatplotlibBackend()
     scene = Scene()
-    scene.add_raster(sample_dataarray, variable="t2m", time=0, lead_time=0)
+    scene.add_raster(_field(sample_dataarray, lead_time=0), name="t2m")
     assert backend.supports(scene)
 
     scene.add_region_cube(cube_dataarray)

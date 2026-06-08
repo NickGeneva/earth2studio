@@ -204,7 +204,7 @@ ETL, dashboard schema work, or another runtime.
    from earth2studio import viz
 
    scene = viz.Scene()
-   scene.add_raster(forecast_da, variable="t2m", colormap="turbo")
+   scene.add_raster(forecast_da["t2m"], colormap="turbo")
    scene.add_points(obs_df, lat="lat", lon="lon", color="temperature")
    scene.show(backend="cartopy")
    ```
@@ -213,10 +213,10 @@ ETL, dashboard schema work, or another runtime.
    web server backend:
 
    ```python
-   viz.plot(da, variable="tcwv", time=0, lead_time=6)
+   viz.plot(da["tcwv"].isel(time=0, lead_time=6))
 
    scene = viz.Scene()
-   scene.add_raster(forecast_da, variable="msl", colormap="viridis")
+   scene.add_raster(forecast_da["msl"], colormap="viridis")
    scene.camera.set(lon=-98.0, lat=38.0, distance=2.4)
    scene.show(backend="ovrtx")
    ```
@@ -409,7 +409,7 @@ Recommended methods:
 
 - `timeline.frames`
 - `timeline.current`
-- `timeline.set(time=..., lead_time=...)`
+- `timeline.set(time=...)`
 - `timeline.use_valid_time()`
 - `timeline.play(rate=...)`
 - `timeline.range()`
@@ -513,8 +513,7 @@ The MVP should expose slice-stack rendering before full volume rendering:
 scene = viz.Scene(region=region)
 scene.add_terrain(dem, texture=ortho)
 scene.add_region_cube(
-    cube,
-    variable="q850",
+    cube["q850"],
     vertical="height",
     mode="slices",
     levels=[250, 500, 1000, 1500],
@@ -544,14 +543,12 @@ region = viz.RegionSpec.from_lonlat_bounds(
 scene = viz.Scene(region=region)
 scene.add_terrain(dem_da, name="Terrain", vertical_exaggeration=1.5)
 scene.add_draped_raster(
-    forecast_da,
-    variable="ws10m",
-    time="2026-06-07T18:00:00",
+    forecast_da["ws10m"].sel(time="2026-06-07T18:00:00"),
     colormap="turbo",
     alpha=0.7,
 )
 scene.add_points(units_or_sensors, x="x", y="y", z="altitude", color="status")
-scene.add_region_cube(regional_cube, variable="q850", vertical="height", mode="slices")
+scene.add_region_cube(regional_cube["q850"], vertical="height", mode="slices")
 
 scene.camera.orbit(target="region", azimuth=225, elevation=35, distance=140_000)
 scene.show(backend="ovrtx")
@@ -566,7 +563,7 @@ data that is already an image, GeoTIFF, texture sequence, or mesh:
 
 ```python
 scene = viz.Scene()
-scene.add_raster(forecast_ds, variable="t2m")
+scene.add_raster(forecast_ds["t2m"])
 scene.add_image("blue_marble.jpg", bounds=(-180.0, -90.0, 180.0, 90.0))
 scene.add_geotiff("local_dem.cog.tif", role="terrain", crs="EPSG:32610")
 scene.add_mesh("terrain.usd", crs="EPSG:32610")
@@ -682,9 +679,9 @@ payloads.
 User-facing layer creation should remain simple:
 
 ```python
-scene.add_raster(forecast, variable="t2m", time=0, colormap="turbo")
-scene.add_draped_raster(wind_speed, variable="ws10m")
-scene.add_region_cube(cube, variable="q850")
+scene.add_raster(forecast["t2m"].isel(time=0), colormap="turbo")
+scene.add_draped_raster(wind_speed["ws10m"])
+scene.add_region_cube(cube["q850"])
 ```
 
 The bridge is what a backend uses after that:
@@ -923,10 +920,7 @@ Quick plot:
 
 ```python
 fig = viz.plot(
-    da,
-    variable="t2m",
-    time="2025-01-01T00:00:00",
-    lead_time="24h",
+    da["t2m"].sel(time="2025-01-01T00:00:00").isel(lead_time=4),
     backend="cartopy",
     projection="robinson",
     colormap="turbo",
@@ -938,8 +932,7 @@ Forecast timeline:
 ```python
 scene = viz.Scene(title="SFNO forecast")
 scene.add_raster(
-    forecast,
-    variable="tcwv",
+    forecast["tcwv"],
     name="Total column water vapor",
     colormap="magma",
     vmin=0,
@@ -968,7 +961,7 @@ Local interactive renderer:
 
 ```python
 scene = viz.Scene()
-scene.add_raster(forecast, variable="msl", colormap="viridis")
+scene.add_raster(forecast["msl"], colormap="viridis")
 scene.camera.set(lon=-40, lat=25, distance=2.0)
 viewer = scene.show(backend="ovrtx")
 ```
@@ -978,7 +971,7 @@ Browser-streamed OVRTX globe session:
 ```python
 scene = viz.Scene(title="OVRTX globe")
 scene.add_default_texture()
-layer = scene.add_raster(forecast, variable="tcwv", colormap="turbo")
+layer = scene.add_raster(forecast["tcwv"], colormap="turbo")
 
 session = scene.show(
     backend="ovrtx",

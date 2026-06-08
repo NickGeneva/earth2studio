@@ -64,7 +64,7 @@ def test_xarray_adapter_rasterizes_hpx_before_spatial_inference() -> None:
         name="fields",
     )
 
-    view = XarrayAdapter(data).to_raster_view(variable="tcwv", time=1)
+    view = XarrayAdapter(data.sel(variable="tcwv").isel(time=1)).to_raster_view()
 
     assert view.grid is not None
     assert view.grid.kind == "healpix"

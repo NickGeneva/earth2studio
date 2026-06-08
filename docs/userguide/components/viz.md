@@ -32,11 +32,9 @@ passing it into `viz`.
 ```python
 from earth2studio import viz
 
+field = forecast["t2m"].sel(time="2026-06-07T00:00:00").isel(lead_time=1)
 fig = viz.plot(
-    forecast,
-    variable="t2m",
-    time="2026-06-07T00:00:00",
-    lead_time="6h",
+    field,
     backend="matplotlib",
     colormap="turbo",
 )
@@ -46,11 +44,9 @@ Use `backend="summary"` when testing or inspecting scene metadata without a
 plotting dependency:
 
 ```python
+field = forecast["t2m"].isel(time=0, lead_time=0)
 summary = viz.plot(
-    forecast,
-    variable="t2m",
-    time=0,
-    lead_time=0,
+    field,
     backend="summary",
 )
 ```
@@ -61,8 +57,9 @@ Example scripts often start from model output stores. Open those stores with
 xarray, select the variable and timesteps you want to visualize, then add those
 arrays directly as scene layers. For geographic rasters, attach a
 {class}`earth2studio.viz.ProjectionSpec` and use the Cartopy backend; each
-raster layer becomes a row and each `time` or `lead_time` frame becomes a
-column:
+raster layer becomes a row and each inferred timeline frame becomes a column.
+When `time` and `lead_time` coordinates are both present, Viz labels frames by
+valid time.
 
 ```python
 import xarray as xr
@@ -107,7 +104,7 @@ scene would be unnecessary:
 
 ```python
 scene = viz.Scene(title="Forecast and stations")
-scene.add_raster(forecast, variable="tcwv", time=0, lead_time=0, colormap="magma")
+scene.add_raster(forecast["tcwv"].isel(time=0, lead_time=0), colormap="magma")
 scene.add_points(
     stations,
     lat="latitude",
@@ -202,8 +199,8 @@ region = viz.RegionSpec.from_lonlat_bounds(
 
 scene = viz.Scene(region=region)
 scene.add_terrain(dem, name="Terrain", vertical_exaggeration=1.5)
-scene.add_draped_raster(forecast, variable="ws10m", time=0, colormap="turbo")
-scene.add_region_cube(regional_cube, variable="q850", vertical="height", mode="slices")
+scene.add_draped_raster(forecast["ws10m"].isel(time=0), colormap="turbo")
+scene.add_region_cube(regional_cube["q850"], vertical="height", mode="slices")
 ```
 
 The same scene description can later route to OpenUSD or OVRTX-style local
@@ -217,7 +214,7 @@ attributes:
 
 ```python
 scene = viz.Scene()
-layer = scene.add_raster(forecast, variable="t2m")
+layer = scene.add_raster(forecast["t2m"])
 grid = layer.projection.metadata["grid"]
 ```
 
@@ -379,8 +376,7 @@ Portable scalar controls live on the layer style:
 
 ```python
 scene.add_raster(
-    forecast,
-    variable="t2m",
+    forecast["t2m"].isel(time=0),
     colormap="turbo",
     alpha=0.75,
     gamma=0.9,
@@ -424,7 +420,7 @@ import xarray as xr
 from earth2studio import viz
 
 ds = xr.open_zarr("outputs/forecast.zarr")
-viz.plot(ds, variable="t2m", time=0, lead_time=4)
+viz.plot(ds["t2m"].isel(time=0, lead_time=4))
 ```
 
 The visualization API does not currently accept Earth2 Studio IO backend objects

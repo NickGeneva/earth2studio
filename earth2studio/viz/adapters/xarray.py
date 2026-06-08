@@ -16,7 +16,7 @@
 """Agent-friendly summary: xarray-to-raster view adapter.
 
 Key APIs: `XarrayAdapter.to_raster_view` and
-`XarrayAdapter.to_raster_layer_view` select variables/time/lead_time,
+`XarrayAdapter.to_raster_layer_view` normalize already-selected xarray data,
 infer spatial axes and grid descriptors, convert native indexed grids to
 heatmap rasters when needed, preserve attributes, and return `RasterView` or
 `RasterSequenceView` for scenes and backends.
@@ -30,6 +30,7 @@ from itertools import product
 from typing import Any
 
 import numpy as np
+import pandas as pd
 import xarray as xr
 
 from earth2studio.viz.grids import GridSpec, infer_grid_spec_from_xarray
@@ -40,7 +41,6 @@ from earth2studio.viz.native import (
 )
 from earth2studio.viz.selection import (
     infer_spatial_reference,
-    select_xarray,
     squeeze_non_spatial_singletons,
 )
 
@@ -128,17 +128,11 @@ class XarrayAdapter:
     def to_raster_view(
         self,
         *,
-        variable: str | None = None,
-        time: Any | None = None,
-        lead_time: Any | None = None,
         x: str | None = None,
         y: str | None = None,
     ) -> RasterView:
         """Convert xarray data into a renderable raster view."""
         view = self.to_raster_layer_view(
-            variable=variable,
-            time=time,
-            lead_time=lead_time,
             x=x,
             y=y,
             allow_sequence=False,
@@ -150,21 +144,13 @@ class XarrayAdapter:
     def to_raster_layer_view(
         self,
         *,
-        variable: str | None = None,
-        time: Any | None = None,
-        lead_time: Any | None = None,
         x: str | None = None,
         y: str | None = None,
         frame_dims: Sequence[str] = _DEFAULT_FRAME_DIMS,
         allow_sequence: bool = True,
     ) -> RasterView | RasterSequenceView:
         """Convert xarray data into a single raster or raster time series."""
-        selected = select_xarray(
-            self.data,
-            variable=variable,
-            time=time,
-            lead_time=lead_time,
-        )
+        selected = _as_dataarray(self.data)
         grid = infer_grid_spec_from_xarray(selected)
         if can_native_heatmap(selected, grid):
             selected = native_grid_heatmap(selected, grid)
@@ -175,7 +161,7 @@ class XarrayAdapter:
                 x_dim=x_dim,
                 y_coord=y_coord,
                 x_coord=x_coord,
-                variable=variable or selected.name,
+                variable=selected.name,
                 time_coord="time" if "time" in selected.coords else None,
                 lead_time_coord="lead_time" if "lead_time" in selected.coords else None,
                 device=_device_for_array(selected.data),
@@ -194,7 +180,7 @@ class XarrayAdapter:
                     frame_dims,
                     _native_spatial_dims(selected, grid),
                 ),
-                variable=variable or selected.name,
+                variable=selected.name,
                 device=_device_for_array(selected.data),
                 grid=grid,
                 attrs=dict(selected.attrs),
@@ -216,7 +202,7 @@ class XarrayAdapter:
                     y_coord=y_coord,
                     x_coord=x_coord,
                     frame_dims=sequence_dims,
-                    variable=variable or selected.name,
+                    variable=selected.name,
                     device=_device_for_array(selected.data),
                     grid=grid,
                     attrs=dict(selected.attrs),
@@ -236,13 +222,23 @@ class XarrayAdapter:
             x_dim=x_dim,
             y_coord=y_coord,
             x_coord=x_coord,
-            variable=variable or selected.name,
+            variable=selected.name,
             time_coord="time" if "time" in selected.coords else None,
             lead_time_coord="lead_time" if "lead_time" in selected.coords else None,
             device=_device_for_array(selected.data),
             grid=grid,
             attrs=dict(selected.attrs),
         )
+
+
+def _as_dataarray(data: xr.DataArray | xr.Dataset) -> xr.DataArray:
+    if isinstance(data, xr.DataArray):
+        return data
+    if len(data.data_vars) != 1:
+        raise ValueError(
+            "Select one Dataset variable before passing xarray data to viz"
+        )
+    return data[next(iter(data.data_vars))]
 
 
 def _device_for_array(array: Any) -> str:
@@ -315,6 +311,9 @@ def _remaining_frame_dims(
 def _frame_label(data: xr.DataArray, indexer: dict[str, int]) -> str | None:
     if not indexer:
         return None
+    valid_time = _valid_time_for_frame(data, indexer)
+    if valid_time is not None:
+        return f"time={_format_frame_value(valid_time)}"
     parts = []
     for dim, index in indexer.items():
         if dim in data.coords:
@@ -325,7 +324,52 @@ def _frame_label(data: xr.DataArray, indexer: dict[str, int]) -> str | None:
     return ", ".join(parts)
 
 
+def _valid_time_for_frame(data: xr.DataArray, indexer: dict[str, int]) -> Any | None:
+    valid_time = _coord_value_for_frame(data, "valid_time", indexer)
+    if valid_time is not None:
+        return valid_time
+    base_time = _coord_value_for_frame(data, "time", indexer)
+    lead_time = _coord_value_for_frame(data, "lead_time", indexer)
+    if base_time is None or lead_time is None:
+        return None
+    try:
+        return pd.Timestamp(base_time) + pd.Timedelta(lead_time)
+    except (TypeError, ValueError):
+        return None
+
+
+def _coord_value_for_frame(
+    data: xr.DataArray,
+    coord: str,
+    indexer: dict[str, int],
+) -> Any | None:
+    if coord not in data.coords:
+        return None
+    coordinate = data.coords[coord]
+    if not coordinate.dims:
+        return _scalar_value(coordinate.values)
+    selectors = {}
+    for dim in coordinate.dims:
+        if dim in indexer:
+            selectors[dim] = indexer[dim]
+        elif data.sizes.get(dim) == 1:
+            selectors[dim] = 0
+        else:
+            return None
+    return _scalar_value(coordinate.isel(selectors).values)
+
+
+def _scalar_value(value: Any) -> Any:
+    if getattr(value, "shape", ()) == ():
+        return value.item()
+    if getattr(value, "size", 0) == 1:
+        return value.reshape(()).item()
+    return value
+
+
 def _format_frame_value(value: Any) -> str:
+    if isinstance(value, (pd.Timestamp, np.datetime64)):
+        return pd.Timestamp(value).isoformat()
     if isinstance(value, np.timedelta64):
         hours = value / np.timedelta64(1, "h")
         if float(hours).is_integer():

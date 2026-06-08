@@ -32,21 +32,12 @@ from earth2studio.viz.scene import Scene
 def plot(
     data: xr.DataArray | xr.Dataset,
     *,
-    variable: str | None = None,
-    time: Any | None = None,
-    lead_time: Any | None = None,
     backend: str = "matplotlib",
     **kwargs: Any,
 ) -> Any:
     """Plot a single xarray raster using a visualization backend."""
     scene = Scene(title=kwargs.pop("title", None))
-    scene.add_raster(
-        data,
-        variable=variable,
-        time=time,
-        lead_time=lead_time,
-        **kwargs,
-    )
+    scene.add_raster(data, **kwargs)
     result = scene.render(backend=backend)
     if isinstance(result, RenderResult):
         return result.output

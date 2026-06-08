@@ -17,7 +17,7 @@
 
 Key APIs: `Timeline` stores ordered frames and current playback state;
 `infer_frames_from_xarray` and `infer_frames_from_dataframe` produce frames from
-`time`, `lead_time`, valid-time, or tabular time columns.
+valid-time, `time + lead_time`, `time`, `lead_time`, or tabular time columns.
 """
 
 from __future__ import annotations
@@ -110,14 +110,20 @@ class Timeline:
 
 
 def infer_frames_from_xarray(
-    data: xr.DataArray | xr.Dataset, *, valid_time: bool = False
+    data: xr.DataArray | xr.Dataset, *, valid_time: bool = True
 ) -> list[Any]:
-    """Infer frames from xarray `time` and `lead_time` coordinates."""
+    """Infer timeline frames from xarray time-like coordinates."""
     coords = data.coords
+    if "valid_time" in coords:
+        return list(_coord_values(data, "valid_time"))
     if valid_time and "time" in coords and "lead_time" in coords:
-        times = pd.to_datetime(_coord_values(data, "time"))
-        lead_times = pd.to_timedelta(_coord_values(data, "lead_time"))
-        return [time + lead_time for time in times for lead_time in lead_times]
+        try:
+            times = pd.to_datetime(_coord_values(data, "time"))
+            lead_times = pd.to_timedelta(_coord_values(data, "lead_time"))
+        except (TypeError, ValueError):
+            pass
+        else:
+            return [time + lead_time for time in times for lead_time in lead_times]
     if "time" in coords:
         return list(_coord_values(data, "time"))
     if "lead_time" in coords:

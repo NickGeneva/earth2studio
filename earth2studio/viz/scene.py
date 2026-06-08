@@ -108,9 +108,6 @@ class Scene:
         self,
         data: xr.DataArray | xr.Dataset,
         *,
-        variable: str | None = None,
-        time: Any | None = None,
-        lead_time: Any | None = None,
         x: str | None = None,
         y: str | None = None,
         name: str | None = None,
@@ -118,15 +115,12 @@ class Scene:
         projection: ProjectionSpec | None = None,
         **style_kwargs: Any,
     ) -> RasterLayer:
-        """Add a dense xarray raster layer or selected raster time series."""
+        """Add an already-selected xarray raster layer or raster time series."""
         view = XarrayAdapter(data).to_raster_layer_view(
-            variable=variable,
-            time=time,
-            lead_time=lead_time,
             x=x,
             y=y,
         )
-        self.timeline.add_frames(infer_frames_from_xarray(data))
+        self.timeline.add_frames(infer_frames_from_xarray(view.data))
         layer = RasterLayer(
             id=self._next_id("raster"),
             name=name or view.variable or "Raster",
@@ -204,7 +198,6 @@ class Scene:
         self,
         data: xr.DataArray | xr.Dataset,
         *,
-        variable: str | None = None,
         texture: Any | None = None,
         name: str = "Terrain",
         vertical_exaggeration: float = 1.0,
@@ -213,7 +206,7 @@ class Scene:
         **style_kwargs: Any,
     ) -> TerrainLayer:
         """Add regional terrain, elevation, bathymetry, DSM, or topography."""
-        view = XarrayAdapter(data).to_raster_view(variable=variable)
+        view = XarrayAdapter(data).to_raster_view()
         layer = TerrainLayer(
             id=self._next_id("terrain"),
             name=name,
@@ -236,21 +229,14 @@ class Scene:
         self,
         data: xr.DataArray | xr.Dataset,
         *,
-        variable: str | None = None,
-        time: Any | None = None,
-        lead_time: Any | None = None,
         name: str | None = None,
         style: LayerStyle | None = None,
         projection: ProjectionSpec | None = None,
         **style_kwargs: Any,
     ) -> DrapedRasterLayer:
-        """Add a raster intended to be projected onto terrain or a local plane."""
-        view = XarrayAdapter(data).to_raster_view(
-            variable=variable,
-            time=time,
-            lead_time=lead_time,
-        )
-        self.timeline.add_frames(infer_frames_from_xarray(data))
+        """Add an already-selected raster to terrain or a local plane."""
+        view = XarrayAdapter(data).to_raster_view()
+        self.timeline.add_frames(infer_frames_from_xarray(view.data))
         layer = DrapedRasterLayer(
             id=self._next_id("draped"),
             name=name or view.variable or "Draped raster",
@@ -410,7 +396,6 @@ class Scene:
         self,
         data: xr.DataArray | xr.Dataset,
         *,
-        variable: str | None = None,
         vertical: str | None = None,
         mode: str = "slices",
         levels: Sequence[Any] | None = None,
@@ -420,11 +405,11 @@ class Scene:
         **style_kwargs: Any,
     ) -> RegionCubeLayer:
         """Add bounded 3D regional cube data for slices or future volumes."""
-        selected = data[variable] if isinstance(data, xr.Dataset) and variable else data
+        selected = _selected_dataarray(data)
         self.timeline.add_frames(infer_frames_from_xarray(selected))
         layer = RegionCubeLayer(
             id=self._next_id("cube"),
-            name=name or variable or "Region cube",
+            name=name or selected.name or "Region cube",
             data=selected,
             style=_style(style, **style_kwargs),
             projection=projection
@@ -632,6 +617,16 @@ def _is_scene_session(candidate: Any) -> bool:
     )
 
 
+def _selected_dataarray(data: xr.DataArray | xr.Dataset) -> xr.DataArray:
+    if isinstance(data, xr.DataArray):
+        return data
+    if len(data.data_vars) != 1:
+        raise ValueError(
+            "Select one Dataset variable before passing xarray data to viz"
+        )
+    return data[next(iter(data.data_vars))]
+
+
 def _coerce_layer_data(layer: Layer, data: Any) -> Any:
     if isinstance(layer, (RasterLayer, TerrainLayer, DrapedRasterLayer)):
         return _coerce_raster_data(layer, data)
@@ -685,13 +680,11 @@ def _xarray_view_for_layer(
     data: xr.DataArray | xr.Dataset,
 ) -> RasterView | RasterSequenceView:
     existing = layer.data
-    variable = getattr(existing, "variable", None)
     x_coord = getattr(existing, "x_coord", None)
     y_coord = getattr(existing, "y_coord", None)
     attempts = (
-        {"variable": variable, "x": x_coord, "y": y_coord},
-        {"variable": None, "x": x_coord, "y": y_coord},
-        {"variable": None, "x": None, "y": None},
+        {"x": x_coord, "y": y_coord},
+        {"x": None, "y": None},
     )
     last_error: Exception | None = None
     for attempt in attempts:
