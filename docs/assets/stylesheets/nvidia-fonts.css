@@ -1,0 +1,73 @@
+/* SPDX-FileCopyrightText: Copyright (c) 2024-2026 NVIDIA CORPORATION & AFFILIATES. */
+/* SPDX-License-Identifier: Apache-2.0 */
+
+/* NVIDIA Sans — the corporate brand typeface, served from NVIDIA's brand-assets
+   CDN. Loading from the CDN (rather than vendoring the licensed .ttf files) keeps
+   the font out of the repo while staying on-brand. */
+
+@font-face {
+  font-family: "NVIDIA Sans";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url(https://brand-assets.cne.ngc.nvidia.com/assets/fonts/nvidia-sans/1.0.0/NVIDIASans_Lt.woff2) format("woff2");
+}
+
+@font-face {
+  font-family: "NVIDIA Sans";
+  font-style: italic;
+  font-weight: 300;
+  font-display: swap;
+  src: url(https://brand-assets.cne.ngc.nvidia.com/assets/fonts/nvidia-sans/1.0.0/NVIDIASans_LtIt.woff2) format("woff2");
+}
+
+@font-face {
+  font-family: "NVIDIA Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://brand-assets.cne.ngc.nvidia.com/assets/fonts/nvidia-sans/1.0.0/NVIDIASans_Rg.woff2) format("woff2");
+}
+
+@font-face {
+  font-family: "NVIDIA Sans";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://brand-assets.cne.ngc.nvidia.com/assets/fonts/nvidia-sans/1.0.0/NVIDIASans_It.woff2) format("woff2");
+}
+
+@font-face {
+  font-family: "NVIDIA Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://brand-assets.cne.ngc.nvidia.com/assets/fonts/nvidia-sans/1.0.0/NVIDIASans_Md.woff2) format("woff2");
+}
+
+@font-face {
+  font-family: "NVIDIA Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://brand-assets.cne.ngc.nvidia.com/assets/fonts/nvidia-sans/1.0.0/NVIDIASans_Bd.woff2) format("woff2");
+}
+
+@font-face {
+  font-family: "NVIDIA Sans";
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://brand-assets.cne.ngc.nvidia.com/assets/fonts/nvidia-sans/1.0.0/NVIDIASans_BdIt.woff2) format("woff2");
+}
+
+/* Material reads these two variables for all body and code text. */
+:root {
+  --md-text-font: "NVIDIA Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* NVIDIA has no branded monospace; this is the stack the other NVIDIA docs
+     sites use. Roboto Mono is deliberately absent — `font: false` stops Material
+     fetching Google Fonts, so naming it here would never resolve. */
+  --md-code-font: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier,
+    monospace;
+}

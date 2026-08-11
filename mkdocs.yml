@@ -14,7 +14,7 @@ copyright: Copyright &copy; 2024-2026 NVIDIA Corporation & Affiliates
 theme:
   name: material
   custom_dir: docs/overrides
-  logo: _static/NVIDIA-Logo-V-ForScreen-ForDarkBG.png
+  logo: _static/nvidia-logo.svg
   favicon: _static/favicon.ico
   language: en
   features:
@@ -31,25 +31,32 @@ theme:
   - content.code.annotate
   palette:
   - media: '(prefers-color-scheme: light)'
-    scheme: default
-    primary: black
-    accent: light green
+    scheme: light
+    primary: custom
+    accent: lime
     toggle:
-      icon: material/brightness-7
+      icon: material/weather-night
       name: Switch to dark mode
   - media: '(prefers-color-scheme: dark)'
-    scheme: slate
-    primary: black
-    accent: light green
+    scheme: dark
+    primary: custom
+    accent: lime
     toggle:
-      icon: material/brightness-4
+      icon: material/weather-sunny
       name: Switch to light mode
   icon:
     repo: fontawesome/brands/github
+  # NVIDIA Sans is loaded from the brand CDN in assets/stylesheets/nvidia-fonts.css,
+  # so Material's Google Fonts request is turned off.
+  font: false
 extra_css:
 - https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css
+- assets/stylesheets/nvidia-fonts.css
 - assets/stylesheets/nvidia-material.css
 - assets/stylesheets/earth2studio-gallery.css
+- assets/stylesheets/nvidia-color-schemes.css
+- assets/stylesheets/e2s-landing-theme.css
+- assets/stylesheets/e2s-flatten.css
 extra_javascript:
 - assets/javascripts/e2s-landing.js
 - assets/javascripts/e2s-install-selector.js

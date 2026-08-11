@@ -1,49 +1,43 @@
 /* SPDX-FileCopyrightText: Copyright (c) 2024-2026 NVIDIA CORPORATION & AFFILIATES. */
 /* SPDX-License-Identifier: Apache-2.0 */
 
+/* Surface, panel and header tones are defined as tokens here and re-declared per
+ * colour scheme below, so this file follows the palette in nvidia-color-schemes.css
+ * rather than pinning a single dark tone. */
+
 :root {
   --nv-green: #76b900;
   --nv-green-2: #9be564;
   --nv-green-dark: #004831;
-  --nv-black: #050806;
-  --nv-panel: #10150f;
-  --nv-panel-2: #151b13;
-  --nv-stroke: #293024;
-  --nv-fg: #f4f7ef;
-  --nv-muted: #a5ae9e;
   --nv-cyan: #0ea5a4;
   --nv-blue: #38bdf8;
   --nv-purple: #c084fc;
   --nv-gold: #facc15;
-  --md-primary-fg-color: var(--nv-green-dark);
-  --md-primary-fg-color--light: #075d40;
-  --md-primary-fg-color--dark: #00321f;
+
+  /* Semantic surfaces — overridden per scheme. */
+  --e2s-surface: var(--md-default-bg-color);
+  --e2s-panel: var(--md-code-bg-color);
+  --e2s-stroke: var(--md-default-fg-color--lightest);
+  --e2s-fg: var(--md-default-fg-color);
+  --e2s-muted: var(--md-default-fg-color--light);
+
+  --md-primary-fg-color: var(--nv-green);
   --md-accent-fg-color: var(--nv-green);
   --md-accent-fg-color--transparent: rgba(118, 185, 0, 0.12);
-  --md-typeset-a-color: #4d8c00;
-  --e2s-header-bg: #050806;
-  --e2s-header-fg: #fff;
-  --e2s-header-muted: rgba(255, 255, 255, 0.78);
-  --e2s-header-border: rgba(155, 229, 100, 0.24);
-  --e2s-header-search-bg: rgba(255, 255, 255, 0.08);
-  --e2s-header-search-border: rgba(118, 185, 0, 0.18);
-  --e2s-header-kbd-bg: rgba(5, 8, 6, 0.72);
-  --e2s-header-kbd-border: rgba(255, 255, 255, 0.28);
+
+  --e2s-header-bg: var(--md-header-bg-color, var(--md-default-bg-color));
+  --e2s-header-fg: var(--md-header-color, var(--md-default-fg-color));
+  --e2s-header-muted: var(--md-default-fg-color--light);
+  --e2s-header-border: var(--md-header-border, 1px solid transparent);
+  --e2s-header-search-bg: var(--md-code-bg-color);
+  --e2s-header-search-border: var(--md-default-fg-color--lightest);
+  --e2s-header-kbd-bg: var(--md-code-bg-color);
+  --e2s-header-kbd-border: var(--md-default-fg-color--lightest);
 }
 
 [data-md-color-accent="light-green"] {
   --md-accent-fg-color: var(--nv-green);
   --md-accent-fg-color--transparent: rgba(118, 185, 0, 0.12);
-}
-
-[data-md-color-scheme="slate"] {
-  --md-default-bg-color: #0c0f0b;
-  --md-default-fg-color: var(--nv-fg);
-  --md-default-fg-color--light: #c7d0c0;
-  --md-default-fg-color--lighter: #a5ae9e;
-  --md-typeset-a-color: var(--nv-green-2);
-  --md-code-bg-color: #151b13;
-  --md-code-fg-color: #e9f2df;
 }
 
 body .md-grid {
@@ -74,11 +68,7 @@ body .md-grid {
   --md-typeset-kbd-accent-color: var(--e2s-header-kbd-bg);
   --md-typeset-kbd-border-color: var(--e2s-header-kbd-border);
   background-color: var(--e2s-header-bg) !important;
-  background-image:
-    radial-gradient(circle at 32% -4%, rgba(118, 185, 0, 0.2), transparent 33rem),
-    radial-gradient(circle at 78% 86%, rgba(14, 165, 164, 0.14), transparent 27rem),
-    radial-gradient(circle at 7% 58%, rgba(250, 204, 21, 0.08), transparent 22rem),
-    linear-gradient(90deg, rgba(5, 8, 6, 0.98), rgba(5, 8, 6, 0.86)) !important;
+  background-image: var(--e2s-surface) !important;
   border-bottom: 1px solid var(--e2s-header-border) !important;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset !important;
   color: var(--e2s-header-fg) !important;
@@ -140,9 +130,7 @@ body .md-grid {
   --md-default-bg-color: var(--e2s-header-bg);
   position: relative;
   z-index: 6;
-  background:
-    radial-gradient(circle at 20% 0%, rgba(118, 185, 0, 0.16), transparent 22rem),
-    linear-gradient(90deg, rgba(5, 8, 6, 0.98), rgba(12, 15, 11, 0.96)) !important;
+  background: var(--e2s-surface) !important;
   border-bottom: 1px solid rgba(118, 185, 0, 0.18) !important;
   color: var(--e2s-header-fg) !important;
 }
@@ -330,11 +318,11 @@ body .md-grid {
 .md-footer {
   position: relative;
   z-index: 5;
-  background-color: #080b08;
+  background-color: var(--e2s-surface);
 }
 
 .md-footer-meta {
-  background-color: #080b08;
+  background-color: var(--e2s-surface);
 }
 
 .md-main__inner:has(.e2s-home),
@@ -363,7 +351,7 @@ body .md-grid {
   min-height: 100vh;
   margin: 0 calc(50% - 50vw);
   overflow: visible;
-  background: #050806;
+  background: var(--e2s-surface);
   color: var(--nv-fg);
 }
 
@@ -377,21 +365,13 @@ body .md-grid {
 
 .md-typeset .e2s-home::before {
   z-index: 0;
-  background:
-    radial-gradient(circle at 50% 18%, rgba(118, 185, 0, 0.2), transparent 32rem),
-    radial-gradient(circle at 70% 70%, rgba(14, 165, 164, 0.16), transparent 34rem),
-    radial-gradient(circle at 50% 83%, rgba(56, 189, 248, 0.17), transparent 25rem),
-    linear-gradient(180deg, #050806 0%, #071007 44%, #030603 100%);
+  background: var(--e2s-surface);
 }
 
 .md-typeset .e2s-home::after {
   z-index: 2;
   opacity: 0.92;
-  background-image:
-    linear-gradient(rgba(118, 185, 0, 0.105) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(118, 185, 0, 0.105) 1px, transparent 1px),
-    radial-gradient(ellipse at center, transparent 0%, transparent 56%, rgba(0, 0, 0, 0.56) 100%),
-    linear-gradient(180deg, rgba(5, 8, 6, 0), rgba(5, 8, 6, 0.38) 74%, #050806 100%);
+  background-image: var(--e2s-surface);
   background-size: 42px 42px, 42px 42px, auto, auto;
 }
 
@@ -420,7 +400,7 @@ body .md-grid {
   width: 22rem;
   height: 22rem;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(155, 229, 100, 0.16), rgba(14, 165, 164, 0.06) 38%, transparent 68%);
+  background: none;
   opacity: 0;
   pointer-events: none;
   transform: translate3d(-50%, -50%, 0);
@@ -462,12 +442,7 @@ body .md-grid {
   right: -8%;
   bottom: 20%;
   height: 88%;
-  background:
-    linear-gradient(90deg, transparent 2%, rgba(118, 185, 0, 0.13) 7%, transparent 12%),
-    linear-gradient(90deg, transparent 18%, rgba(118, 185, 0, 0.11) 22%, transparent 28%),
-    linear-gradient(90deg, transparent 40%, rgba(94, 180, 96, 0.1) 46%, transparent 52%),
-    linear-gradient(90deg, transparent 68%, rgba(107, 201, 255, 0.08) 72%, transparent 78%),
-    linear-gradient(90deg, transparent 84%, rgba(118, 185, 0, 0.09) 88%, transparent 94%);
+  background: var(--e2s-surface);
   filter: blur(20px);
   opacity: 0.9;
   transform: skewX(-7deg) translateX(var(--e2s-aurora-x, 0));
@@ -482,7 +457,7 @@ body .md-grid {
   right: 20%;
   bottom: -1.5rem;
   height: 15rem;
-  background: radial-gradient(ellipse at center, rgba(118, 185, 0, 0.16), rgba(107, 201, 255, 0.08) 34%, transparent 72%);
+  background: none;
   filter: blur(30px);
   opacity: 0.46;
 }
@@ -495,13 +470,7 @@ body .md-grid {
   aspect-ratio: 1;
   border-radius: 50%;
   transform: translateX(-50%);
-  background:
-    radial-gradient(ellipse 18% 5% at 35% 9%, rgba(118, 185, 0, 0.34), transparent 72%),
-    radial-gradient(ellipse 24% 6% at 58% 10%, rgba(14, 165, 164, 0.26), transparent 72%),
-    radial-gradient(ellipse 15% 4% at 68% 12%, rgba(155, 229, 100, 0.16), transparent 72%),
-    radial-gradient(circle at 50% 4%, rgba(225, 249, 255, 0.5), rgba(107, 201, 255, 0.2) 11%, transparent 28%),
-    linear-gradient(180deg, rgba(83, 184, 213, 0.58) 0%, rgba(19, 90, 113, 0.62) 17%, rgba(5, 37, 56, 0.86) 38%, rgba(1, 8, 11, 0.98) 76%),
-    radial-gradient(circle at 50% 0%, #2d8fb7 0%, #07334b 38%, #020603 74%);
+  background: var(--e2s-surface);
   opacity: 0.96;
   box-shadow:
     0 -0.18rem 0.75rem rgba(220, 250, 255, 0.46),
@@ -516,7 +485,7 @@ body .md-grid {
   position: absolute;
   inset: -0.25rem;
   border-radius: inherit;
-  background: radial-gradient(circle at 50% 0%, rgba(207, 247, 255, 0.46), transparent 18%);
+  background: none;
   filter: blur(6px);
   opacity: 0.9;
 }
@@ -526,12 +495,7 @@ body .md-grid {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background:
-    radial-gradient(ellipse 28% 5% at 47% 8%, rgba(230, 250, 245, 0.12), transparent 72%),
-    radial-gradient(ellipse 18% 3% at 61% 13%, rgba(225, 247, 255, 0.08), transparent 72%),
-    linear-gradient(180deg, rgba(155, 229, 100, 0.08), transparent 16%),
-    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.1), transparent 23%),
-    linear-gradient(180deg, transparent 0%, rgba(5, 8, 6, 0.14) 34%, rgba(0, 0, 0, 0.62) 82%);
+  background: var(--e2s-surface);
   opacity: 0.78;
 }
 
@@ -554,7 +518,7 @@ body .md-grid {
 .e2s-eyebrow,
 .e2s-section-kicker {
   color: var(--nv-green-2) !important;
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--md-code-font);
   font-size: 0.78rem;
   font-weight: 820;
   letter-spacing: 0;
@@ -603,13 +567,13 @@ body .md-grid {
   padding: 0 1rem;
   border: 1px solid rgba(118, 185, 0, 0.34);
   border-radius: 0.32rem;
-  background: rgba(5, 8, 6, 0.4);
+  background: var(--e2s-panel);
   box-shadow:
     inset 0 0 0 1px rgba(118, 185, 0, 0.08),
     0 0.65rem 2rem rgba(0, 0, 0, 0.34),
     0 0 1.8rem rgba(118, 185, 0, 0.1);
   color: var(--nv-green-2) !important;
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--md-code-font);
   font-size: 0.78rem;
   font-weight: 820;
   text-decoration: none;
@@ -640,7 +604,7 @@ body .md-grid {
   margin: 1.9rem auto 0;
   border: 1px solid rgba(118, 185, 0, 0.28);
   border-radius: 0.35rem;
-  background: rgba(5, 8, 6, 0.68);
+  background: var(--e2s-panel);
   box-shadow:
     inset 0 0 0 1px rgba(118, 185, 0, 0.08),
     0 0.8rem 2.6rem rgba(0, 0, 0, 0.42),
@@ -666,7 +630,7 @@ body .md-grid {
   background: transparent;
   color: var(--nv-muted);
   cursor: pointer;
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--md-code-font);
   font-size: 0.72rem;
   font-weight: 820;
   text-transform: uppercase;
@@ -688,7 +652,7 @@ body .md-grid {
 
 .e2s-install-line span {
   color: var(--nv-green-2);
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--md-code-font);
   font-weight: 820;
 }
 
@@ -711,7 +675,7 @@ body .md-grid {
   background: rgba(118, 185, 0, 0.12);
   color: var(--nv-green-2);
   cursor: pointer;
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--md-code-font);
   font-size: 0.65rem;
   font-weight: 820;
   line-height: 1;
@@ -769,7 +733,7 @@ body .md-grid {
   padding: 2.8rem 1rem 0.95rem;
   border: 1px solid rgba(118, 185, 0, 0.2);
   border-radius: 0.45rem;
-  background: rgba(5, 8, 6, 0.7);
+  background: var(--e2s-panel);
   text-align: left;
   box-shadow:
     inset 0 0 0 1px rgba(118, 185, 0, 0.06),
@@ -828,7 +792,7 @@ body .md-grid {
 .e2s-band {
   padding: clamp(4.5rem, 8vw, 7rem) var(--e2s-page-gutter);
   border-top: 1px solid rgba(118, 185, 0, 0.18);
-  background: rgba(5, 8, 6, 0.72);
+  background: var(--e2s-panel);
 }
 
 .e2s-band--fast {
@@ -857,7 +821,7 @@ body .md-grid {
   overflow: hidden;
   border: 1px solid rgba(118, 185, 0, 0.24);
   border-radius: 0.42rem;
-  background: rgba(5, 8, 6, 0.82);
+  background: var(--e2s-panel);
   box-shadow:
     inset 0 0 0 1px rgba(118, 185, 0, 0.08),
     0 18px 54px rgba(0, 0, 0, 0.28);
@@ -868,7 +832,7 @@ body .md-grid {
   padding: 0.7rem 0.95rem;
   border-bottom: 1px solid rgba(118, 185, 0, 0.18);
   color: var(--nv-green-2);
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--md-code-font);
   font-size: 0.72rem;
   font-weight: 820;
   text-transform: uppercase;
@@ -905,7 +869,7 @@ body .md-grid {
 
 .e2s-ecosystem {
   overflow: hidden;
-  background: rgba(5, 8, 6, 0.78);
+  background: var(--e2s-panel);
 }
 
 .e2s-marquee {
@@ -935,7 +899,7 @@ body .md-grid {
   padding: 0.85rem 1rem;
   border: 1px solid rgba(118, 185, 0, 0.16);
   border-radius: 0.35rem;
-  background: rgba(5, 8, 6, 0.52);
+  background: var(--e2s-panel);
   color: #d5ddd0 !important;
   font-size: clamp(0.92rem, 1.35vw, 1.06rem);
   line-height: 1.55;
@@ -948,11 +912,11 @@ body .md-grid {
 
 .e2s-showcase,
 .e2s-connectors {
-  background: rgba(5, 8, 6, 0.72);
+  background: var(--e2s-panel);
 }
 
 .e2s-connectors {
-  background: rgba(5, 8, 6, 0.72);
+  background: var(--e2s-panel);
 }
 
 .e2s-accent--green { --e2s-accent: var(--nv-green); }
@@ -978,9 +942,7 @@ body .md-grid {
   border: 1px solid color-mix(in srgb, var(--e2s-accent, var(--nv-green)) 34%, transparent);
   border-top: 2px solid color-mix(in srgb, var(--e2s-accent, var(--nv-green)) 82%, white 4%);
   border-radius: 0.38rem;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--e2s-accent, var(--nv-green)) 12%, transparent), transparent 56%),
-    rgba(9, 14, 8, 0.78);
+  background: var(--e2s-panel);
   box-shadow:
     0 1rem 2.8rem rgba(0, 0, 0, 0.2),
     inset 0 0 0 1px color-mix(in srgb, var(--e2s-accent, var(--nv-green)) 8%, transparent);
@@ -1013,9 +975,7 @@ body .md-grid {
   padding: 0.52rem;
   border: 1px solid color-mix(in srgb, var(--e2s-accent, var(--nv-green)) 36%, transparent);
   border-radius: 0.32rem;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--e2s-accent, var(--nv-green)) 12%, transparent), transparent 58%),
-    rgba(9, 14, 8, 0.76);
+  background: var(--e2s-panel);
   color: #eef8ff;
   font-size: 0.83rem;
   font-weight: 760;
@@ -1026,7 +986,7 @@ body .md-grid {
   width: min(45rem, var(--e2s-content-width));
   margin: 1.2rem auto 0 !important;
   color: var(--nv-green-2) !important;
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--md-code-font);
   font-size: 0.78rem;
   font-weight: 820;
   text-align: center;
@@ -1053,9 +1013,7 @@ body .md-grid {
   padding: 0 1rem 0 0.52rem;
   border: 1px solid rgba(118, 185, 0, 0.3);
   border-radius: 999px;
-  background:
-    linear-gradient(180deg, rgba(118, 185, 0, 0.09), transparent 58%),
-    rgba(21, 27, 19, 0.88);
+  background: var(--e2s-panel);
   color: #e9f2df;
   font-size: clamp(0.82rem, 1.3vw, 0.98rem);
   font-weight: 760;
@@ -1071,7 +1029,7 @@ body .md-grid {
   border-radius: 999px;
   background: rgba(118, 185, 0, 0.13);
   color: var(--nv-green-2);
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--md-code-font);
   font-size: 0.66rem;
   font-weight: 860;
 }
@@ -1097,9 +1055,7 @@ body .md-grid {
   border: 1px solid rgba(118, 185, 0, 0.2);
   border-top: 3px solid var(--nv-green);
   border-radius: 0.35rem;
-  background:
-    linear-gradient(180deg, rgba(118, 185, 0, 0.08), transparent 48%),
-    rgba(16, 21, 15, 0.9);
+  background: var(--e2s-panel);
   color: var(--nv-fg) !important;
   text-decoration: none;
   transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
@@ -1119,7 +1075,7 @@ body .md-grid {
 
 .e2s-capability span {
   color: var(--nv-green-2);
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--md-code-font);
   font-size: 0.68rem;
   font-weight: 820;
   text-transform: uppercase;
@@ -1140,13 +1096,13 @@ body .md-grid {
 }
 
 #api {
-  background: rgba(5, 8, 6, 0.7);
+  background: var(--e2s-panel);
 }
 
 .e2s-agent {
   padding-top: clamp(3.4rem, 6vw, 5.3rem);
   padding-bottom: clamp(3.4rem, 6vw, 5.3rem);
-  background: rgba(5, 8, 6, 0.74);
+  background: var(--e2s-panel);
 }
 
 .e2s-agent .e2s-section-copy p:not(.e2s-section-kicker) {
@@ -1173,9 +1129,7 @@ body .md-grid {
   padding: 1rem;
   border: 1px solid rgba(118, 185, 0, 0.22);
   border-radius: 0.42rem;
-  background:
-    linear-gradient(180deg, rgba(118, 185, 0, 0.08), transparent 60%),
-    rgba(7, 11, 7, 0.88);
+  background: var(--e2s-panel);
   box-shadow:
     inset 0 0 0 1px rgba(118, 185, 0, 0.08),
     0 1.2rem 3.5rem rgba(0, 0, 0, 0.25);
@@ -1183,7 +1137,7 @@ body .md-grid {
 
 .e2s-agent-terminal span {
   color: #eef8ff;
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--md-code-font);
   font-size: clamp(0.58rem, 0.82vw, 0.72rem);
   line-height: 1.3;
   overflow-wrap: anywhere;
@@ -1207,9 +1161,7 @@ body .md-grid {
   border: 1px solid color-mix(in srgb, var(--e2s-accent, var(--nv-green)) 38%, transparent);
   border-left: 3px solid var(--e2s-accent, var(--nv-green));
   border-radius: 0.36rem;
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--e2s-accent, var(--nv-green)) 12%, transparent), transparent 62%),
-    rgba(11, 16, 10, 0.9);
+  background: var(--e2s-panel);
 }
 
 .e2s-agent-card strong {
@@ -1229,7 +1181,7 @@ body .md-grid {
   grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.62fr);
   gap: 2rem;
   align-items: center;
-  background: rgba(5, 8, 6, 0.7);
+  background: var(--e2s-panel);
 }
 
 .e2s-start-grid {
@@ -1266,10 +1218,7 @@ body .md-grid {
   padding: clamp(1rem, 2vw, 1.35rem);
   border: 1px solid rgba(76, 124, 14, 0.2);
   border-radius: 0.38rem;
-  background:
-    radial-gradient(circle at 12% 8%, rgba(118, 185, 0, 0.14), transparent 20rem),
-    radial-gradient(circle at 90% 18%, rgba(14, 165, 164, 0.1), transparent 18rem),
-    linear-gradient(180deg, #fff, #f4f8f0);
+  background: var(--e2s-surface);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.82),
     0 1rem 2.6rem rgba(18, 32, 14, 0.1);
@@ -1326,7 +1275,7 @@ body .md-grid {
   display: block;
   margin-bottom: 0.55rem;
   color: var(--e2s-install-link);
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--md-code-font);
   font-size: 0.72rem;
   font-weight: 820;
   letter-spacing: 0;
@@ -1357,9 +1306,7 @@ body .md-grid {
 .e2s-install-buttons button:hover,
 .e2s-install-buttons button.is-active {
   border-color: rgba(76, 124, 14, 0.48);
-  background:
-    linear-gradient(135deg, rgba(118, 185, 0, 0.16), rgba(14, 165, 164, 0.08)),
-    var(--e2s-install-panel-strong);
+  background: var(--e2s-panel);
   transform: translateY(-1px);
 }
 
@@ -1390,14 +1337,12 @@ body .md-grid {
   padding: 0.95rem;
   border: 1px solid rgba(14, 165, 164, 0.2);
   border-radius: 0.35rem;
-  background:
-    radial-gradient(circle at 100% 0%, rgba(14, 165, 164, 0.12), transparent 16rem),
-    var(--e2s-install-panel);
+  background: var(--e2s-panel);
 }
 
 .md-typeset .e2s-install-summary span {
   color: var(--e2s-install-link);
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--md-code-font);
   font-size: 0.72rem;
   font-weight: 820;
   text-transform: uppercase;
@@ -1489,7 +1434,7 @@ body .md-grid {
   background: rgba(118, 185, 0, 0.12);
   color: var(--e2s-install-link);
   cursor: pointer;
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--md-code-font);
   font-size: 0.7rem;
   font-weight: 820;
   text-transform: uppercase;
@@ -1523,10 +1468,7 @@ body .md-grid {
   --e2s-install-panel-strong: rgba(16, 21, 15, 0.88);
   --e2s-install-code-bg: rgba(3, 6, 3, 0.92);
   border-color: rgba(118, 185, 0, 0.22);
-  background:
-    radial-gradient(circle at 12% 8%, rgba(118, 185, 0, 0.16), transparent 20rem),
-    radial-gradient(circle at 90% 18%, rgba(56, 189, 248, 0.1), transparent 18rem),
-    linear-gradient(180deg, rgba(10, 14, 9, 0.98), rgba(5, 8, 6, 0.98));
+  background: var(--e2s-surface);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.025),
     0 1rem 3rem rgba(0, 0, 0, 0.18);
@@ -1535,7 +1477,7 @@ body .md-grid {
 
 [data-md-color-scheme="slate"] .e2s-install-step {
   border-color: rgba(118, 185, 0, 0.16);
-  background: rgba(5, 8, 6, 0.46);
+  background: var(--e2s-panel);
 }
 
 [data-md-color-scheme="slate"] .e2s-install-step legend,
@@ -1553,9 +1495,7 @@ body .md-grid {
 [data-md-color-scheme="slate"] .e2s-install-buttons button:hover,
 [data-md-color-scheme="slate"] .e2s-install-buttons button.is-active {
   border-color: rgba(155, 229, 100, 0.56);
-  background:
-    linear-gradient(135deg, rgba(118, 185, 0, 0.22), rgba(14, 165, 164, 0.12)),
-    rgba(16, 21, 15, 0.88);
+  background: var(--e2s-panel);
 }
 
 [data-md-color-scheme="slate"] .e2s-install-buttons span,
@@ -1573,9 +1513,7 @@ body .md-grid {
 
 [data-md-color-scheme="slate"] .e2s-install-summary {
   border-color: rgba(56, 189, 248, 0.18);
-  background:
-    radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.13), transparent 16rem),
-    rgba(7, 11, 7, 0.86);
+  background: var(--e2s-panel);
 }
 
 [data-md-color-scheme="slate"] .e2s-install-alert {
@@ -1596,7 +1534,7 @@ body .md-grid {
 
 [data-md-color-scheme="slate"] .e2s-install-card {
   border-color: rgba(118, 185, 0, 0.16);
-  background: rgba(5, 8, 6, 0.72);
+  background: var(--e2s-panel);
 }
 
 [data-md-color-scheme="slate"] .e2s-install-card__header {

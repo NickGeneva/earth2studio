@@ -1,0 +1,207 @@
+/* SPDX-FileCopyrightText: Copyright (c) 2024-2026 NVIDIA CORPORATION & AFFILIATES. */
+/* SPDX-License-Identifier: Apache-2.0 */
+
+/* Flatten the tonal styling in nvidia-material.css.
+ *
+ * That file paints chrome and landing components with hard-coded dark literals
+ * (#050806, #080b08, rgba(5,8,6,…)) and multi-layer radial/linear gradients, all
+ * marked !important, so palette variables cannot reach them. This sheet strips
+ * every background image and forces flat scheme colours.
+ *
+ * Loaded last. Layout, spacing, and component structure are untouched. */
+
+/* ── Remove every gradient/glow layer ────────────────────────────────────── */
+/* Attribute selectors catch all e2s-* components without enumerating them. */
+[class*="e2s-"],
+[class*="e2s-"]::before,
+[class*="e2s-"]::after,
+.md-header,
+.md-header::before,
+.md-header::after,
+.md-tabs,
+.md-banner,
+.md-announce,
+.md-footer,
+.md-footer-meta,
+.md-main,
+.md-container,
+body {
+  background-image: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* Decorative-only elements have nothing left to show. */
+.e2s-pointer-glow,
+.e2s-planet-scene::before,
+.e2s-planet-scene::after,
+.e2s-planet::before,
+.e2s-planet::after,
+.md-typeset .e2s-home::before,
+.md-typeset .e2s-home::after {
+  display: none !important;
+}
+
+/* ── Page and chrome surfaces ────────────────────────────────────────────── */
+body,
+.md-main,
+.md-container,
+.md-content,
+.md-typeset .e2s-home,
+.e2s-band,
+.e2s-hero__start,
+.e2s-planet,
+.e2s-planet-scene {
+  background: var(--md-default-bg-color) !important;
+  color: var(--md-default-fg-color) !important;
+}
+
+.md-header,
+.md-tabs,
+.md-banner,
+.md-announce {
+  background: var(--md-header-bg-color, var(--md-default-bg-color)) !important;
+  background-color: var(--md-header-bg-color, var(--md-default-bg-color)) !important;
+  color: var(--md-header-color, var(--md-default-fg-color)) !important;
+}
+
+.md-header {
+  border-bottom: var(--md-header-border, 1px solid transparent) !important;
+}
+
+.md-footer,
+.md-footer-meta {
+  background: var(--md-footer-bg-color) !important;
+  background-color: var(--md-footer-bg-color) !important;
+  color: var(--md-footer-fg-color) !important;
+  border-top: var(--md-footer-border-bottom, none) !important;
+}
+
+/* ── Panels and cards use the scheme's code tone, not a green tint ───────── */
+.md-typeset .e2s-start-grid a,
+.e2s-install-command,
+.e2s-terminal,
+.md-typeset .e2s-install-selector,
+.e2s-install-step {
+  background: var(--md-code-bg-color) !important;
+  border: 1px solid var(--md-default-fg-color--lightest) !important;
+  color: var(--md-default-fg-color) !important;
+}
+
+/* ── Buttons: flat brand green ───────────────────────────────────────────── */
+.e2s-button--primary {
+  background: var(--md-primary-fg-color) !important;
+  border-color: var(--md-primary-fg-color) !important;
+  color: #000 !important;
+}
+
+/* ── Inherit text colour on former dark surfaces ─────────────────────────── */
+.md-typeset .e2s-home,
+.md-typeset .e2s-home h1,
+.md-typeset .e2s-home h2,
+.md-typeset .e2s-home h3,
+.md-typeset .e2s-home p,
+.md-typeset .e2s-home li,
+.e2s-band,
+.e2s-band * {
+  color: var(--md-default-fg-color) !important;
+}
+
+/* Restore Material's own icon rendering, which uses background-image on masks. */
+.md-icon,
+.md-icon::before,
+.md-nav__icon,
+.md-nav__icon::after,
+.md-search__icon,
+.md-clipboard::after,
+.md-typeset .admonition > .admonition-title::before,
+.md-typeset details > summary::before,
+.md-typeset .task-list-control .task-list-indicator::before {
+  background-image: revert !important;
+}
+
+/* ── Header tokens per scheme ────────────────────────────────────────────── */
+/* nvidia-material.css scopes --md-default-fg-color to --e2s-header-fg inside
+ * .md-header/.md-tabs. That token is #fff, which is invisible on the light
+ * scheme's white header — so it is set per scheme here, matching the landing
+ * page (white header + black text in light, #1a1a1a + white in dark). */
+
+[data-md-color-scheme="light"] {
+  --e2s-header-bg: #ffffff;
+  --e2s-header-fg: #000000;
+  --e2s-header-muted: #666666;
+  --e2s-header-border: #c9d1d9;
+  --e2s-header-search-bg: #f6f8fa;
+  --e2s-header-search-border: #cccccc;
+  --e2s-header-kbd-bg: #ffffff;
+  --e2s-header-kbd-border: #cccccc;
+}
+
+[data-md-color-scheme="dark"] {
+  --e2s-header-bg: #1a1a1a;
+  --e2s-header-fg: #ffffff;
+  --e2s-header-muted: #999999;
+  --e2s-header-border: #2a2a2a;
+  --e2s-header-search-bg: #2a2a2a;
+  --e2s-header-search-border: #666666;
+  --e2s-header-kbd-bg: #1a1a1a;
+  --e2s-header-kbd-border: #666666;
+}
+
+/* ── Logo ─────────────────────────────────────────────────────────────────── */
+/* docs.nvidia.com/bionemo-framework renders the same 164x30 NVIDIA lockup with
+ * no logo CSS of its own, so Material's defaults apply there:
+ *   .md-logo img,svg { height: 1.2rem; width: auto }
+ *   .md-logo         { margin: .2rem; padding: .4rem }
+ * The button spacing matches that; the height is set a step smaller at 1rem,
+ * which suits this wide lockup against the sitename beside it.
+ *
+ * Both override e2s-landing-theme.css:732-733, which locks the logo to a 1.6rem
+ * square (squashing this wide mark) and inverts it in dark mode. */
+.md-header__button.md-logo img,
+[data-md-color-scheme="light"] .md-header__button.md-logo img,
+[data-md-color-scheme="dark"] .md-header__button.md-logo img {
+  height: 1rem !important;
+  width: auto !important;
+  filter: none !important;
+  display: block !important;
+}
+
+.md-header__button.md-logo {
+  margin: 0.2rem !important;
+  padding: 0.4rem !important;
+}
+
+/* The logo wordmark is black, which vanishes on the dark scheme's header. Swap
+ * to the white-wordmark variant there rather than using a filter, which would
+ * also shift the eye off NVIDIA green. */
+[data-md-color-scheme="dark"] .md-header__button.md-logo img {
+  content: url("../../_static/nvidia-logo-dark.svg");
+}
+
+/* Header text, links, and icons follow the scheme's header colour. */
+.md-header,
+.md-tabs,
+.md-header a,
+.md-tabs a,
+.md-header__title,
+.md-header__topic,
+.md-header .md-icon,
+.md-tabs__link {
+  color: var(--e2s-header-fg) !important;
+}
+
+.md-header svg,
+.md-tabs svg,
+.md-search__icon svg {
+  fill: var(--e2s-header-fg) !important;
+}
+
+.md-search__input {
+  color: var(--e2s-header-fg) !important;
+}
+
+.md-search__input::placeholder {
+  color: var(--e2s-header-muted) !important;
+}
