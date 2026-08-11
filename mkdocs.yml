@@ -31,23 +31,26 @@ theme:
   - content.code.annotate
   palette:
   - media: '(prefers-color-scheme: light)'
-    scheme: default
-    primary: black
-    accent: light green
+    scheme: light
+    primary: custom
+    accent: lime
     toggle:
       icon: material/brightness-7
       name: Switch to dark mode
   - media: '(prefers-color-scheme: dark)'
-    scheme: slate
-    primary: black
-    accent: light green
+    scheme: dark
+    primary: custom
+    accent: lime
     toggle:
       icon: material/brightness-4
       name: Switch to light mode
+  font: false
   icon:
     repo: fontawesome/brands/github
 extra_css:
 - https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css
+- assets/stylesheets/nvidia-fonts.css
+- assets/stylesheets/nvidia-color-schemes.css
 - assets/stylesheets/nvidia-material.css
 - assets/stylesheets/earth2studio-gallery.css
 extra_javascript:
