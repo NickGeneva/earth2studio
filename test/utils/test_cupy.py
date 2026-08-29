@@ -22,8 +22,125 @@ import pytest
 import torch
 import xarray as xr
 
+import earth2studio as e2s
 from earth2studio.utils import cupy as cupy_utils
 from earth2studio.utils.cupy import from_torch
+
+
+def test_coordinate_array_signature():
+    signature = e2s.coord_array(
+        dims=("batch", "time", "lead_time", "variable", "lat", "lon"),
+        coords={
+            "lead_time": [np.timedelta64(0, "h")],
+            "variable": ["u10m", "t2m"],
+        },
+        dynamic=("batch", "time"),
+        grid="latlon025",
+        statistics={"u10m": "mean:24h", "t2m": "max:-12h:+12h"},
+    )
+
+    assert signature.dims == (
+        "batch",
+        "time",
+        "lead_time",
+        "variable",
+        "lat",
+        "lon",
+    )
+    assert signature.shape == (0, 0, 1, 2, 721, 1440)
+    assert signature.data.nbytes == 0
+    assert signature.e2s.dynamic_dims == ("batch", "time")
+    assert "spatial_ref" not in signature.coords
+    assert "grid_mapping" not in signature.attrs
+    assert signature.e2s.crs.to_epsg() == 4326
+    grid = signature.e2s.get_grid()
+    assert grid["id"] == "latlon-0.25deg"
+    assert grid["crs"] == "EPSG:4326"
+    assert grid["spatial_dims"] == ("lat", "lon")
+    assert grid["shape"] == (721, 1440)
+    assert signature.e2s.get_statistic("u10m") == "mean:24h"
+    assert signature.e2s.get_statistic("t2m") == "max:-12h:+12h"
+    assert signature.attrs["earth2studio_statistics"]["t2m"]["window"] == "PT24H"
+    assert signature.e2s.get_statistic("missing") is None
+    assert e2s.known_grids() == (
+        "latlon-0.25deg",
+        "hrrr-conus-3km",
+        "healpix-l6-nested",
+    )
+
+    sliced = signature.isel(lead_time=0).transpose(
+        "batch", "time", "variable", "lat", "lon"
+    )
+    assert sliced.data.nbytes == 0
+    populated = signature.e2s.materialize_grid_coords()
+    np.testing.assert_allclose(populated.lat[[0, -1]], [90, -90])
+    np.testing.assert_allclose(populated.lon[[0, -1]], [0, 359.75])
+    assert populated.data.nbytes == 0
+
+    hrrr = e2s.coord_array(
+        dims=("batch", "variable", "hrrr_y", "hrrr_x"),
+        coords={"variable": ["u10m"]},
+        dynamic=("batch",),
+        grid="hrrr",
+    )
+    hpx = e2s.coord_array(
+        dims=("batch", "variable", "hpx"),
+        coords={"variable": ["u10m"]},
+        dynamic=("batch",),
+        grid="hpx6",
+    )
+    assert hrrr.shape == (0, 1, 1059, 1799)
+    assert hrrr.e2s.get_grid()["crs"] == "Lambert Conic Conformal (2SP)"
+    assert hrrr.e2s.get_grid()["topology"] == "projected"
+    assert hpx.shape == (0, 1, 49_152)
+    assert hpx.e2s.get_grid()["nside"] == 64
+
+    hrrr = hrrr.e2s.materialize_grid_coords()
+    hpx = hpx.e2s.materialize_grid_coords()
+    assert hrrr.lat.shape == hrrr.lon.shape == (1059, 1799)
+    np.testing.assert_allclose(hrrr.lat[0, 0], 21.138123, rtol=1e-6)
+    np.testing.assert_allclose(hrrr.lon[0, 0], 237.280472, rtol=1e-6)
+    assert hpx.lat.shape == hpx.lon.shape == (49_152,)
+    assert np.isfinite(hpx.lat).all() and np.isfinite(hpx.lon).all()
+    assert hrrr.data.nbytes == hpx.data.nbytes == 0
+
+
+def test_coordinate_array_validation():
+    cases = (
+        ({"dims": ("x",)}, "Missing size"),
+        ({"dims": ("x",), "dynamic": ("y",)}, "present in dims"),
+        ({"dims": ("x", "x"), "dynamic": ("x",)}, "unique"),
+        (
+            {
+                "dims": ("variable",),
+                "coords": {"variable": ["a"]},
+                "statistics": {"b": "mean:24h"},
+            },
+            "unknown variables",
+        ),
+    )
+    for kwargs, message in cases:
+        with pytest.raises(ValueError, match=message):
+            e2s.coord_array(**kwargs)
+
+    with pytest.raises(ValueError, match="Unknown Earth2Studio grid"):
+        e2s.coord_array(dims=("x",), sizes={"x": 1}, grid="missing")
+    with pytest.raises(ValueError, match="Grid dimensions"):
+        e2s.coord_array(dims=("x",), sizes={"x": 1}, grid="latlon025")
+    with pytest.raises(ValueError, match="conflict with grid"):
+        e2s.coord_array(
+            dims=("lat", "lon"),
+            sizes={"lat": 2, "lon": 1440},
+            grid="latlon025",
+        )
+    with pytest.raises(ValueError, match="Invalid statistic"):
+        e2s.coord_array(
+            dims=("variable",),
+            coords={"variable": ["a"]},
+            statistics={"a": "median:24h"},
+        )
+    with pytest.raises(ValueError, match="does not contain"):
+        xr.DataArray(np.ones(1)).e2s.materialize_grid_coords()
 
 
 def test_numpy_torch_and_batch_round_trip():

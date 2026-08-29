@@ -27,7 +27,15 @@ from typing import Any
 import numpy as np
 import torch
 import xarray as xr
+from pyproj import CRS
 
+from earth2studio.utils.coordinate import (
+    E2S_DYNAMIC_DIMS,
+    _array_crs,
+    _get_statistic,
+    _grid_metadata,
+    _materialize_grid_coords,
+)
 from earth2studio.utils.type import CoordSystem
 
 _BATCH_METADATA_KEY = "_earth2studio_batch"
@@ -194,6 +202,51 @@ class Earth2StudioAccessor:
 
     def __init__(self, array: xr.DataArray) -> None:
         self._array = array
+
+    @property
+    def dynamic_dims(self) -> tuple[Hashable, ...]:
+        """Return wildcard dimensions in the coordinate signature."""
+        return tuple(self._array.attrs.get(E2S_DYNAMIC_DIMS, ()))
+
+    @property
+    def crs(self) -> CRS | None:
+        """Return the grid coordinate reference system."""
+        return _array_crs(self._array)
+
+    def get_grid(self) -> dict[str, Any] | None:
+        """Return concise grid metadata.
+
+        Returns
+        -------
+        dict[str, Any] | None
+            Grid identifier, CRS, spatial dimensions, shape, and resolution.
+        """
+        return _grid_metadata(self._array)
+
+    def get_statistic(self, variable: str) -> str | None:
+        """Return a variable statistic modifier.
+
+        Parameters
+        ----------
+        variable : str
+            Variable coordinate label.
+
+        Returns
+        -------
+        str | None
+            Compact statistic modifier or None.
+        """
+        return _get_statistic(self._array, variable)
+
+    def materialize_grid_coords(self) -> xr.DataArray:
+        """Generate coordinates described by the grid metadata.
+
+        Returns
+        -------
+        xr.DataArray
+            DataArray with physical grid coordinates attached.
+        """
+        return _materialize_grid_coords(self._array)
 
     @property
     def is_cupy(self) -> bool:

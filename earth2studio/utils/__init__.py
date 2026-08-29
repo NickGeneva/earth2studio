@@ -20,4 +20,5 @@ from .coords import (
     handshake_dim,
     handshake_size,
 )
+from .coordinate import coord_array, known_grids
 from .cupy import from_torch
