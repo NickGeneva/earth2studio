@@ -16,7 +16,7 @@
 
 __version__ = "0.19.0a0"
 
-from earth2studio.utils.coordinate import coord_array, known_grids
+from earth2studio.utils.coordinate import coord_array, known_grids, resolve_grid
 
 # Deprecation warnings
 # import sys

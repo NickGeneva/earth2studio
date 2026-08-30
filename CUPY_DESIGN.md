@@ -420,6 +420,7 @@ Initial canonical keys should be concise but unambiguous:
 | --- | --- | --- |
 | `hrrr-conus-3km` | `hrrr` | HRRR Lambert CRS, 1059 by 1799 shape, transform |
 | `latlon-0.25deg` | `latlon025` | EPSG:4326, north-to-south latitude, 0-360 longitude |
+| `fcn-global-0.25deg` | `fcn` | EPSG:4326, 720 by 1440, south pole excluded |
 | `healpix-l6-nested` | `hpx6` | Spherical geographic CRS, `nside=64`, 49,152 pixels |
 | `healpix-l10-nested` | `hpx10` | Spherical geographic CRS, `nside=1024`, 12,582,912 pixels |
 

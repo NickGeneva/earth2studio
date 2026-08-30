@@ -25,12 +25,14 @@ It depends on:
 6. The common inputs remain `source`, `time`, `variable`, `lead_time`, and `device`.
 7. One optional `metadata` argument accepts an allocation-free DataArray signature or
    an empty typed DataFrame signature.
-8. DataArray metadata carries target dimensions, grids, statistics, and an optional
-   compact regridding policy. DataFrame metadata carries columns, dtypes, roles, CRS,
-   and optional field requirements.
-9. `interp_to` and `interp_method` remain compatibility inputs during migration, but
-   are normalized into DataArray metadata internally and then deprecated.
-10. The first implementation reaches current feature parity before adding new GPU
+8. DataArray metadata carries only target dimensions, coordinates, grids, statistics,
+   and dtype. DataFrame metadata carries columns, dtypes, roles, CRS, and optional
+   field requirements.
+9. Regridding method and engine selection are process configuration, supplied through
+   one optional `regrid` argument and never stored in the target metadata.
+10. `interp_to` and `interp_method` remain compatibility inputs during migration.
+    They normalize into a target DataArray signature and a separate regridding request.
+11. The first implementation reaches current feature parity before adding new GPU
     regridders or source-ingestion optimizations.
 
 ## Goals
@@ -44,7 +46,8 @@ It depends on:
 6. Return NumPy-backed DataArrays on CPU and CuPy-backed DataArrays on CUDA.
 7. Preserve dimensions, coordinate values, column order, names, attributes, and grid
    or CRS metadata.
-8. Replace bespoke interpolation arguments with metadata-driven grid requirements.
+8. Replace bespoke interpolation targets with metadata-driven grid requirements while
+   keeping regridding execution separate from the data contract.
 9. Provide explicit internal hooks for statistics, alignment, and regridding.
 10. Keep the migration on `main`, controlled by one environment variable for dense
     return behavior.
@@ -118,6 +121,7 @@ FetchSource = (
     | ForecastFrameSource
 )
 FetchMetadata = xr.DataArray | pd.DataFrame
+RegridCallable = Callable[[xr.DataArray, xr.DataArray], xr.DataArray]
 FetchResult = (
     tuple[torch.Tensor, CoordSystem]
     | xr.DataArray
@@ -138,6 +142,7 @@ def fetch_data(
     *,
     metadata: FetchMetadata | None = None,
     fields: FieldArray | None = None,
+    regrid: str | RegridCallable | None = None,
 ) -> FetchResult: ...
 ```
 
@@ -156,6 +161,9 @@ The public dispatcher never returns both an array and a frame.
 - `metadata` must match the resolved source family.
 - Passing `metadata` together with `interp_to` raises to avoid two conflicting target
   descriptions. `interp_method` has no effect without `interp_to`.
+- `regrid` is accepted only for array sources and requires DataArray `metadata`.
+- The modern `metadata` plus `regrid` path and legacy `interp_to` plus `interp_method`
+  path are mutually exclusive.
 
 ## Metadata API Options
 
@@ -281,6 +289,7 @@ def fetch_data(...):
             legacy=legacy,
             interp_to=interp_to,
             interp_method=interp_method,
+            regrid=regrid,
         )
 
     return _fetch_data_frame(
@@ -320,7 +329,7 @@ another raises an actionable error.
 ## Array Fetch Pipeline
 
 ```python
-def _fetch_data_array(..., metadata, legacy, interp_to, interp_method):
+def _fetch_data_array(..., metadata, legacy, interp_to, interp_method, regrid):
     mode = resolve_array_api() if legacy is None else (
         "legacy" if legacy else "xarray"
     )
@@ -328,14 +337,18 @@ def _fetch_data_array(..., metadata, legacy, interp_to, interp_method):
     target = _normalize_array_metadata(
         metadata,
         interp_to=interp_to,
-        interp_method=interp_method,
         request=request,
+    )
+    regrid_request = _normalize_regrid_request(
+        regrid,
+        interp_to=interp_to,
+        interp_method=interp_method,
     )
 
     array = _fetch_source_array(source, request)
     array = _normalize_source_array(array, request)
     array = _apply_requested_statistics(array, target)
-    array = _regrid_for_fetch(array, target)
+    array = _regrid_for_fetch(array, target, regrid_request)
     array = _align_array_result(array, request, target)
     array = _place_array_result(array, device)
     array = _validate_array_result(array, request, target)
@@ -415,9 +428,14 @@ A frame signature containing unsupported statistic metadata raises explicitly.
 
 ## Replacing Interpolation Arguments
 
-The new API should describe the required output grid, not prescribe an interpolation
-implementation. Regridding is triggered automatically when normalized source and
-metadata grid identities differ.
+The target metadata describes **what data is required**. Regridding configuration
+describes **how the fetch process reaches that target**. These are separate ownership
+domains: a DataArray signature never stores an interpolation method, engine, or
+execution profile.
+
+Regridding is needed when normalized source and target grid identities differ. The
+target grid is discovered from DataArray metadata, while one optional `regrid` input
+controls the process.
 
 ### Grid discovery
 
@@ -434,75 +452,55 @@ The regridding planner compares the resolved source and target grids. It calls
 coordinates. Registry-backed grids therefore do not permanently allocate latitude and
 longitude arrays merely to prove grid identity.
 
-### Compact regridding policy
+### Process configuration
 
-Regridding control belongs in the DataArray metadata rather than in `fetch_data`.
-A single policy string uses `[engine:]method`:
+Most calls need only the target metadata. Automatic resolution preserves the parity
+default when grids differ:
 
 ```python
-# Select the best installed engine that supports linear regridding.
-metadata = model.input_coords().e2s.set_regrid("linear")
-
-# Require SciPy cubic interpolation.
-metadata = model.input_coords().e2s.set_regrid("scipy:cubic")
+array = fetch_data(..., metadata=model.input_coords())
 ```
+
+One optional process argument provides explicit control without adding engine-specific
+parameters to `fetch_data`:
+
+```python
+array = fetch_data(..., metadata=metadata, regrid="linear")
+array = fetch_data(..., metadata=metadata, regrid="scipy:cubic")
+array = fetch_data(..., metadata=metadata, regrid=my_regridder)
+```
+
+A string uses `[engine:]method`. A callable accepts the fetched source DataArray and
+the target DataArray signature, then returns the regridded DataArray. This callable is
+the expert extension point; it does not introduce a required Earth2Studio class.
 
 Initial normalized methods are `nearest`, `linear`, `cubic`, and `conservative`.
 Initial engine identifiers may include `xarray`, `scipy`, `cupy`, `earth2grid`, and
 `xesmf` as their adapters become available. Each adapter declares its supported source
-grids, target grids, methods, devices, and optional dependencies.
+grids, target grids, methods, devices, and optional dependencies. Users do not pass
+library-specific keyword arguments through `fetch_data`; advanced configuration belongs
+inside a registered adapter or custom callable.
 
-The accessor expands the compact declaration into validated attrs:
-
-```python
-metadata.attrs["earth2studio_regrid"]
-# {
-#     "policy": "scipy:cubic",
-#     "engine": "scipy",
-#     "method": "cubic",
-# }
-```
-
-Users normally provide only the policy string. They do not pass library-specific
-keyword arguments through `fetch_data`. Advanced engine configuration belongs in a
-registered engine/profile so fetch metadata remains portable and serializable.
-
-### Policy resolution
+### Process resolution
 
 When grids differ, resolution follows:
 
-1. Use an explicit metadata policy when present.
-2. Otherwise use a variable-specific method recommendation when all requested
-   variables agree.
+1. Use an explicit `regrid` string or callable when provided.
+2. Otherwise use a recommendation from the external process registry when all
+   requested variables agree.
 3. Otherwise use the current parity default, `nearest`, when supported.
 4. Otherwise use the only method supported by the resolved grid pair.
 5. Raise with available methods and engines when the choice remains ambiguous.
 
-If the policy names an engine, that engine is mandatory. If it names only a method,
+If the string names an engine, that engine is mandatory. If it names only a method,
 the registry selects an engine deterministically from the grid pair, method, execution
 device, and installed dependencies. CUDA-native engines take priority for CUDA
 payloads; CPU engines take priority for CPU payloads.
 
-Common cases therefore need only a target grid:
-
-```python
-metadata = model.input_coords()
-array = fetch_data(..., metadata=metadata)
-```
-
-An explicit override remains possible without adding another `fetch_data` argument:
-
-```python
-metadata = model.input_coords().e2s.set_regrid("scipy:cubic")
-array = fetch_data(..., metadata=metadata)
-```
-
-`set_regrid()` stores the validated policy. It does not perform the operation or
-introduce a public regridding object.
-
-The output records the resolved engine, method, engine version, and source/target grid
-hashes as provenance. Automatic engine selection is therefore reproducible and
-inspectable rather than hidden.
+Resolution creates a private execution plan used only for the current fetch. The plan
+may be emitted through structured logging or tracing, but it is not added to the target
+DataArray contract. Automatic engine selection therefore remains inspectable without
+mixing process configuration into data metadata.
 
 ### Legacy translation
 
@@ -516,7 +514,8 @@ fetch_data(
 )
 ```
 
-is normalized internally to the equivalent DataArray metadata and regridding policy.
+is normalized internally to an equivalent DataArray target and a separate `"linear"`
+regridding request.
 The initial release can support both paths without a warning. Deprecation begins only
 after metadata parity is established and a migration guide is published.
 
@@ -534,11 +533,12 @@ Grid handling remains three operations:
 def _regrid_for_fetch(
     array: xr.DataArray,
     metadata: xr.DataArray | None,
+    regrid: str | RegridCallable | None,
 ) -> xr.DataArray:
     if metadata is None or array.e2s.same_grid(metadata):
         return array
-    policy = _resolve_regrid_policy(array, metadata)
-    return _regrid_data_array(array, metadata, policy=policy)
+    plan = _resolve_regrid_plan(array, metadata, regrid)
+    return plan(array, metadata)
 ```
 
 The first implementation places current interpolation behavior behind
@@ -641,7 +641,8 @@ roles, CRS attrs, backend, and source-family return type.
 - Add `metadata` support for DataArray and empty DataFrame signatures.
 - Add metadata type and conflict validation in the dispatcher.
 - Use DataFrame metadata for field, dtype, role, and CRS validation.
-- Normalize legacy `interp_to` and `interp_method` into DataArray metadata.
+- Normalize legacy `interp_to` into DataArray metadata and `interp_method` into a
+  separate process request.
 - Add grid comparison, regridding dispatch, and statistic hooks.
 - Reject unsupported metadata instead of ignoring it.
 
@@ -684,7 +685,7 @@ Use a compact parametrized matrix spanning:
 - CPU NumPy/pandas and CUDA CuPy/cuDF outputs.
 - Explicit legacy, explicit modern, and environment-selected dense modes.
 - DataArray and DataFrame metadata signatures.
-- Automatic and engine-qualified regridding policies.
+- Automatic, engine-qualified, and callable regridding process inputs.
 - Metadata/source mismatches and conflicting legacy inputs.
 - One- and two-dimensional interpolation targets.
 - Current rectilinear and curvilinear interpolation methods.
@@ -710,7 +711,8 @@ The data-fetch stage is complete when:
 3. Modern dense output reaches complete legacy feature parity.
 4. Frame output preserves current pandas/cuDF behavior.
 5. DataArray and DataFrame metadata signatures are supported and validated.
-6. Legacy interpolation inputs translate to metadata-driven regridding.
+6. Legacy interpolation inputs translate to target metadata plus separate regridding
+   process configuration.
 7. Modern CPU output is NumPy-backed and modern CUDA output is CuPy-backed.
 8. Existing custom sources require no changes.
 9. `EARTH2STUDIO_ARRAY_API` controls implicit dense return behavior.
@@ -728,8 +730,8 @@ and documentation stages are ready for the shared default switch.
    natural for DataFrames?
 2. Should the regridding engine registry be public in the first release or remain an
    internal extension point until its adapter contract stabilizes?
-3. Which variable metadata is sufficient to choose nearest versus linear regridding
-   automatically?
+3. Should the process registry infer nearest versus linear regridding from variable
+   identity and semantics, or retain one global parity default?
 4. Should frame metadata fully replace `fields` after migration, or should `fields`
    remain as a convenience shorthand?
 5. Which metadata fields can survive legacy `CoordSystem` conversion?

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Hashable, Mapping, Sequence
+from copy import deepcopy
 from typing import Any
 
 import numpy as np
@@ -43,6 +44,19 @@ _GRID_REGISTRY: dict[str, dict[str, Any]] = {
         "lon_start": 0.0,
         "lon_step": 0.25,
         "resolution": 0.25,
+        "topology": "rectilinear",
+    },
+    "fcn-global-0.25deg": {
+        "aliases": ("fcn",),
+        "crs": "EPSG:4326",
+        "spatial_dims": ("lat", "lon"),
+        "sizes": {"lat": 720, "lon": 1440},
+        "lat_start": 90.0,
+        "lat_step": -0.25,
+        "lon_start": 0.0,
+        "lon_step": 0.25,
+        "resolution": 0.25,
+        "topology": "rectilinear",
     },
     "hrrr-conus-3km": {
         "aliases": ("hrrr",),
@@ -273,7 +287,7 @@ def _materialize_grid_coords(array: xr.DataArray) -> xr.DataArray:
     if grid_id is None:
         raise ValueError("DataArray does not contain Earth2Studio grid metadata")
     spec = _GRID_REGISTRY[grid_id]
-    if grid_id == "latlon-0.25deg":
+    if spec.get("topology") == "rectilinear":
         return array.assign_coords(
             lat=spec["lat_start"] + spec["lat_step"] * np.arange(spec["sizes"]["lat"]),
             lon=spec["lon_start"] + spec["lon_step"] * np.arange(spec["sizes"]["lon"]),
@@ -312,6 +326,23 @@ def known_grids() -> tuple[str, ...]:
         Canonical grid identifiers.
     """
     return tuple(_GRID_REGISTRY)
+
+
+def resolve_grid(grid: str) -> dict[str, Any]:
+    """Resolve a registered grid to its definition.
+
+    Parameters
+    ----------
+    grid : str
+        Canonical grid identifier or alias.
+
+    Returns
+    -------
+    dict[str, Any]
+        Independent copy of the canonical registry entry.
+    """
+    grid_id, spec = _resolve_grid(grid)
+    return {"id": grid_id, **deepcopy(spec)}
 
 
 def coord_array(

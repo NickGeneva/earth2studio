@@ -64,9 +64,15 @@ def test_coordinate_array_signature():
     assert signature.e2s.get_statistic("missing") is None
     assert e2s.known_grids() == (
         "latlon-0.25deg",
+        "fcn-global-0.25deg",
         "hrrr-conus-3km",
         "healpix-l6-nested",
     )
+    fcn_grid = e2s.resolve_grid("fcn")
+    assert fcn_grid["id"] == "fcn-global-0.25deg"
+    assert fcn_grid["sizes"] == {"lat": 720, "lon": 1440}
+    fcn_grid["sizes"]["lat"] = 1
+    assert e2s.resolve_grid("fcn")["sizes"]["lat"] == 720
 
     sliced = signature.isel(lead_time=0).transpose(
         "batch", "time", "variable", "lat", "lon"
@@ -76,6 +82,16 @@ def test_coordinate_array_signature():
     np.testing.assert_allclose(populated.lat[[0, -1]], [90, -90])
     np.testing.assert_allclose(populated.lon[[0, -1]], [0, 359.75])
     assert populated.data.nbytes == 0
+
+    fcn = e2s.coord_array(
+        dims=("batch", "lead_time", "variable", "lat", "lon"),
+        coords={"lead_time": [np.timedelta64(0, "h")], "variable": ["u10m"]},
+        dynamic=("batch",),
+        grid="fcn",
+    ).e2s.materialize_grid_coords()
+    assert fcn.shape == (0, 1, 1, 720, 1440)
+    np.testing.assert_allclose(fcn.lat[[0, -1]], [90, -89.75])
+    np.testing.assert_allclose(fcn.lon[[0, -1]], [0, 359.75])
 
     hrrr = e2s.coord_array(
         dims=("batch", "variable", "hrrr_y", "hrrr_x"),
