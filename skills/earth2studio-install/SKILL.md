@@ -1,6 +1,6 @@
 ---
 name: earth2studio-install
-version: 0.16.0
+version: 0.18.0
 license: Apache-2.0
 metadata:
   author: NVIDIA Earth-2 Team
@@ -65,7 +65,7 @@ between releases. **Before executing or recommending any install command,
 fetch the live installation docs:**
 
 ```text
-https://nvidia.github.io/earth2studio/userguide/about/install.html
+https://nvidia.github.io/earth2studio/main/userguide/about/install/
 ```
 
 Parse the page for the current version tag, available extras, and any
@@ -78,7 +78,7 @@ specific commands come from the live page.
 
 Use WebFetch on the install URL above. Extract:
 
-- Current release version tag (e.g. `@0.14.0`)
+- Current release version tag (e.g. `@0.18.0`)
 - Available optional extras by category
 - Known build quirks (e.g. `--no-build-isolation` for pip,
   manual pre-installs)
@@ -117,10 +117,10 @@ docs:
 
 | Category | Example extras |
 |----------|---------------|
-| Prognostic (forecasting) | aifs, aurora, graphcast, pangu, sfno, stormcast, ... |
-| Diagnostic (post-processing) | corrdiff, climatenet, precip-afno, ... |
-| Data assimilation (beta) | da-healda, da-interp, da-stormcast, da-cosmo |
-| Submodules | data, perturbation, statistics |
+| Prognostic (forecasting) | ace2, aifs, aifs2, atlas, aurora, dlesym, dlwp, fcn, fcn3, fengwu, fuxi, gencast, graphcast, pangu, samudrace, sfno, stormcast, stormcast-conus, stormscope, ucast, ... |
+| Diagnostic (post-processing) | cbottle, climatenet, corrdiff, cosmo, cyclone, derived, orbit, precip-afno, solarradiation-afno, windgust-afno, ... |
+| Data assimilation (beta) | da-cosmo, da-healda, da-interp, da-stormcast |
+| Submodules | data, perturbation, statistics, utils |
 
 The exact list comes from the live docs — cite those, not this table.
 
@@ -137,8 +137,8 @@ Provide the exact commands from the live docs for their selections.
 Key warnings to surface:
 
 - **Slow builds**: flash-attention (AIFS variants), natten
-  (Atlas, StormScope), torch-harmonics CUDA extensions (FCN3, SFNO)
-  — can take 10-30+ minutes
+  (Atlas, StormCast-CONUS, StormScope, CorrDiff COSMO), torch-harmonics
+  CUDA extensions (FCN3, SFNO) — can take 10-30+ minutes
 - **pip-specific manual steps**: some models require
   `--no-build-isolation` or pre-installing packages like earth2grid,
   torch-harmonics, or makani
@@ -161,8 +161,8 @@ relevant (e.g. limited disk, shared filesystem, CI environment):
 
 If installation fails, point the user to:
 
-- <https://nvidia.github.io/earth2studio/userguide/support/troubleshooting.html>
-- <https://nvidia.github.io/earth2studio/userguide/support/faq.html>
+- <https://nvidia.github.io/earth2studio/main/userguide/support/troubleshooting/>
+- <https://nvidia.github.io/earth2studio/main/userguide/support/faq/>
 
 Common issues:
 
