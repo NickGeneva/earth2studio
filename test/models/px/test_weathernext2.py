@@ -23,6 +23,7 @@ import pytest
 import torch
 
 try:
+    from weathernext.utils import fiddle_config_io
     from weathernext.weathernext2 import fgn
 except ImportError:
     pytest.importorskip("weathernext")
@@ -193,6 +194,16 @@ def test_weathernext2_operational_checkpoint():
     assert WeatherNext2Cyclones._params_path(4).endswith("_<2025_model4.npz")
     with pytest.raises(ValueError, match="1 through 4"):
         WeatherNext2Cyclones._params_path(0)
+
+
+def test_weathernext2_target_order(mock_weathernext2_model):
+    config = fiddle_config_io.get_fiddle_config_by_name(
+        "weathernext2/configs/WeatherNextCyclones_Mini"
+    )
+    expected = tuple(
+        v for v in config.task.target_variables if not v.startswith("cyclone")
+    )
+    assert mock_weathernext2_model.task_config.target_variables == expected
 
 
 @pytest.mark.package
