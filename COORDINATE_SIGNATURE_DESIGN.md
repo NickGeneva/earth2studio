@@ -199,9 +199,11 @@ assert signature.e2s.dynamic_dims == ("batch",)
 
 The repository's current xarray version was tested with a shape-only duck array and
 nominal shape of `(0, 1, 73, 721, 1440)`. Construction, transpose, coordinate
-assignment, basic indexing, and reindexing preserve the backend without allocating
-field data. Coordinate arrays that are explicitly attached still consume their
-normal metadata memory.
+assignment, and basic slicing preserve the backend without allocating field data.
+List-based indexing, label reordering, and reindexing currently raise because the
+prototype supports only basic indexers. Those operations are required for alignment
+and must be implemented before the signature contract is complete. Coordinate arrays
+that are explicitly attached still consume their normal metadata memory.
 
 ### Coordinate signatures and coordinate memory
 

@@ -6,10 +6,10 @@
 
 ## Summary
 
-Earth2Studio currently passes model and workflow data as a pair containing a
+Earth2Studio currently passes dense model and workflow data as a pair containing a
 `torch.Tensor` and a coordinate dictionary. This design proposes making
-`xarray.DataArray` the canonical data container, backed by NumPy on CPU and CuPy
-on CUDA devices.
+`xarray.DataArray` the canonical dense-data container, backed by NumPy on CPU and CuPy
+on CUDA devices. Sparse and tabular data retain pandas or cuDF DataFrames.
 
 The migration must not interrupt ongoing development or require a long-lived
 migration branch. Existing models, workflows, and IO backends will continue to
@@ -546,7 +546,7 @@ and agent inspection.
 
 ## Goals
 
-1. Make `xarray.DataArray` the canonical internal data representation.
+1. Make `xarray.DataArray` the canonical internal representation for dense fields.
 2. Use NumPy-backed DataArrays on CPU and CuPy-backed DataArrays on CUDA.
 3. Preserve existing user-facing workflow signatures.
 4. Continue supporting legacy `(torch.Tensor, CoordSystem)` components during a
@@ -567,17 +567,18 @@ and agent inspection.
   migration
 - Adding gradient-preserving CuPy-Torch conversion; `requires_grad=True` remains
   unsupported until it has a separate design
-- Migrating DataFrame-based sparse data sources in the first data stage
+- Converting sparse DataFrame results into DataArrays; frame sources retain pandas or
+  cuDF outputs
 - Supporting every xarray operation on CuPy-backed arrays
 - Introducing a long-lived legacy or DataArray development branch
 
 ## Design Principles
 
-### DataArray is canonical internally
+### DataArray is canonical for dense fields
 
-Data should be fetched, mapped, batched, passed between workflow components, and
-prepared for IO as a DataArray. Conversion should occur only at a boundary with
-a legacy component.
+Dense fields should be fetched, mapped, batched, passed between workflow components,
+and prepared for IO as DataArrays. Sparse observations and other tabular results
+remain DataFrames. Conversion should occur only at a boundary with a legacy component.
 
 ### Compatibility belongs at boundaries
 
@@ -618,6 +619,15 @@ design-document branch is not an implementation or support branch.
 - `DataArray.e2s` supports NumPy/CuPy conversion, Torch conversion, batching, and
   unbatching
 - `earth2studio.utils.cupy.from_torch` wraps legacy model output as a DataArray
+
+The checked-in coordinate-array prototype is intentionally narrower than the target
+contract. It currently supports four exact built-in grid keys and compact statistic
+modifiers. Parameterized grid families, custom PyProj inputs, self-contained serialized
+grid metadata, grid hashes, metadata setters, and `describe()` remain implementation
+requirements. Coordinate signatures also need list-based indexing, label reordering,
+and reindexing. `from_torch()` accepts only a legacy `CoordSystem`; accepting a
+DataArray template is required before native model migration. Examples and compatibility
+code must not imply these capabilities exist until they are tested.
 
 ## Runtime Configuration
 
@@ -730,34 +740,31 @@ DataArray API      DataArray -> Torch + CoordSystem
 
 ## Stage 1: Data Fetching
 
-Data sources are already DataArray-native. The first stage makes that format
-canonical inside `fetch_data` and brings the DataArray path to feature parity
-with the legacy path.
+Dense data sources are already DataArray-native. The first stage makes that format
+canonical inside `fetch_data`, unifies dense and sparse dispatch, and brings the modern
+dense path to feature parity with the legacy path. Sparse sources continue returning
+pandas or cuDF DataFrames.
 
 ### Public API
 
-The current `legacy` parameter remains a temporary explicit override so existing
+The current dense `legacy` parameter remains a temporary explicit override so existing
 callers continue working. Changing its default to `None` allows the environment
-variable to select behavior without adding another public parameter.
+variable to select behavior without adding another workflow parameter.
 
 ```python
-@overload
-def fetch_data(..., legacy: Literal[True]) -> tuple[torch.Tensor, CoordSystem]: ...
-
-
-@overload
-def fetch_data(..., legacy: Literal[False]) -> xr.DataArray: ...
-
-
-@overload
-def fetch_data(
-    ...,
-    legacy: None = None,
-) -> tuple[torch.Tensor, CoordSystem] | xr.DataArray: ...
+FetchSource = DataSource | ForecastSource | DataFrameSource | ForecastFrameSource
+FetchMetadata = xr.DataArray | pd.DataFrame
+RegridCallable = Callable[[xr.DataArray, xr.DataArray], xr.DataArray]
+FetchResult = (
+    tuple[torch.Tensor, CoordSystem]
+    | xr.DataArray
+    | pd.DataFrame
+    | cudf.DataFrame
+)
 
 
 def fetch_data(
-    source: DataSource | ForecastSource,
+    source: FetchSource,
     time: TimeArray,
     variable: VariableArray,
     lead_time: LeadTimeArray = ZERO_LEAD_TIME,
@@ -765,17 +772,22 @@ def fetch_data(
     interp_to: CoordSystem | None = None,
     interp_method: str = "nearest",
     legacy: bool | None = None,
-) -> tuple[torch.Tensor, CoordSystem] | xr.DataArray:
-    array = _fetch_data_array(
-        source, time, variable, lead_time, interp_to, interp_method
-    )
-    array = _place_data_array(array, device)
-
-    mode = resolve_array_api() if legacy is None else (
-        "legacy" if legacy else "xarray"
-    )
-    return array.e2s.to_torch() if mode == "legacy" else array
+    *,
+    metadata: FetchMetadata | None = None,
+    fields: FieldArray | None = None,
+    regrid: str | RegridCallable | None = None,
+) -> FetchResult: ...
 ```
+
+`metadata` describes the requested result: dimensions, coordinates, grid, statistics,
+dtype, or frame schema. `regrid` describes the process used to reach a different
+target grid and is never stored in the target DataArray metadata. The legacy
+`interp_to` and `interp_method` inputs remain available during migration and normalize
+to those two separate concepts internally.
+
+Typing overloads narrow the result from the source family and explicit dense legacy
+mode. The detailed API, compatibility rules, and dispatch behavior are defined in
+`DATA_FETCH_DESIGN.md`.
 
 ### Canonical fetch pipeline
 
@@ -785,8 +797,8 @@ def _fetch_data_array(
     time,
     variable,
     lead_time,
-    interp_to,
-    interp_method,
+    metadata,
+    regrid,
 ) -> xr.DataArray:
     if isinstance_forecast_source(source):
         array = source(time, lead_time, variable)
@@ -798,8 +810,9 @@ def _fetch_data_array(
         array = xr.concat(arrays, dim="lead_time")
 
     array = validate_data_array(array)
-    if interp_to is not None:
-        array = interpolate_data_array(array, interp_to, interp_method)
+    array = apply_requested_statistics(array, metadata)
+    array = regrid_if_needed(array, metadata, regrid)
+    array = align_to_metadata(array, metadata)
     return array
 
 
@@ -810,18 +823,22 @@ def _place_data_array(array: xr.DataArray, device) -> xr.DataArray:
     return array.e2s.as_numpy()
 ```
 
-Interpolation initially occurs before CUDA placement unless a GPU-native
-implementation is explicitly supported and tested. Stage 1 must support current
-regular-grid and curvilinear-grid behavior, nearest and linear interpolation,
-and one- and two-dimensional target coordinates.
+Regridding initially occurs before CUDA placement unless a GPU-native implementation
+is explicitly supported and tested. Stage 1 must preserve current regular-grid and
+curvilinear-grid behavior, nearest and linear interpolation, and one- and
+two-dimensional target coordinates. Regridding is an execution step, not a property of
+the input or output DataArray.
 
 ### Stage 1 completion criteria
 
-- DataSource and ForecastSource produce equivalent results
-- Lead-time assembly is identical in both modes
+- All four dense and frame source families dispatch through `fetch_data`
+- Analysis and forecast lead-time assembly is identical in both dense modes
 - DataArray interpolation matches the legacy path
 - CPU returns NumPy-backed data and CUDA returns CuPy-backed data
+- Frame sources preserve pandas and cuDF behavior
 - Legacy conversion preserves values and coordinate ordering
+- DataArray and DataFrame metadata signatures are validated before remote work
+- Regridding configuration remains separate from DataArray metadata
 - `coord_array()` allocates no field data and supports required structural operations
 - Existing callers that omit `legacy` retain legacy behavior
 - The warning is emitted once when mode is implicit
@@ -831,8 +848,10 @@ and one- and two-dimensional target coordinates.
 Existing prognostic models retain the current protocol. Native models may opt in
 to a DataArray execution protocol through an explicit capability marker.
 
-Coordinate requirement methods remain unchanged during this migration. The
-execution payload changes, not how a model describes required coordinates.
+The `input_coords()` and `output_coords()` method names remain unchanged. Legacy
+models continue using `CoordSystem`, while native models use allocation-free or
+resolved DataArray signatures. The explicit capability marker determines which
+contract applies.
 
 ### Native prognostic pseudocode
 
@@ -840,16 +859,18 @@ execution payload changes, not how a model describes required coordinates.
 class NativePrognostic:
     array_api = "xarray"
 
-    def input_coords(self) -> CoordSystem:
+    def input_coords(self) -> xr.DataArray:
         ...
 
-    def output_coords(self, input_coords: CoordSystem) -> CoordSystem:
+    def output_coords(self, input_coords: xr.DataArray) -> xr.DataArray:
         ...
 
     def __call__(self, x: xr.DataArray) -> xr.DataArray:
-        tensor, coords = x.e2s.to_torch()
+        x = align_coords(x, self.input_coords())
+        output_template = self.output_coords(x)
+        tensor, _ = x.e2s.to_torch()
         output = self.model(tensor)
-        return from_torch(output, self.output_coords(coords))
+        return from_torch(output, output_template)
 
     def create_iterator(self, x: xr.DataArray) -> Iterator[xr.DataArray]:
         yield x
@@ -860,6 +881,9 @@ class NativePrognostic:
 
 Models implemented with Torch may still be DataArray-native at their public
 boundary. The internal model forward pass can use zero-copy Torch conversion.
+Stage 2 extends `from_torch()` to accept a DataArray template as well as a legacy
+`CoordSystem`. The template supplies ordered dimensions, coordinates, name, and
+attributes; its existing payload is ignored, and the output tensor shape must match.
 
 ### Legacy prognostic adapter
 
@@ -888,16 +912,18 @@ pattern as prognostic models.
 class NativeDiagnostic:
     array_api = "xarray"
 
-    def input_coords(self) -> CoordSystem:
+    def input_coords(self) -> xr.DataArray:
         ...
 
-    def output_coords(self, input_coords: CoordSystem) -> CoordSystem:
+    def output_coords(self, input_coords: xr.DataArray) -> xr.DataArray:
         ...
 
     def __call__(self, x: xr.DataArray) -> xr.DataArray:
-        tensor, coords = x.e2s.to_torch()
+        x = align_coords(x, self.input_coords())
+        output_template = self.output_coords(x)
+        tensor, _ = x.e2s.to_torch()
         output = self.model(tensor)
-        return from_torch(output, self.output_coords(coords))
+        return from_torch(output, output_template)
 ```
 
 ### Diagnostic dispatch
@@ -1042,6 +1068,14 @@ CPU.
 `CoordSystem` does not represent coordinate attributes. Adapters must preserve
 attributes when dimensions survive a legacy call and document when preservation
 is impossible.
+
+### Temporary batch state can leak into metadata
+
+The prototype stores an `_BatchMetadata` dataclass containing xarray variables in
+`DataArray.attrs`. That value is not JSON-serializable and may be copied into model
+outputs or IO. Before Stage 4, the batching contract must either encode restoration
+state using serializable xarray structures or declare batched arrays transient and
+reject them at serialization boundaries. `unbatch()` must remove all private state.
 
 ### Capability detection can become ambiguous
 
