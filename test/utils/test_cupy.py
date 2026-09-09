@@ -68,11 +68,13 @@ def test_coordinate_array_signature():
         "hrrr-conus-3km",
         "healpix-l6-nested",
     )
+    assert e2s.list_grids() == e2s.known_grids()
     fcn_grid = e2s.resolve_grid("fcn")
-    assert fcn_grid["id"] == "fcn-global-0.25deg"
-    assert fcn_grid["sizes"] == {"lat": 720, "lon": 1440}
-    fcn_grid["sizes"]["lat"] = 1
-    assert e2s.resolve_grid("fcn")["sizes"]["lat"] == 720
+    assert isinstance(fcn_grid, e2s.LatLonGrid)
+    assert fcn_grid.dims == ("lat", "lon")
+    assert fcn_grid.shape == (720, 1440)
+    with pytest.raises(ValueError, match="read-only"):
+        fcn_grid.latitude[0] = 1
 
     sliced = signature.isel(lead_time=0).transpose(
         "batch", "time", "variable", "lat", "lon"
@@ -94,7 +96,7 @@ def test_coordinate_array_signature():
     np.testing.assert_allclose(fcn.lon[[0, -1]], [0, 359.75])
 
     hrrr = e2s.coord_array(
-        dims=("batch", "variable", "hrrr_y", "hrrr_x"),
+        dims=("batch", "variable", "y", "x"),
         coords={"variable": ["u10m"]},
         dynamic=("batch",),
         grid="hrrr",
@@ -106,6 +108,7 @@ def test_coordinate_array_signature():
         grid="hpx6",
     )
     assert hrrr.shape == (0, 1, 1059, 1799)
+    assert hrrr.e2s.get_grid()["spatial_dims"] == ("y", "x")
     assert hrrr.e2s.get_grid()["crs"] == "Lambert Conic Conformal (2SP)"
     assert hrrr.e2s.get_grid()["topology"] == "projected"
     assert hpx.shape == (0, 1, 49_152)
@@ -119,6 +122,24 @@ def test_coordinate_array_signature():
     assert hpx.lat.shape == hpx.lon.shape == (49_152,)
     assert np.isfinite(hpx.lat).all() and np.isfinite(hpx.lon).all()
     assert hrrr.data.nbytes == hpx.data.nbytes == 0
+
+    custom_grid = e2s.ProjectedGrid(
+        y=np.arange(2) * 3000.0,
+        x=np.arange(3) * 3000.0,
+        coordinate_reference_system=(
+            "+proj=lcc +lat_1=30 +lat_2=60 +lat_0=38 +lon_0=-97 "
+            "+datum=WGS84 +units=m +type=crs"
+        ),
+    )
+    e2s.register_grid("test-regional-lcc", custom_grid, aliases=("test-lcc",))
+    custom = e2s.coord_array(
+        dims=("variable", "y", "x"),
+        coords={"variable": ["u10m"]},
+        grid="test-lcc",
+    ).e2s.materialize_grid_coords()
+    assert e2s.resolve_grid("test-lcc") is custom_grid
+    assert e2s.list_grids()[-1] == "test-regional-lcc"
+    assert custom.lat.shape == custom.lon.shape == (2, 3)
 
 
 def test_coordinate_array_validation():
@@ -141,6 +162,14 @@ def test_coordinate_array_validation():
 
     with pytest.raises(ValueError, match="Unknown Earth2Studio grid"):
         e2s.coord_array(dims=("x",), sizes={"x": 1}, grid="missing")
+    with pytest.raises(ValueError, match="does not define grid dimensions"):
+        e2s.coord_array(
+            dims=("lat", "lon"),
+            sizes={"lat": 2, "lon": 2},
+            grid="EPSG:4326",
+        )
+    with pytest.raises(ValueError, match="nonempty 1D"):
+        e2s.LatLonGrid(np.array([]), np.arange(2))
     with pytest.raises(ValueError, match="Grid dimensions"):
         e2s.coord_array(dims=("x",), sizes={"x": 1}, grid="latlon025")
     with pytest.raises(ValueError, match="conflict with grid"):
@@ -155,8 +184,150 @@ def test_coordinate_array_validation():
             coords={"variable": ["a"]},
             statistics={"a": "median:24h"},
         )
-    with pytest.raises(ValueError, match="does not contain"):
+    with pytest.raises(ValueError, match="Cannot infer"):
         xr.DataArray(np.ones(1)).e2s.materialize_grid_coords()
+
+
+def test_grid_subsets():
+    grid = e2s.coord_array(
+        dims=("variable", "lat", "lon"),
+        coords={"variable": ["u10m"]},
+        grid="latlon025",
+    )
+    sliced = grid.e2s.subset(lat=slice(1, 4), lon=slice(2, 6))
+    assert sliced.shape == (1, 3, 4)
+    assert sliced.data.nbytes == 0
+    np.testing.assert_allclose(sliced.lat, [89.75, 89.5, 89.25])
+    np.testing.assert_allclose(sliced.lon, [0.5, 0.75, 1.0, 1.25])
+    assert sliced.e2s.get_grid()["complete"] is False
+
+    bounded = grid.e2s.subset(bounds=(-1.0, 89.5, 0.5, 90.0))
+    assert bounded.shape == (1, 3, 7)
+    np.testing.assert_allclose(
+        bounded.lon, [0.0, 0.25, 0.5, 359.0, 359.25, 359.5, 359.75]
+    )
+    assert grid.isel(lat=slice(1, 3), lon=slice(2, 4)).shape == (1, 2, 2)
+
+    hrrr = e2s.coord_array(
+        dims=("variable", "y", "x"),
+        coords={"variable": ["u10m"]},
+        grid="hrrr",
+    ).e2s.subset(y=slice(0, 2), x=slice(0, 2))
+    x0, y0 = float(hrrr.x[0]), float(hrrr.y[0])
+    assert hrrr.e2s.subset(
+        bounds=(x0 - 1, y0 - 1, x0 + 3001, y0 + 3001),
+        bounds_crs=hrrr.e2s.crs,
+    ).shape == (1, 2, 2)
+
+    hpx = e2s.coord_array(
+        dims=("variable", "hpx"),
+        coords={"variable": ["u10m"]},
+        grid="hpx6",
+    ).e2s.subset(faces=(1, 3))
+    assert hpx.shape == (1, 2 * 64**2)
+    np.testing.assert_array_equal(hpx.hpx[:2], [64**2, 64**2 + 1])
+    np.testing.assert_array_equal(hpx.hpx[-2:], [4 * 64**2 - 2, 4 * 64**2 - 1])
+    assert hpx.e2s.materialize_grid_coords().lat.shape == (2 * 64**2,)
+
+
+def test_grid_inference_and_validation():
+    rectilinear = xr.DataArray(
+        np.ones((2, 3)),
+        dims=("lat", "lon"),
+        coords={"lat": [40.0, 39.0], "lon": [250.0, 251.0, 252.0]},
+    )
+    assert isinstance(e2s.infer_grid(rectilinear), e2s.LatLonGrid)
+    assert rectilinear.e2s.get_grid()["registered"] is False
+
+    points = e2s.coord_array(
+        dims=("x",),
+        coords={
+            "x": np.arange(3),
+            "lat": ("x", [35.2, 40.8, 51.0]),
+            "lon": ("x", [-97.4, -74.0, 0.1]),
+        },
+    )
+    point_grid = e2s.infer_grid(points)
+    assert isinstance(point_grid, e2s.PointGrid)
+    assert point_grid.dims == ("x",)
+    assert point_grid.shape == (3,)
+    assert point_grid.topology == "points" and point_grid.crs is None
+    point_indexes = point_grid.index_coordinates()
+    assert tuple(point_grid.geographic_coordinates({"x": point_indexes["x"]})) == (
+        "lat",
+        "lon",
+    )
+    assert point_grid.cell_bounds({"x": np.arange(3)}) is None
+    assert point_grid.to_metadata() == {"topology": "points"}
+    assert point_grid.fingerprint()
+    assert points.e2s.subset(bounds=(-100, 30, -90, 40)).shape == (1,)
+
+    latitude = np.array([[40.0, 40.1, 40.2], [41.0, 41.1, 41.2]])
+    longitude = np.array([[-100.0, -99.0, -98.0], [-100.1, -99.1, -98.1]])
+    curvilinear = e2s.coord_array(
+        dims=("y", "x"),
+        coords={
+            "lat": (("y", "x"), latitude),
+            "lon": (("y", "x"), longitude),
+        },
+    )
+    curvilinear_grid = e2s.infer_grid(curvilinear)
+    assert isinstance(curvilinear_grid, e2s.CurvilinearGrid)
+    assert curvilinear_grid.dims == ("y", "x")
+    assert curvilinear_grid.shape == (2, 3)
+    assert curvilinear_grid.topology == "curvilinear"
+    curvilinear_indexes = curvilinear_grid.index_coordinates()
+    geographic = curvilinear_grid.geographic_coordinates(
+        {name: np.asarray(curvilinear_indexes[name]) for name in curvilinear_grid.dims}
+    )
+    assert geographic["lat"].shape == (2, 3)
+    assert curvilinear_grid.to_metadata() == {"topology": "curvilinear"}
+    assert curvilinear_grid.fingerprint()
+    assert curvilinear.shape == (2, 3)
+    assert curvilinear.e2s.subset(bounds=(-99.2, 39.5, -97.5, 41.5)).shape == (2, 2)
+
+    projected = e2s.coord_array(
+        dims=("y", "x"),
+        coords={"y": np.arange(2) * 3000, "x": np.arange(3) * 3000},
+        attrs={"earth2studio_crs": "EPSG:3857"},
+    )
+    assert isinstance(e2s.infer_grid(projected), e2s.ProjectedGrid)
+    assert projected.e2s.materialize_grid_coords().lat.shape == (2, 3)
+
+    base = e2s.coord_array(dims=("lat", "lon"), grid="latlon025")
+    for options, message in (
+        ({"bounds": (0, 1, 2)}, "must contain"),
+        ({"bounds": (0, 2, 1, 1)}, "minimum y"),
+        ({"bounds": (0, -100, 1, -99)}, "do not contain"),
+        ({"bounds_crs": "EPSG:4326"}, "requires bounds"),
+        ({"unknown": True}, "Unsupported"),
+        ({"lat": slice(0, 0)}, "at least one"),
+    ):
+        with pytest.raises(ValueError, match=message):
+            base.e2s.subset(**options)
+
+    hpx = e2s.coord_array(dims=("hpx",), grid="hpx6")
+    with pytest.raises(ValueError, match="0 through 11"):
+        hpx.e2s.subset(faces=())
+    with pytest.raises(ValueError, match="At least one"):
+        base.e2s.subset()
+    with pytest.raises(ValueError, match="preserve every spatial dimension"):
+        base.e2s.subset(lat=0)
+    with pytest.raises(ValueError, match="Cannot infer"):
+        xr.DataArray(np.ones(2), dims="x").e2s.subset(x=slice(None))
+    ring = e2s.HEALPixGrid(level=1, ordering="ring")
+    ring_geo = ring.geographic_coordinates({"hpx": np.arange(ring.shape[0])})
+    assert np.isfinite(ring_geo["lat"]).all()
+    with pytest.raises(NotImplementedError, match="NESTED"):
+        ring.subset_indexers(ring.index_coordinates(), faces=(0,))
+    with pytest.raises(ValueError, match="unsupported layout"):
+        e2s.infer_grid(
+            xr.DataArray(
+                np.ones((2, 2)),
+                dims=("a", "b"),
+                coords={"lat": ("a", [0, 1]), "lon": ("b", [0, 1])},
+            )
+        )
 
 
 def test_numpy_torch_and_batch_round_trip():

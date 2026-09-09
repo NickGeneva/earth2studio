@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .coordinate import coord_array, known_grids, resolve_grid
+from .coordinate import coord_array
 from .coords import (
     convert_multidim_to_singledim,
     handshake_coords,
@@ -22,3 +22,16 @@ from .coords import (
     handshake_size,
 )
 from .cupy import from_torch
+from .grid import (
+    CurvilinearGrid,
+    GridDefinition,
+    HEALPixGrid,
+    LatLonGrid,
+    PointGrid,
+    ProjectedGrid,
+    infer_grid,
+    known_grids,
+    list_grids,
+    register_grid,
+    resolve_grid,
+)

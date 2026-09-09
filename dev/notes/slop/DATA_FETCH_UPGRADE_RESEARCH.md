@@ -9,7 +9,7 @@ coordinate-dictionary API during migration.
 This document complements:
 
 - `CUPY_DESIGN.md`, which defines the broader NumPy, CuPy, and Torch transition.
-- `COORDINATE_SIGNATURE_DESIGN.md`, which defines payload-free coordinate
+- `COORDINATE_SIGNATURE_SPEC.md`, which defines payload-free coordinate
   signatures, dimension order, grid metadata, alignment, and handshakes.
 
 ## Goals
@@ -354,11 +354,11 @@ or data-source protocol.
 | Source grid | Target grid | Method | Planning | Application |
 | --- | --- | --- | --- | --- |
 | Rectilinear | Rectilinear | nearest/linear | Axis search | NumPy or CuPy gather/interpolation |
-| Rectilinear | 2D lat/lon | nearest/linear | Axis search and weights | NumPy or CuPy gather and weighted sum |
+| Rectilinear | 2D lat/lon | nearest/linear | Axis weights | NumPy/CuPy weighted gather |
 | Curvilinear | Any lat/lon | nearest | KDTree or GPU KNN | Cached flat-index gather |
-| Curvilinear | Any lat/lon | linear | CPU triangulation and barycentric weights | Cached gather and weighted sum |
-| Regular lat/lon | HEALPix | supported Earth2Grid method | Earth2Grid planner | Zero-copy CuPy/Torch adapter |
-| HEALPix | Regular lat/lon | supported Earth2Grid method | Earth2Grid planner | Zero-copy CuPy/Torch adapter |
+| Curvilinear | Any lat/lon | linear | CPU barycentric weights | Cached weighted gather |
+| Regular lat/lon | HEALPix | Earth2Grid-supported | Earth2Grid | Zero-copy CuPy/Torch adapter |
+| HEALPix | Regular lat/lon | Earth2Grid-supported | Earth2Grid | Zero-copy CuPy/Torch adapter |
 | Identical grid hash | Same grid | any | None | Shallow alignment only |
 
 ### Rectilinear grids

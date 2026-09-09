@@ -82,11 +82,17 @@ build rollout coordinates, IO backends use it to initialize stores, wrappers use
 to compose models, and utilities use it to calculate forecast steps.
 
 The current representation becomes ambiguous when metadata is not itself a tensor
-axis. For example, a projected grid has tensor dimensions such as `hrrr_y` and
-`hrrr_x`, two-dimensional latitude and longitude coordinates over those dimensions,
-and projection metadata. Adding all of those fields to the ordered dictionary makes
-it unclear which keys are tensor axes. Current code has encountered the same problem
+axis. For example, a projected grid has tensor dimensions `y` and `x`,
+two-dimensional latitude and longitude coordinates over those dimensions, and
+projection metadata. Adding all of those fields to the ordered dictionary makes it
+unclear which keys are tensor axes. Current code has encountered the same problem
 with per-sample time metadata.
+
+Spatial dimension names describe axis roles rather than grid identity. Native
+latitude/longitude grids use `lat` and `lon`, HEALPix uses `hpx`, and other structured
+grids use the applicable trailing subset of `z`, `y`, and `x`. Grid identity and
+geometry belong in Earth2Studio metadata, so an HRRR field uses `y` and `x`, not
+grid-specific dimension names.
 
 ## Research findings
 
@@ -314,8 +320,8 @@ def input_coords(self) -> xr.DataArray:
             "time",
             "lead_time",
             "variable",
-            "hrrr_y",
-            "hrrr_x",
+            "y",
+            "x",
         ),
         coords={
             "lead_time": np.array([np.timedelta64(0, "h")]),
@@ -375,19 +381,58 @@ topology, hash, and optional canonical key.
 
 ### Grid resolver and registry
 
-The same resolver backs `coord_array(grid=...)` and `array.e2s.set_grid(...)`:
+Grid definitions and lookup live in `earth2studio.utils.grid`, separate from the
+allocation-free coordinate constructor. Every registered grid implements the public
+`GridDefinition` interface:
+
+```python
+class GridDefinition(ABC):
+    dims: tuple[str, ...]
+    shape: tuple[int, ...]
+    topology: str
+    crs: pyproj.CRS | None
+
+    def index_coordinates(self) -> xr.Coordinates: ...
+    def geographic_coordinates(self, indexes) -> xr.Coordinates: ...
+    def subset_indexers(self, coordinates, **selection) -> dict: ...
+    def cell_bounds(self, indexes) -> xr.Coordinates | None: ...
+    def to_metadata(self) -> dict: ...
+    def fingerprint(self) -> str: ...
+
+e2s.register_grid(name, definition, aliases=...)
+names = e2s.list_grids()
+definition = e2s.resolve_grid(name_or_alias)
+```
+
+A definition provides ordered dimensions, shape, index coordinates, geographic
+coordinates, serializable metadata, and a stable fingerprint. Earth2Studio supplies
+`LatLonGrid`, `ProjectedGrid`, `CurvilinearGrid`, `HEALPixGrid`, and `PointGrid`.
+
+A CRS is optional and only describes native coordinates. For example, HRRR's `y` and
+`x` use a Lambert CRS, while HEALPix has no native projected CRS and derives
+latitude/longitude directly from pixel indexes. A CRS alone is not a grid because it
+does not define dimensions, shape, or cell locations.
+
+The same resolver backs `coord_array(grid=...)`, `array.e2s.set_grid(...)`, and the
+public lookup functions:
 
 1. Normalize aliases and check exact Earth2Studio custom grids.
 2. Check parameterized grid families such as regular lat/lon and HEALPix.
-3. Attempt `pyproj.CRS.from_user_input()` or `CRS.from_cf()`.
-4. Raise with close known-key suggestions when neither path resolves.
+3. Detect valid CRS-only input and request the missing grid geometry.
+4. Raise with close known-key suggestions when the value is unknown.
 
 ```python
-known = array.e2s.set_grid("hrrr-conus-3km")
-standard = array.e2s.set_grid(
-    "EPSG:4326",
-    spatial_dims=("lat", "lon"),
+e2s.register_grid(
+    "regional-lcc",
+    e2s.ProjectedGrid(
+        y=y0 + dy * np.arange(ny),
+        x=x0 + dx * np.arange(nx),
+        coordinate_reference_system=(
+            "+proj=lcc +lat_1=30 +lat_2=60 +lat_0=38 +lon_0=-97"
+        ),
+    ),
 )
+signature = e2s.coord_array(..., grid="regional-lcc")
 ```
 
 Initial keys are:
@@ -400,19 +445,11 @@ Initial keys are:
 | `healpix-l6-nested` | `hpx6` | `nside=64`, NESTED, 49,152 pixels |
 | `healpix-l10-nested` | `hpx10` | `nside=1024`, NESTED, 12,582,912 pixels |
 
-The registry should implement `latlon-{resolution}deg` and
-`healpix-l{level}-{ring|nested}` as validated resolver families. This avoids a large
-enumerated table while retaining canonical keys. Short aliases resolve to one fixed,
-documented canonical key; `hpx6` therefore always means `healpix-l6-nested`.
-The regular lat/lon family includes both poles, orders latitude north-to-south, uses
-longitudes in `[0, 360)`, and requires a resolution that evenly divides both 180 and
-360 degrees. Other conventions use explicit coordinates and an EPSG CRS.
-
-Exact custom grids such as HRRR are private registry entries containing CRS, ordered
-spatial dimensions, shape, transform, units, and a lazy coordinate generator.
-Registry entries may be plain mappings or callables; no public `GridSpec` class is
-required. Names that PyProj already recognizes are reserved and cannot be shadowed by
-custom entries.
+Built-ins are installed at import time, while extensions may register grids during
+their initialization. Registration is process-local and idempotent for an identical
+definition. Conflicting names or aliases raise, and names recognized by PyProj are
+reserved. `list_grids()` returns canonical names in registration order;
+`resolve_grid()` returns the registered `GridDefinition`.
 
 Resolution stores the canonical grid key and required geometry or topology on the
 DataArray. Known grids resolve their normalized CRS from the registry; custom grids
@@ -422,14 +459,11 @@ For `coord_array()`, a known key fills missing fixed spatial sizes and generated
 coordinates. For an existing runtime DataArray, `set_grid()` only validates and
 annotates matching dimensions and shape; it never reshapes or regrids data.
 
-There is no `compact_grid_metadata` object in this design. CRS, geometry, spatial
-dimension names, and indexed topology use flat serializable attributes managed by
-`.e2s`.
-
-Every spatial grid carries a CRS. A regular latitude-longitude grid normally uses an
-EPSG geographic CRS. A projected grid such as HRRR uses a PyProj-supported Lambert
-conformal CRS. A HEALPix grid uses a PyProj-supported geographic CRS plus explicit
-topology metadata because its tensor coordinate is a pixel index rather than x/y.
+Ordinary Xarray objects do not need registration. `infer_grid()` recognizes separate
+one-dimensional `lat` and `lon` dimensions, two-dimensional `lat`/`lon` on `y`/`x`,
+one-dimensional point `lat`/`lon` on `x`, and projected `y`/`x` coordinates carrying
+the `earth2studio_crs` attribute. This is the generic fallback for user-defined
+coordinates; registration adds stable identity and reusable specialized behavior.
 
 This signature allocates no field buffer regardless of its declared sizes. It also
 avoids the 1D projected coordinates and 2D latitude/longitude arrays. Those
@@ -547,7 +581,7 @@ HRRR uses a custom Lambert conformal CRS. The common path uses its registry key:
 
 ```python
 hrrr = e2s.coord_array(
-    dims=("batch", "time", "variable", "hrrr_y", "hrrr_x"),
+    dims=("batch", "time", "variable", "y", "x"),
     coords={"variable": variables},
     dynamic=("batch", "time"),
     grid="hrrr-conus-3km",
@@ -555,7 +589,7 @@ hrrr = e2s.coord_array(
 ```
 
 The registry resolves the 1059 by 1799 shape, transform, and the custom Lambert CRS.
-The same grid can be declared explicitly when no key exists:
+The same grid can be registered from explicit PyProj input:
 
 ```python
 hrrr_crs = pyproj.CRS.from_user_input(
@@ -563,15 +597,19 @@ hrrr_crs = pyproj.CRS.from_user_input(
     "+lat_2=38.5 +R=6371229 +units=m +type=crs"
 )
 
+e2s.register_grid(
+    "custom-hrrr",
+    e2s.ProjectedGrid(
+        y=hrrr_y0 + 3000.0 * np.arange(1059),
+        x=hrrr_x0 + 3000.0 * np.arange(1799),
+        coordinate_reference_system=hrrr_crs,
+    ),
+)
 hrrr = e2s.coord_array(
-    dims=("batch", "time", "variable", "hrrr_y", "hrrr_x"),
+    dims=("batch", "time", "variable", "y", "x"),
     coords={"variable": variables},
     dynamic=("batch", "time"),
-    sizes={"hrrr_y": 1059, "hrrr_x": 1799},
-).e2s.set_grid(
-    hrrr_crs,
-    spatial_dims=("hrrr_y", "hrrr_x"),
-    transform=hrrr_transform,
+    grid="custom-hrrr",
 )
 ```
 
@@ -581,8 +619,8 @@ DataArray follows normal xarray and CF conventions:
 ```python
 hrrr = hrrr.assign_coords(
     {
-        "hrrr_y": xr.Variable(
-            "hrrr_y",
+        "y": xr.Variable(
+            "y",
             projected_y,
             attrs={
                 "axis": "Y",
@@ -590,8 +628,8 @@ hrrr = hrrr.assign_coords(
                 "units": "m",
             },
         ),
-        "hrrr_x": xr.Variable(
-            "hrrr_x",
+        "x": xr.Variable(
+            "x",
             projected_x,
             attrs={
                 "axis": "X",
@@ -599,8 +637,8 @@ hrrr = hrrr.assign_coords(
                 "units": "m",
             },
         ),
-        "lat": (("hrrr_y", "hrrr_x"), latitude),
-        "lon": (("hrrr_y", "hrrr_x"), longitude),
+        "lat": (("y", "x"), latitude),
+        "lon": (("y", "x"), longitude),
     }
 )
 ```
@@ -903,8 +941,8 @@ def output_coords(self, input_coords: xr.DataArray) -> xr.DataArray:
         {
             "sample": np.arange(self.number_of_samples),
             "variable": self.output_variables,
-            "hrrr_y": self.output_y,
-            "hrrr_x": self.output_x,
+            "y": self.output_y,
+            "x": self.output_x,
         }
     )
     return e2s.coord_array(
@@ -914,8 +952,8 @@ def output_coords(self, input_coords: xr.DataArray) -> xr.DataArray:
             "time",
             "lead_time",
             "variable",
-            "hrrr_y",
-            "hrrr_x",
+            "y",
+            "x",
         ),
         coords=coords,
         dynamic=input_coords.e2s.dynamic_dims,
@@ -1026,9 +1064,9 @@ handshake_coords(array, model.input_coords())
 4. Select and reorder fixed coordinate labels.
 5. Transpose the DataArray into the model signature's `dims` order.
 
-For example, input with dimensions `(batch, variable, hrrr_x, hrrr_y)` can be
-transposed to `(batch, variable, hrrr_y, hrrr_x)`. Xarray transposes dependent
-coordinates such as `lat(hrrr_y, hrrr_x)` and `lon(hrrr_y, hrrr_x)` with the data.
+For example, input with dimensions `(batch, variable, x, y)` can be transposed to
+`(batch, variable, y, x)`. Xarray transposes dependent coordinates such as
+`lat(y, x)` and `lon(y, x)` with the data.
 For NumPy and CuPy arrays, transpose is normally a view; the later Torch conversion
 may make the payload contiguous only when the model requires it.
 

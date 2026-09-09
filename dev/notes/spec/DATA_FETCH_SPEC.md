@@ -10,7 +10,7 @@ This document converts `DATA_FETCH_UPGRADE_RESEARCH.md` into a feature-parity de
 It depends on:
 
 - `CUPY_DESIGN.md` for backend conversion and migration configuration.
-- `COORDINATE_SIGNATURE_DESIGN.md` for allocation-free DataArray and DataFrame
+- `COORDINATE_SIGNATURE_SPEC.md` for allocation-free DataArray and DataFrame
   signatures, grids, statistics, alignment, and handshakes.
 
 ## Decision Summary

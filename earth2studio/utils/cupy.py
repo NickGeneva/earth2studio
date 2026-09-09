@@ -29,12 +29,12 @@ import torch
 import xarray as xr
 from pyproj import CRS
 
-from earth2studio.utils.coordinate import (
-    E2S_DYNAMIC_DIMS,
+from earth2studio.utils.coordinate import E2S_DYNAMIC_DIMS, _get_statistic
+from earth2studio.utils.grid import (
     _array_crs,
-    _get_statistic,
     _grid_metadata,
     _materialize_grid_coords,
+    _subset_grid,
 )
 from earth2studio.utils.type import CoordSystem
 
@@ -247,6 +247,21 @@ class Earth2StudioAccessor:
             DataArray with physical grid coordinates attached.
         """
         return _materialize_grid_coords(self._array)
+
+    def subset(self, **kwargs: Any) -> xr.DataArray:
+        """Select a grid subdomain using grid-specific keywords.
+
+        Parameters
+        ----------
+        **kwargs : Any
+            Dimension indexers or options supported by the registered grid.
+
+        Returns
+        -------
+        xr.DataArray
+            DataArray restricted to the selected grid cells.
+        """
+        return _subset_grid(self._array, kwargs)
 
     @property
     def is_cupy(self) -> bool:

@@ -126,8 +126,8 @@ signature = e2s.coord_array(
         "time",
         "lead_time",
         "variable",
-        "hrrr_y",
-        "hrrr_x",
+        "y",
+        "x",
     ),
     coords={
         "lead_time": [np.timedelta64(0, "h")],
@@ -391,6 +391,11 @@ WKT2, PROJJSON, and other user inputs use `CRS.from_user_input()`; CF mappings u
 `CRS.from_cf()`. Earth2Studio must not invent projection names such as
 `"hrrr-conus-3km"` and pass them as a CRS.
 
+Spatial dimension names describe axis roles, not grid identity. Native
+latitude/longitude grids use `lat` and `lon`, HEALPix uses `hpx`, and other structured
+grids use the applicable trailing subset of `z`, `y`, and `x`. The grid metadata
+identifies the geometry, so HRRR uses `y` and `x` rather than grid-specific names.
+
 `pyproj` is the appropriate CRS parser and transformation library. Its [CF
 support](https://pyproj4.github.io/pyproj/stable/build_crs_cf.html) can read user input
 through `CRS.from_user_input`, export a CF grid mapping through `CRS.to_cf`, export
@@ -406,13 +411,45 @@ order regardless of CRS axis order.
 
 ### Grid resolver and registry
 
-`coord_array(grid=...)` and `array.e2s.set_grid(...)` use the same resolver:
+Grid behavior lives in `earth2studio.utils.grid`. The registry stores concrete
+implementations of one explicit interface:
 
-1. Normalize aliases and check Earth2Studio's exact custom grids.
-2. Check parameterized Earth2Studio grid families such as regular lat/lon and
-   HEALPix.
-3. Attempt `pyproj.CRS.from_user_input()` or `CRS.from_cf()`.
-4. Raise with close known-key suggestions if neither path resolves.
+```python
+class GridDefinition(ABC):
+    @property
+    def dims(self) -> tuple[str, ...]: ...
+
+    @property
+    def shape(self) -> tuple[int, ...]: ...
+
+    @property
+    def topology(self) -> str: ...
+
+    @property
+    def crs(self) -> pyproj.CRS | None: ...
+
+    def index_coordinates(self) -> xr.Coordinates: ...
+    def geographic_coordinates(self, indexes) -> xr.Coordinates: ...
+    def subset_indexers(self, coordinates, **selection) -> dict: ...
+    def cell_bounds(self, indexes) -> xr.Coordinates | None: ...
+    def to_metadata(self) -> dict: ...
+    def fingerprint(self) -> str: ...
+```
+
+Earth2Studio supplies `LatLonGrid`, `ProjectedGrid`, `CurvilinearGrid`,
+`HEALPixGrid`, and `PointGrid`. Registration names a complete definition:
+
+```python
+e2s.register_grid(name, definition, aliases=...)
+e2s.list_grids()
+e2s.resolve_grid(name_or_alias)
+```
+
+A grid must define ordered dimensions, shape, index coordinates, geographic
+coordinates, serializable metadata, and a stable geometry fingerprint. `crs` is
+optional: it describes native coordinates such as HRRR's Lambert `y` and `x`, while
+HEALPix and arbitrary points can produce latitude and longitude without native
+projected coordinates.
 
 Initial canonical keys should be concise but unambiguous:
 
@@ -424,29 +461,38 @@ Initial canonical keys should be concise but unambiguous:
 | `healpix-l6-nested` | `hpx6` | Spherical geographic CRS, `nside=64`, 49,152 pixels |
 | `healpix-l10-nested` | `hpx10` | Spherical geographic CRS, `nside=1024`, 12,582,912 pixels |
 
-The registry should also support canonical families such as
-`latlon-{resolution}deg` and `healpix-l{level}-{ring|nested}` rather than enumerating
-every possible resolution. Short aliases always resolve to a documented canonical
-key; for example, `hpx6` means NESTED ordering.
+Built-ins are registered when Earth2Studio is imported. Extensions may add entries
+during their own initialization. The registry is process-local, re-registering an
+identical definition is a no-op, and conflicting names or aliases raise. Names that
+PyProj already recognizes are reserved so a grid cannot shadow an EPSG or other CRS
+identifier. `resolve_grid()` returns the registered `GridDefinition`.
 
-Registry entries are private mappings or resolver functions, not public grid classes.
-They contain the normalized CRS, ordered spatial dimensions, shape, transform or
-topology, units, and a lazy coordinate generator. Registration must reject names that
-PyProj already recognizes so a custom key cannot shadow an EPSG or other authority
-identifier.
+Grid subsetting uses one keyword-only accessor API:
 
-After resolution, Earth2Studio writes the complete CRS and geometry or topology onto
-the DataArray. Serialization and handshakes therefore remain self-describing and do
-not depend on the registry being available later.
+```python
+hrrr.e2s.subset(y=slice(100, 500), x=slice(200, 800))
+hrrr.e2s.subset(bounds=(-125, 25, -65, 50), bounds_crs="EPSG:4326")
+hpx.e2s.subset(faces=(0, 1, 2))
+```
 
-For `coord_array()`, a known key fills missing fixed spatial sizes and generated
-coordinates. For an existing runtime DataArray, `set_grid()` only validates and
-annotates matching dimensions and shape; it never reshapes or regrids data.
+Direct dimension indexers are handled uniformly. `subset_indexers()` translates
+higher-level selections into spatial Xarray indexers; it never receives or modifies
+field data. Changing resolution or interpolation belongs to a regridder.
+
+Grid index coordinates are attached when `coord_array()` is created, while field
+values remain allocation-free. A later `isel()` or `subset()` therefore preserves
+the selected positions, and physical coordinates can still be materialized for only
+that subdomain.
+
+Registration is optional for ordinary Xarray objects. `infer_grid()` recognizes
+separate one-dimensional `lat`/`lon` axes, shared two-dimensional `lat`/`lon` on
+`y`/`x`, shared one-dimensional `lat`/`lon` on `x`, and `y`/`x` with an
+`earth2studio_crs` attribute. Registered definitions provide stable identity and
+specialized behavior; inferred definitions provide a generic fallback.
 
 A CRS still does not identify a discrete grid. Exact identity also requires ordered
 spatial dimensions, shape, axis units, and coordinates, a transform, or topology
-metadata. `grid_id` is therefore optional and only provides a registry/cache key for
-known geometry.
+metadata. `grid_id` is therefore a concise registry/cache key for known geometry.
 
 ### Regular latitude-longitude
 
@@ -473,14 +519,14 @@ stores shape and transform without allocating coordinate arrays:
 
 ```python
 hrrr = e2s.coord_array(
-    dims=("batch", "time", "variable", "hrrr_y", "hrrr_x"),
+    dims=("batch", "time", "variable", "y", "x"),
     coords={"variable": variables},
     dynamic=("batch", "time"),
     grid="hrrr-conus-3km",
 )
 ```
 
-An unregistered grid uses the same API with explicit PyProj input and geometry:
+An extension registers explicit PyProj input together with its geometry:
 
 ```python
 regional_lcc = pyproj.CRS.from_user_input(
@@ -488,15 +534,19 @@ regional_lcc = pyproj.CRS.from_user_input(
     "+datum=WGS84 +units=m +type=crs"
 )
 
+e2s.register_grid(
+    "regional-lcc",
+    e2s.ProjectedGrid(
+        y=y0 + dy * np.arange(ny),
+        x=x0 + dx * np.arange(nx),
+        coordinate_reference_system=regional_lcc,
+    ),
+)
 regional = e2s.coord_array(
     dims=("batch", "time", "variable", "y", "x"),
     coords={"variable": variables},
     dynamic=("batch", "time"),
-    sizes={"y": ny, "x": nx},
-).e2s.set_grid(
-    regional_lcc,
-    spatial_dims=("y", "x"),
-    transform=regional_transform,
+    grid="regional-lcc",
 )
 ```
 
@@ -620,14 +670,15 @@ design-document branch is not an implementation or support branch.
   unbatching
 - `earth2studio.utils.cupy.from_torch` wraps legacy model output as a DataArray
 
-The checked-in coordinate-array prototype is intentionally narrower than the target
-contract. It currently supports four exact built-in grid keys and compact statistic
-modifiers. Parameterized grid families, custom PyProj inputs, self-contained serialized
-grid metadata, grid hashes, metadata setters, and `describe()` remain implementation
-requirements. Coordinate signatures also need list-based indexing, label reordering,
-and reindexing. `from_torch()` accepts only a legacy `CoordSystem`; accepting a
-DataArray template is required before native model migration. Examples and compatibility
-code must not imply these capabilities exist until they are tested.
+The checked-in prototype now has a dedicated process-local grid registry with four
+built-ins, public registration/list/resolve functions, custom PyProj-backed projected
+grids, lazy coordinate materialization, and compact statistic modifiers. Parameterized
+grid families, self-contained serialized grid metadata, grid hashes, metadata setters,
+and `describe()` remain implementation requirements. Coordinate signatures also need
+list-based indexing, label reordering, and reindexing. `from_torch()` accepts only a
+legacy `CoordSystem`; accepting a DataArray template is required before native model
+migration. Examples and compatibility code must not imply these capabilities exist
+until they are tested.
 
 ## Runtime Configuration
 
@@ -787,7 +838,7 @@ to those two separate concepts internally.
 
 Typing overloads narrow the result from the source family and explicit dense legacy
 mode. The detailed API, compatibility rules, and dispatch behavior are defined in
-`DATA_FETCH_DESIGN.md`.
+`DATA_FETCH_SPEC.md`.
 
 ### Canonical fetch pipeline
 
