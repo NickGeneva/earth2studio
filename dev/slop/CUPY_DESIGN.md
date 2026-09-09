@@ -411,11 +411,11 @@ order regardless of CRS axis order.
 
 ### Grid resolver and registry
 
-Grid behavior lives in `earth2studio.utils.grid`. The registry stores concrete
-implementations of one explicit interface:
+Grid behavior lives in `earth2studio.utils.grid`. The registry accepts objects that
+structurally implement one explicit interface; inheritance is not required:
 
 ```python
-class GridDefinition(ABC):
+class GridDefinition(Protocol):
     @property
     def dims(self) -> tuple[str, ...]: ...
 

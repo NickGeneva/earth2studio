@@ -131,6 +131,8 @@ def test_coordinate_array_signature():
             "+datum=WGS84 +units=m +type=crs"
         ),
     )
+    assert isinstance(custom_grid, e2s.GridDefinition)
+    assert e2s.GridDefinition not in type(custom_grid).__mro__
     e2s.register_grid("test-regional-lcc", custom_grid, aliases=("test-lcc",))
     custom = e2s.coord_array(
         dims=("variable", "y", "x"),

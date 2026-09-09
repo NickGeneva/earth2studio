@@ -386,7 +386,7 @@ allocation-free coordinate constructor. Every registered grid implements the pub
 `GridDefinition` interface:
 
 ```python
-class GridDefinition(ABC):
+class GridDefinition(Protocol):
     dims: tuple[str, ...]
     shape: tuple[int, ...]
     topology: str
@@ -405,8 +405,10 @@ definition = e2s.resolve_grid(name_or_alias)
 ```
 
 A definition provides ordered dimensions, shape, index coordinates, geographic
-coordinates, serializable metadata, and a stable fingerprint. Earth2Studio supplies
-`LatLonGrid`, `ProjectedGrid`, `CurvilinearGrid`, `HEALPixGrid`, and `PointGrid`.
+coordinates, serializable metadata, and a stable fingerprint. This is a structural
+interface: grid classes implement these members without inheriting from
+`GridDefinition`. Earth2Studio supplies `LatLonGrid`, `ProjectedGrid`,
+`CurvilinearGrid`, `HEALPixGrid`, and `PointGrid`.
 
 A CRS is optional and only describes native coordinates. For example, HRRR's `y` and
 `x` use a Lambert CRS, while HEALPix has no native projected CRS and derives

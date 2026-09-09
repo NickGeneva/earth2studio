@@ -18,10 +18,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from abc import ABC, abstractmethod
 from collections.abc import Hashable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Literal, Protocol, runtime_checkable
 
 import numpy as np
 import xarray as xr
@@ -144,38 +143,58 @@ def _mask_indexers(
     return indexers
 
 
-class GridDefinition(ABC):
-    """Define ordered spatial coordinates and grid operations."""
+def _geographic_subset_indexers(
+    definition: GridDefinition, coordinates: xr.Coordinates, **selection: Any
+) -> dict[str, Any]:
+    unknown = set(selection) - {"bounds", "bounds_crs"}
+    if unknown:
+        raise ValueError(f"Unsupported grid subset options: {sorted(unknown)}")
+    if "bounds_crs" in selection and "bounds" not in selection:
+        raise ValueError("Grid subset bounds_crs requires bounds")
+    if "bounds" not in selection:
+        return {}
+    geographic = _geographic_coordinates(definition, coordinates)
+    latitude, mask = _bounds_mask(
+        geographic,
+        selection["bounds"],
+        selection.get("bounds_crs", "OGC:CRS84"),
+    )
+    return _mask_indexers(mask, definition.dims, latitude.dims)
+
+
+@runtime_checkable
+class GridDefinition(Protocol):
+    """Define the structural interface for an Earth2Studio grid."""
 
     @property
-    @abstractmethod
     def dims(self) -> tuple[str, ...]:
         """Return ordered spatial dimensions."""
+        ...
 
     @property
-    @abstractmethod
     def shape(self) -> tuple[int, ...]:
         """Return the spatial shape."""
+        ...
 
     @property
-    @abstractmethod
     def topology(self) -> GridTopology:
         """Return the grid topology."""
+        ...
 
     @property
     def crs(self) -> CRS | None:
         """Return the native coordinate reference system, if defined."""
-        return None
+        ...
 
-    @abstractmethod
     def index_coordinates(self) -> xr.Coordinates:
         """Return one-dimensional indexes for every spatial dimension."""
+        ...
 
-    @abstractmethod
     def geographic_coordinates(
         self, indexes: Mapping[str, NDArray[Any]]
     ) -> xr.Coordinates:
         """Return latitude and longitude for selected indexes."""
+        ...
 
     def subset_indexers(
         self, coordinates: xr.Coordinates, **selection: Any
@@ -194,20 +213,7 @@ class GridDefinition(ABC):
         dict[str, Any]
             Xarray positional indexers for spatial dimensions.
         """
-        unknown = set(selection) - {"bounds", "bounds_crs"}
-        if unknown:
-            raise ValueError(f"Unsupported grid subset options: {sorted(unknown)}")
-        if "bounds_crs" in selection and "bounds" not in selection:
-            raise ValueError("Grid subset bounds_crs requires bounds")
-        if "bounds" not in selection:
-            return {}
-        geographic = _geographic_coordinates(self, coordinates)
-        latitude, mask = _bounds_mask(
-            geographic,
-            selection["bounds"],
-            selection.get("bounds_crs", "OGC:CRS84"),
-        )
-        return _mask_indexers(mask, self.dims, latitude.dims)
+        ...
 
     def cell_bounds(self, indexes: Mapping[str, NDArray[Any]]) -> xr.Coordinates | None:
         """Return geographic cell boundaries when available.
@@ -222,19 +228,19 @@ class GridDefinition(ABC):
         xr.Coordinates | None
             Cell boundaries or None when unsupported.
         """
-        return None
+        ...
 
-    @abstractmethod
     def to_metadata(self) -> dict[str, Any]:
         """Return a serializable grid description."""
+        ...
 
-    @abstractmethod
     def fingerprint(self) -> str:
         """Return a stable geometry fingerprint."""
+        ...
 
 
 @dataclass(frozen=True)
-class LatLonGrid(GridDefinition):
+class LatLonGrid:
     """Define a rectilinear latitude-longitude grid.
 
     Parameters
@@ -290,6 +296,16 @@ class LatLonGrid(GridDefinition):
         """Return selected latitude and longitude coordinates."""
         return xr.Coordinates({"lat": indexes["lat"], "lon": indexes["lon"]})
 
+    def subset_indexers(
+        self, coordinates: xr.Coordinates, **selection: Any
+    ) -> dict[str, Any]:
+        """Translate geographic bounds into dimension indexers."""
+        return _geographic_subset_indexers(self, coordinates, **selection)
+
+    def cell_bounds(self, indexes: Mapping[str, NDArray[Any]]) -> None:
+        """Return no cell boundaries."""
+        return None
+
     def to_metadata(self) -> dict[str, Any]:
         """Return rectilinear grid metadata."""
         return {"topology": self.topology}
@@ -300,7 +316,7 @@ class LatLonGrid(GridDefinition):
 
 
 @dataclass(frozen=True)
-class ProjectedGrid(GridDefinition):
+class ProjectedGrid:
     """Define a structured projected grid.
 
     Parameters
@@ -367,6 +383,16 @@ class ProjectedGrid(GridDefinition):
             }
         )
 
+    def subset_indexers(
+        self, coordinates: xr.Coordinates, **selection: Any
+    ) -> dict[str, Any]:
+        """Translate geographic bounds into dimension indexers."""
+        return _geographic_subset_indexers(self, coordinates, **selection)
+
+    def cell_bounds(self, indexes: Mapping[str, NDArray[Any]]) -> None:
+        """Return no cell boundaries."""
+        return None
+
     def to_metadata(self) -> dict[str, Any]:
         """Return projected grid metadata."""
         return {"topology": self.topology}
@@ -377,7 +403,7 @@ class ProjectedGrid(GridDefinition):
 
 
 @dataclass(frozen=True)
-class CurvilinearGrid(GridDefinition):
+class CurvilinearGrid:
     """Define a structured grid using two-dimensional geographic coordinates.
 
     Parameters
@@ -426,6 +452,11 @@ class CurvilinearGrid(GridDefinition):
         """Return the curvilinear topology."""
         return "curvilinear"
 
+    @property
+    def crs(self) -> None:
+        """Return no native CRS."""
+        return None
+
     def index_coordinates(self) -> xr.Coordinates:
         """Return y and x dimension indexes."""
         return xr.Coordinates({"y": self.y, "x": self.x})
@@ -442,6 +473,16 @@ class CurvilinearGrid(GridDefinition):
         ).sel(y=indexes["y"], x=indexes["x"])
         return xr.Coordinates({"lat": latitude, "lon": longitude})
 
+    def subset_indexers(
+        self, coordinates: xr.Coordinates, **selection: Any
+    ) -> dict[str, Any]:
+        """Translate geographic bounds into dimension indexers."""
+        return _geographic_subset_indexers(self, coordinates, **selection)
+
+    def cell_bounds(self, indexes: Mapping[str, NDArray[Any]]) -> None:
+        """Return no cell boundaries."""
+        return None
+
     def to_metadata(self) -> dict[str, Any]:
         """Return curvilinear grid metadata."""
         return {"topology": self.topology}
@@ -452,7 +493,7 @@ class CurvilinearGrid(GridDefinition):
 
 
 @dataclass(frozen=True)
-class PointGrid(GridDefinition):
+class PointGrid:
     """Define arbitrary geographic points along an x index.
 
     Parameters
@@ -496,6 +537,11 @@ class PointGrid(GridDefinition):
         """Return the points topology."""
         return "points"
 
+    @property
+    def crs(self) -> None:
+        """Return no native CRS."""
+        return None
+
     def index_coordinates(self) -> xr.Coordinates:
         """Return x point indexes."""
         return xr.Coordinates({"x": self.x})
@@ -511,6 +557,16 @@ class PointGrid(GridDefinition):
             x=indexes["x"]
         )
         return xr.Coordinates({"lat": latitude, "lon": longitude})
+
+    def subset_indexers(
+        self, coordinates: xr.Coordinates, **selection: Any
+    ) -> dict[str, Any]:
+        """Translate geographic bounds into point indexers."""
+        return _geographic_subset_indexers(self, coordinates, **selection)
+
+    def cell_bounds(self, indexes: Mapping[str, NDArray[Any]]) -> None:
+        """Return no cell boundaries."""
+        return None
 
     def to_metadata(self) -> dict[str, Any]:
         """Return point-grid metadata."""
@@ -590,7 +646,7 @@ def _healpix_coordinates(
 
 
 @dataclass(frozen=True)
-class HEALPixGrid(GridDefinition):
+class HEALPixGrid:
     """Define a HEALPix grid.
 
     Parameters
@@ -629,6 +685,11 @@ class HEALPixGrid(GridDefinition):
     def topology(self) -> GridTopology:
         """Return the HEALPix topology."""
         return "healpix"
+
+    @property
+    def crs(self) -> None:
+        """Return no native CRS."""
+        return None
 
     def index_coordinates(self) -> xr.Coordinates:
         """Return HEALPix pixel indexes."""
@@ -676,7 +737,7 @@ class HEALPixGrid(GridDefinition):
             mask &= np.isin(pixels // self.nside**2, np.unique(faces))
         if selection:
             selected = xr.Coordinates({"hpx": ("hpx", pixels[mask])})
-            bounds = super().subset_indexers(selected, **selection)
+            bounds = _geographic_subset_indexers(self, selected, **selection)
             bounded = np.zeros(mask.sum(), dtype=bool)
             bounded[bounds["hpx"]] = True
             mask[np.flatnonzero(mask)] &= bounded
@@ -684,6 +745,10 @@ class HEALPixGrid(GridDefinition):
         if positions.size == 0:
             raise ValueError("Grid subset must contain at least one spatial cell")
         return {"hpx": positions}
+
+    def cell_bounds(self, indexes: Mapping[str, NDArray[Any]]) -> None:
+        """Return no cell boundaries."""
+        return None
 
     def to_metadata(self) -> dict[str, Any]:
         """Return HEALPix grid metadata."""
