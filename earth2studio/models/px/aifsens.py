@@ -465,6 +465,10 @@ class AIFSENS(torch.nn.Module, AutoModelMixin, PrognosticMixin):
             os.makedirs(cache_dir, exist_ok=True)
             torch.save(invariants, invariants_path)
 
+        # IFS fetches may be float64; the model state is float32. This also
+        # normalises caches written with a different dtype.
+        invariants = invariants.to(torch.float32)
+
         # Can also fetch from NCAR ERA5 backup but these have some differences
         # invariant_package = Package(
         #     "https://nsf-ncar-era5.s3.amazonaws.com/e5.oper.invariant/197901/",
