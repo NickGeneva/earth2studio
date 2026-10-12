@@ -179,8 +179,9 @@ class TestCBottleVideoMock:
         out = px(from_torch(x, coords))
         out_coords = {k: out.coords[k].values for k in out.dims}
 
-        assert out.shape == torch.Size(
-            [x.shape[0], x.shape[1], px._time_length - 1, 45, 721, 1440]
+        assert out.shape == torch.Size([x.shape[0], x.shape[1], 1, 45, 721, 1440])
+        np.testing.assert_array_equal(
+            out_coords["lead_time"], np.array([np.timedelta64(6, "h")])
         )
         assert np.all(out_coords["variable"] == px.output_coords(coords)["variable"])
         handshake_dim(out_coords, "lon", 5)
@@ -214,9 +215,7 @@ class TestCBottleVideoMock:
         out = px(from_torch(x, coords))
         out_coords = {k: out.coords[k].values for k in out.dims}
 
-        assert out.shape == torch.Size(
-            [x.shape[0], x.shape[1], px._time_length - 1, 45, 49152]
-        )
+        assert out.shape == torch.Size([x.shape[0], x.shape[1], 1, 45, 49152])
         assert np.all(out_coords["variable"] == px.output_coords(coords)["variable"])
         handshake_dim(out_coords, "hpx", 4)
         handshake_dim(out_coords, "variable", 3)
@@ -260,8 +259,7 @@ class TestCBottleVideoMock:
         for i, out in enumerate(p_iter, 1):
             out_coords = {k: v.values for k, v in out.coords.items()}
             assert len(out.shape) == 6
-            count = px._time_length - 1
-            assert out.shape == torch.Size([ensemble, len(time), count, 45, 721, 1440])
+            assert out.shape == torch.Size([ensemble, len(time), 1, 45, 721, 1440])
             assert (
                 out_coords["variable"] == px.output_coords(coords)["variable"]
             ).all()
@@ -269,7 +267,7 @@ class TestCBottleVideoMock:
             assert (out_coords["time"] == time).all()
             np.testing.assert_array_equal(
                 out_coords["lead_time"],
-                (np.arange(1, count + 1) + (i - 1) * count) * np.timedelta64(6, "h"),
+                np.array([i * np.timedelta64(6, "h")]),
             )
             assert "marker" not in out.coords
             assert len(out.attrs["user"]["history"]) == i + 1
@@ -332,7 +330,7 @@ class TestCBottleVideoMock:
 
 
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
-def test_cbottle_video_preserves_full_chunk(monkeypatch, device):
+def test_cbottle_video_buffers_video_frames(monkeypatch, device):
     if device.startswith("cuda") and not torch.cuda.is_available():
         pytest.skip("CUDA not available")
 
@@ -378,42 +376,39 @@ def test_cbottle_video_preserves_full_chunk(monkeypatch, device):
     x.encoding["user"] = {"notes": ["input"]}
     x.time.attrs["user"] = {"notes": ["time"]}
     original = x.copy(deep=True)
-    expected = model._predict(x).copy(deep=True)
-    model.calls = 0
+    values = original.e2s.as_numpy().values
+    lead_axis = x.get_axis_num("lead_time")
 
-    unbatched_frames = []
-    accessor = type(x.e2s)
-    unbatch = accessor.unbatch
+    def expected_values(offset):
+        return values + offset
 
-    def record_unbatch(self, *args, **kwargs):
-        result = unbatch(self, *args, **kwargs)
-        unbatched_frames.append(result.sizes["lead_time"])
-        return result
-
-    monkeypatch.setattr(accessor, "unbatch", record_unbatch)
+    # __call__ returns only the 6 hour frame of the sampled video
     out = model(x)
-    assert unbatched_frames == [11]
     assert model.calls == 1
-    xr.testing.assert_identical(out.e2s.as_numpy(), expected.e2s.as_numpy())
-    assert out.encoding == expected.encoding
+    assert out.sizes["lead_time"] == 1
+    np.testing.assert_array_equal(out.lead_time.values, [np.timedelta64(6, "h")])
+    np.testing.assert_array_equal(out.e2s.as_numpy().values, expected_values(1))
+    assert out.encoding == original.encoding
 
-    unbatched_frames.clear()
+    # The iterator yields one frame per step, sampling a video every 11 steps
+    model.calls = 0
     iterator = model.create_iterator(x)
-    for cycle in range(2):
+    for n in range(1, 24):
         frame = next(iterator)
-        values = original.e2s.as_numpy().values
-        offsets = np.arange(1, 12) + 11 * cycle
-        shape = [1] * values.ndim
-        shape[x.get_axis_num("lead_time")] = 11
+        assert frame.sizes["lead_time"] == 1
         np.testing.assert_array_equal(
-            frame.e2s.as_numpy().values, values + offsets.reshape(shape)
+            frame.lead_time.values, [n * np.timedelta64(6, "h")]
         )
+        # frames within a video are offset 1..11, a new video conditions on frame 11
+        # (value offset 11) and again adds 1..11
+        cycle, position = divmod(n - 1, 11)
         np.testing.assert_array_equal(
-            frame.lead_time.values, offsets * np.timedelta64(6, "h")
+            frame.e2s.as_numpy().values,
+            expected_values(11 * cycle + position + 1),
         )
+        assert model.calls == cycle + 1
     iterator.close()
-    assert unbatched_frames == [11, 11]
-    assert model.calls == 3
+    assert lead_axis == x.get_axis_num("lead_time")
     out.data[...] = -1
     out.attrs["user"]["notes"].append("changed")
     xr.testing.assert_identical(x.e2s.as_numpy(), original.e2s.as_numpy())
@@ -439,7 +434,7 @@ def test_cbottle_video_package(device):
     out = px(x)
     out_coords = {k: out.coords[k].values for k in out.dims}
 
-    assert out.shape == torch.Size([len(time), px._time_length - 1, 45, 721, 1440])
+    assert out.shape == torch.Size([len(time), 1, 45, 721, 1440])
     assert (out_coords["variable"] == px.output_coords(coords)["variable"]).all()
     assert (out_coords["time"] == time).all()
     handshake_dim(out_coords, "lon", 4)

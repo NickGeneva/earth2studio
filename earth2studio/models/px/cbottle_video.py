@@ -16,6 +16,7 @@
 
 from collections.abc import Iterator
 from copy import deepcopy
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from enum import IntEnum, StrEnum
 
@@ -63,6 +64,26 @@ except ImportError:
 HPX_LEVEL = 6
 
 
+@dataclass
+class _VideoState:
+    """Continuation of a video rollout.
+
+    Attributes
+    ----------
+    pending : xr.DataArray
+        Generated frames that have not been published yet, on the video's
+        ``lead_time`` axis (empty when the next step must generate a new video)
+    seed : int
+        Seed of the sampling stream
+    rng : dict[str, torch.Tensor]
+        Sampling RNG state tensors
+    """
+
+    pending: xr.DataArray
+    seed: int
+    rng: dict[str, torch.Tensor]
+
+
 class DatasetModality(IntEnum):
     """Dataset label"""
 
@@ -84,6 +105,15 @@ class CBottleVideo(torch.nn.Module, AutoModelMixin, PrognosticMixin):
     simulations and reanalysis on the equal-area HEALPix grid. The cBottle video
     prognostic model uses the video diffusion checkpoint of CBottle trained to predict
     12 frames (initial state including) at a time.
+
+    Note
+    ----
+    The model forecasts in 6 hour steps. Each call and each iterator yield returns a
+    single 6 hour frame. One diffusion sample generates 11 frames (6 to 66 hours)
+    which the iterator buffers and publishes one frame per step. After the 66 hour
+    frame has been published the next step conditions a new video on it. Front hooks
+    therefore only influence the forecast every 11 steps (``front_hook_interval``),
+    while rear hooks run for every frame.
 
     Note
     ----
@@ -252,11 +282,7 @@ class CBottleVideo(torch.nn.Module, AutoModelMixin, PrognosticMixin):
             self.input_coords(),
         )
         return coord_array_like(
-            input_coords,
-            {
-                "lead_time": lead.values[-1]
-                + np.arange(1, self._time_length) * self._time_step
-            },
+            input_coords, {"lead_time": lead.values[-1:] + self._time_step}
         )
 
     stochastic = True
@@ -528,6 +554,7 @@ class CBottleVideo(torch.nn.Module, AutoModelMixin, PrognosticMixin):
 
     @batch_func()
     def _predict(self, x: xr.DataArray) -> xr.DataArray:
+        """Sample a complete video (all frames after the conditioning frame)."""
         self.output_coords(x)
         times = np.tile(x.time.values + x.lead_time.values[-1], x.sizes["batch"])
         tensor = x.e2s.to_torch()[0].to(self.device_buffer.device).clone()
@@ -547,8 +574,27 @@ class CBottleVideo(torch.nn.Module, AutoModelMixin, PrognosticMixin):
         result.encoding = deepcopy(x.encoding)
         return result
 
+    def _generate(self, x: xr.DataArray) -> tuple[xr.DataArray, _VideoState]:
+        """Sample a video from ``x``; publish its first frame and buffer the rest."""
+        handshake_nonempty(x)
+        handshake_time(x)
+        if self._rng_seed is None:
+            self.set_rng(int(torch.randint(2**31, ()).item()))
+        video = self._predict(x)
+        if self._rng_seed is None or self._rng_states is None:
+            raise RuntimeError("Sampling stream was not initialized")
+        first = video.isel(lead_time=slice(0, 1)).copy(deep=True)
+        pending = video.isel(lead_time=slice(1, None))
+        return first, _VideoState(pending, self._rng_seed, deepcopy(self._rng_states))
+
     def __call__(self, x: xr.DataArray) -> xr.DataArray:
-        """Predict the complete video forecast without hooks.
+        """Predict the first 6 hour frame without hooks.
+
+        Note
+        ----
+        The model samples a complete 66 hour video; only its first frame is
+        returned. Use the iterator to obtain the remaining frames without
+        resampling.
 
         Parameters
         ----------
@@ -558,15 +604,13 @@ class CBottleVideo(torch.nn.Module, AutoModelMixin, PrognosticMixin):
         Returns
         -------
         xr.DataArray
-            All predicted frames matching ``output_coords(x)``, excluding
-            the conditioning frame.
+            Prediction 6 hours after the conditioning frame matching
+            ``output_coords(x)``.
         """
         return self.initialize(x)[0]
 
-    def initialize(
-        self, x: xr.DataArray
-    ) -> tuple[xr.DataArray, tuple[int, dict[str, torch.Tensor]]]:
-        """Generate the first video and its continuation random stream.
+    def initialize(self, x: xr.DataArray) -> tuple[xr.DataArray, _VideoState]:
+        """Sample the first video and publish its first (6 hour) frame.
 
         Parameters
         ----------
@@ -575,45 +619,61 @@ class CBottleVideo(torch.nn.Module, AutoModelMixin, PrognosticMixin):
 
         Returns
         -------
-        tuple[xr.DataArray, tuple[int, dict[str, torch.Tensor]]]
-            Complete forecast video, excluding its conditioning frame, and the
-            continuation seed and RNG state tensors. No iterator hooks run.
+        tuple[xr.DataArray, _VideoState]
+            The 6 hour forecast and the state holding the remaining 10 generated
+            frames and the continuation sampling stream. No iterator hooks run.
         """
-        handshake_nonempty(x)
-        handshake_time(x)
-        if self._rng_seed is None:
-            self.set_rng(int(torch.randint(2**31, ()).item()))
-        y = self._predict(x)
-        if self._rng_seed is None or self._rng_states is None:
-            raise RuntimeError("Sampling stream was not initialized")
-        return y, (self._rng_seed, deepcopy(self._rng_states))
+        return self._generate(x)
 
     def step(
-        self, y: xr.DataArray, state: tuple[int, dict[str, torch.Tensor]]
-    ) -> tuple[xr.DataArray, tuple[int, dict[str, torch.Tensor]]]:
-        """Generate the next video from its final frame and saved stream.
+        self, y: xr.DataArray, state: _VideoState
+    ) -> tuple[xr.DataArray, _VideoState]:
+        """Publish the next 6 hour frame.
+
+        Buffered frames are returned without running the model. Once the buffer is
+        empty, ``y`` (the 66 hour frame) conditions a newly sampled video whose
+        first frame is returned.
 
         Parameters
         ----------
         y : xr.DataArray
-            Previous forecast video. Its final frame conditions the next video.
-        state : tuple[int, dict[str, torch.Tensor]]
-            Seed and RNG state tensors returned by ``initialize`` or ``step``.
+            Previous forecast frame. Only used when the buffer is empty.
+        state : _VideoState
+            State returned by ``initialize`` or ``step``.
 
         Returns
         -------
-        tuple[xr.DataArray, tuple[int, dict[str, torch.Tensor]]]
-            Next complete forecast video and updated sampling state, without hooks.
+        tuple[xr.DataArray, _VideoState]
+            Next 6 hour forecast frame and updated state, without hooks.
         """
+        pending = state.pending
+        if pending.sizes["lead_time"] > 0:
+            frame = pending.isel(lead_time=slice(0, 1)).copy(deep=True)
+            rest = pending.isel(lead_time=slice(1, None))
+            # A sampled video would inherit the user metadata of its conditioning
+            # frame, so buffered frames carry the previous output's (hook-edited)
+            # metadata forward in the same way.
+            frame.name = y.name
+            frame.attrs = deepcopy(y.attrs)
+            frame.encoding = deepcopy(y.encoding)
+            for name, coord in y.coords.items():
+                if name in frame.coords and name != "lead_time":
+                    frame.coords[name].attrs = deepcopy(coord.attrs)
+            return frame, replace(state, pending=rest)
+
         previous = self._rng_seed, self._rng_states
-        self._rng_seed, self._rng_states = deepcopy(state)
+        self._rng_seed, self._rng_states = state.seed, deepcopy(state.rng)
         try:
-            return self.initialize(y.isel(lead_time=slice(-1, None)))
+            return self._generate(y.isel(lead_time=slice(-1, None)))
         finally:
             self._rng_seed, self._rng_states = previous
 
     def create_iterator(self, x: xr.DataArray) -> Iterator[xr.DataArray]:
-        """Yield complete forecast videos starting with initialization's prediction.
+        """Yield 6 hour forecast frames starting with initialization's prediction.
+
+        One sampled video provides 11 consecutive frames (6 to 66 hours) which are
+        yielded one at a time. The 66 hour frame, after the rear hook, conditions
+        the next video.
 
         Parameters
         ----------
@@ -623,8 +683,9 @@ class CBottleVideo(torch.nn.Module, AutoModelMixin, PrognosticMixin):
         Yields
         ------
         xr.DataArray
-            Forecast videos without the conditioning frame. The rear hook runs
-            before each yield and the front hook before subsequent steps. The
-            final frame conditions the next video.
+            Single-frame forecasts without the conditioning frame. The rear hook
+            runs before every yield and the front hook before every subsequent
+            step, though front-hook edits only affect the forecast when a new video
+            is sampled (every ``front_hook_interval`` steps).
         """
         return self._default_create_iterator(x)
