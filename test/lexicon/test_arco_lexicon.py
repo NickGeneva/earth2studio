@@ -114,6 +114,9 @@ def test_arco_accumulation_aliases():
         "ssrd06": 6,
         "strd06": 6,
         "tp06": 6,
+        "tp12": 12,
+        "tp24": 24,
+        "e06": 6,
         "ttr03": 3,
     }
 
